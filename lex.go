@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 type tokenType int
@@ -10,9 +11,10 @@ type tokenType int
 const (
 	tokenText tokenType = iota
 	tokenTagOpen
-	tokenTagDefinition
-	tokenTagEnd
+	tokenTagName
+	tokenTagArguments
 	tokenTagClose
+	tokenSpace
 	tokenEof
 )
 
@@ -68,20 +70,53 @@ func (lex *lexer) tokenize(code string) tokenStream {
 
 func (lex *lexer) next() string {
 	fmt.Println(lex.current, len(lex.input))
-	if lex.current == len(lex.input) {
+	if lex.current+1 >= len(lex.input) {
 		return ""
 	}
 
-	lex.current++
+	lex.current += 1
 
 	return string(lex.input[lex.current])
+}
+
+func (lex *lexer) backup() {
+	if lex.current <= lex.pos {
+		return
+	}
+	
+	fmt.Println("Backing up")
+	lex.current -= 1
+}
+
+func (lex *lexer) peek() string {
+	str := lex.next()
+	lex.backup()
+	
+	return str
 }
 
 func (lex *lexer) emit(t tokenType) {
 	fmt.Println(lex.pos, lex.current, len(lex.input))
 	val := lex.input[lex.pos:lex.current]
-	lex.tokens = append(lex.tokens, token{val, lex.pos, t})
+	tok := token{val, lex.pos, t}
+	fmt.Println(tok)
+	lex.tokens = append(lex.tokens, tok)
 	lex.pos = lex.current
+}
+
+func (lex *lexer) consumeWhitespace() {
+	fmt.Println("Consuming whitespace")
+	for {
+		str := lex.input[lex.current:lex.current+1]
+		fmt.Println("A space?", str)
+		if (!isSpace(str)) {
+			break
+		}
+		lex.next()
+	}
+	
+	fmt.Println("Emitting a space token")
+	lex.emit(tokenSpace)
 }
 
 func lexData(lex *lexer) stateFn {
@@ -93,7 +128,7 @@ func lexData(lex *lexer) stateFn {
 			}
 			return lexTagOpen
 		}
-
+		
 		if lex.next() == "" {
 			break
 		}
@@ -112,18 +147,31 @@ func lexTagOpen(lex *lexer) stateFn {
 	lex.current += len(delimOpenTag)
 	lex.emit(tokenTagOpen)
 
-	return lexTagDefinition
+	return lexTagName
 }
 
-func lexTagDefinition(lex *lexer) stateFn {
-	closePos := strings.Index(lex.input[lex.current:], delimCloseTag)
-	if closePos < 0 {
-		panic("unexpected end of tag")
+func lexTagName(lex *lexer) stateFn {
+	lex.consumeWhitespace()
+	for {
+		str := lex.next();
+		if !isAlphaNumeric(str) {
+			break
+		}
 	}
 
-	lex.current += closePos
-	lex.emit(tokenTagDefinition)
+	lex.emit(tokenTagName)
 
+	return lexTagArguments
+}
+
+func lexTagArguments(lex *lexer) stateFn {
+	lex.consumeWhitespace()
+	closePos := strings.Index(lex.input[lex.current:], delimCloseTag)
+	if closePos > 0 {
+		lex.current += closePos
+		lex.emit(tokenTagArguments)
+	}
+	
 	return lexTagClose
 }
 
@@ -132,6 +180,20 @@ func lexTagClose(lex *lexer) stateFn {
 	lex.emit(tokenTagClose)
 
 	return lexData
+}
+
+func isSpace(str string) bool {
+	return str == " " || str == "\t"
+}
+
+func isAlphaNumeric(str string) bool {
+	for _, s := range str {
+		if string(s) != "_" && !unicode.IsLetter(s) && !unicode.IsDigit(s) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func main() {
