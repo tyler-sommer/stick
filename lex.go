@@ -104,8 +104,12 @@ func (lex *lexer) backup() {
 func (lex *lexer) peek() string {
 	str := lex.next()
 	lex.backup()
-	
+
 	return str
+}
+
+func (lex *lexer) ignore() {
+	lex.pos = lex.current
 }
 
 func (lex *lexer) emit(t tokenType) {
@@ -118,18 +122,18 @@ func (lex *lexer) emit(t tokenType) {
 }
 
 func (lex *lexer) consumeWhitespace() {
-	fmt.Println("Consuming whitespace")
+	if lex.pos != lex.current {
+		panic("Whitespace may only be consumed directly after emission")
+	}
 	for {
-		str := lex.input[lex.current:lex.current+1]
-		fmt.Println("A space?", str)
-		if (!isSpace(str)) {
+		str := lex.input[lex.current : lex.current+1]
+		if !isSpace(str) {
 			break
 		}
 		lex.next()
 	}
-	
-	fmt.Println("Emitting a space token")
-	lex.emit(tokenSpace)
+
+	lex.ignore()
 }
 
 func lexData(lex *lexer) stateFn {
