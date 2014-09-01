@@ -18,6 +18,15 @@ const (
 	tokenEof
 )
 
+var names = map[tokenType]string{
+	tokenText:         "TEXT",
+	tokenTagOpen:      "TAG_OPEN",
+	tokenTagName:      "TAG_NAME",
+	tokenTagArguments: "TAG_ARGS",
+	tokenTagClose:     "TAG_CLOSE",
+	tokenEof:          "EOF",
+}
+
 const (
 	delimOpenTag      = "{%"
 	delimCloseTag     = "%}"
@@ -41,6 +50,10 @@ type token struct {
 	value     string
 	pos       int
 	tokenType tokenType
+}
+
+func (tok token) String() string {
+	return fmt.Sprintf("{%s '%s' %d}\n", names[tok.tokenType], tok.value, tok.pos)
 }
 
 type tokenStream []token
@@ -83,7 +96,7 @@ func (lex *lexer) backup() {
 	if lex.current <= lex.pos {
 		return
 	}
-	
+
 	fmt.Println("Backing up")
 	lex.current -= 1
 }
@@ -128,7 +141,7 @@ func lexData(lex *lexer) stateFn {
 			}
 			return lexTagOpen
 		}
-		
+
 		if lex.next() == "" {
 			break
 		}
@@ -153,7 +166,7 @@ func lexTagOpen(lex *lexer) stateFn {
 func lexTagName(lex *lexer) stateFn {
 	lex.consumeWhitespace()
 	for {
-		str := lex.next();
+		str := lex.next()
 		if !isAlphaNumeric(str) {
 			break
 		}
