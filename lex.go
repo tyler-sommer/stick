@@ -1,4 +1,4 @@
-package main
+package stick
 
 import (
 	"fmt"
@@ -51,6 +51,7 @@ var names = map[tokenType]string{
 }
 
 const (
+	delimEof          = ""
 	delimOpenTag      = "{%"
 	delimCloseTag     = "%}"
 	delimOpenPrint    = "{{"
@@ -76,7 +77,7 @@ type token struct {
 }
 
 func (tok token) String() string {
-	return fmt.Sprintf("{%s '%s' %d}\n", names[tok.tokenType], tok.value, tok.pos)
+	return fmt.Sprintf("{%s '%s' %d}", names[tok.tokenType], tok.value, tok.pos)
 }
 
 type tokenStream []token
@@ -106,22 +107,20 @@ func (lex *lexer) tokenize(code string) tokenStream {
 }
 
 func (lex *lexer) next() string {
-	fmt.Println(lex.cursor, len(lex.input))
-	if lex.cursor+1 >= len(lex.input) {
-		return ""
+	if lex.cursor >= len(lex.input) {
+		return delimEof
 	}
-
 	lex.cursor += 1
-
-	return string(lex.input[lex.cursor])
+	if lex.cursor == len(lex.input) {
+		return delimEof
+	}
+	return lex.current()
 }
 
 func (lex *lexer) backup() {
 	if lex.cursor <= lex.pos {
 		return
 	}
-
-	fmt.Println("Backing up")
 	lex.cursor -= 1
 }
 
@@ -138,10 +137,8 @@ func (lex *lexer) ignore() {
 }
 
 func (lex *lexer) emit(t tokenType) {
-	fmt.Println(lex.pos, lex.cursor, len(lex.input))
 	val := lex.input[lex.pos:lex.cursor]
 	tok := token{val, lex.pos, t}
-	fmt.Println(tok)
 	lex.tokens = append(lex.tokens, tok)
 	lex.pos = lex.cursor
 	if lex.pos < len(lex.input) {
@@ -180,7 +177,7 @@ func lexData(lex *lexer) stateFn {
 			return lexPrintOpen
 		}
 
-		if lex.next() == "" {
+		if lex.next() == delimEof {
 			break
 		}
 	}
@@ -277,8 +274,7 @@ func lexOpenParens(lex *lexer) stateFn {
 		lex.emit(tokenHashOpen)
 
 	default:
-		fmt.Println(lex.current())
-		panic("Unknown parens: ")
+		panic("Unknown parens")
 	}
 
 	lex.parens += 1
@@ -377,6 +373,12 @@ func isAlphaNumeric(str string) bool {
 	}
 
 	return true
+}
+
+func lex(input string) tokenStream {
+	lex := lexer{}
+
+	return lex.tokenize(input)
 }
 
 func main() {
