@@ -25,6 +25,13 @@ var (
 var lexTests = []lexTest{
 	{"empty", "", []token{tEof}},
 
+	{"number", "{{ 5 }}", []token{
+		tPrintOpen,
+		mkTok(tokenNumber, "5"),
+		tPrintClose,
+		tEof,
+	}},
+
 	{"text", "<html><head></head></html>", []token{
 		mkTok(tokenText, "<html><head></head></html>"),
 		tEof,

@@ -11,6 +11,7 @@ type tokenType int
 const (
 	tokenText tokenType = iota
 	tokenName
+	tokenNumber
 	tokenTagOpen
 	tokenTagName
 	tokenTagClose
@@ -33,6 +34,7 @@ const (
 var names = map[tokenType]string{
 	tokenText:        "TEXT",
 	tokenName:        "NAME",
+	tokenNumber:      "NUMBER",
 	tokenTagOpen:     "TAG_OPEN",
 	tokenTagName:     "TAG_NAME",
 	tokenTagClose:    "TAG_CLOSE",
@@ -229,12 +231,28 @@ func lexExpression(lex *lexer) stateFn {
 	case str == "\"":
 		return lexString
 
-	case isAlphaNumeric(str):
+	case isNumeric(str):
+		return lexNumber
+
+	case isName(str):
 		return lexName
 
 	default:
 		panic("Unknown expression")
 	}
+}
+
+func lexNumber(lex *lexer) stateFn {
+	for {
+		str := lex.next()
+		if !isNumeric(str) {
+			break
+		}
+	}
+
+	lex.emit(tokenNumber)
+
+	return lexExpression
 }
 
 func lexOperator(lex *lexer) stateFn {
@@ -374,9 +392,29 @@ func isSpace(str string) bool {
 	return str == " " || str == "\t"
 }
 
-func isAlphaNumeric(str string) bool {
+func isName(str string) bool {
 	for _, s := range str {
 		if string(s) != "_" && !unicode.IsLetter(s) && !unicode.IsDigit(s) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isAlphaNumeric(str string) bool {
+	for _, s := range str {
+		if !unicode.IsLetter(s) && !unicode.IsDigit(s) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isNumeric(str string) bool {
+	for _, s := range str {
+		if !unicode.IsDigit(s) {
 			return false
 		}
 	}
