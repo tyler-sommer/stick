@@ -24,7 +24,8 @@ const (
 	tokenHashClose
 	tokenStringOpen
 	tokenStringClose
-	tokenComma
+	tokenPunctuation
+	tokenOperator
 	tokenEof
 )
 
@@ -44,7 +45,8 @@ var names = map[tokenType]string{
 	tokenHashClose:   "HASH_CLOSE",
 	tokenStringOpen:  "STRING_OPEN",
 	tokenStringClose: "STRING_CLOSE",
-	tokenComma:       "COMMA",
+	tokenPunctuation: "PUNCTUATION",
+	tokenOperator:    "OPERATOR",
 	tokenEof:         "EOF",
 }
 
@@ -206,7 +208,10 @@ func lexExpression(lex *lexer) stateFn {
 		}
 		return lexPrintClose
 
-	case strings.ContainsAny(str, ","):
+	case strings.ContainsAny(str, "+-/*%~"):
+		return lexOperator
+
+	case strings.ContainsAny(str, ",?:|"):
 		return lexPunctuation
 
 	case strings.ContainsAny(str, "([{"):
@@ -226,15 +231,16 @@ func lexExpression(lex *lexer) stateFn {
 	}
 }
 
-func lexPunctuation(lex *lexer) stateFn {
-	switch str := lex.current(); {
-	case str == ",":
-		lex.next()
-		lex.emit(tokenComma)
+func lexOperator(lex *lexer) stateFn {
+	lex.next()
+	lex.emit(tokenOperator)
 
-	default:
-		panic("Unknown punctuation")
-	}
+	return lexExpression
+}
+
+func lexPunctuation(lex *lexer) stateFn {
+	lex.next()
+	lex.emit(tokenPunctuation)
 
 	return lexExpression
 }
@@ -374,7 +380,7 @@ func isAlphaNumeric(str string) bool {
 }
 
 func main() {
-	data := "<html><head><title>{% block title %}{{ ([ test, \"test\" ]) }}{% endblock %}</title><body>{% block body %}<div class=\"container\"></div>{% endblock %}</body></html>"
+	data := "<html><head><title>{% block title %}{{ ([ test + 5, \"test\" ]) }}{% endblock %}</title><body>{% block body %}<div class=\"container\"></div>{% endblock %}</body></html>"
 
 	lex := lexer{}
 
