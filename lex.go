@@ -14,17 +14,32 @@ const (
 	tokenTagOpen
 	tokenTagName
 	tokenTagClose
-	tokenSpace
+	tokenPrintOpen
+	tokenPrintClose
+	tokenParensOpen
+	tokenParensClose
+	tokenArrayOpen
+	tokenArrayClose
+	tokenHashOpen
+	tokenHashClose
 	tokenEof
 )
 
 var names = map[tokenType]string{
-	tokenText:     "TEXT",
-	tokenName:     "NAME",
-	tokenTagOpen:  "TAG_OPEN",
-	tokenTagName:  "TAG_NAME",
-	tokenTagClose: "TAG_CLOSE",
-	tokenEof:      "EOF",
+	tokenText:       "TEXT",
+	tokenName:       "NAME",
+	tokenTagOpen:    "TAG_OPEN",
+	tokenTagName:    "TAG_NAME",
+	tokenTagClose:   "TAG_CLOSE",
+	tokenPrintOpen:  "PRINT_OPEN",
+	tokenPrintClose: "PRINT_CLOSE",
+	tokenParensOpen: "PARENS_OPEN",
+	tokenParensClose: "PARENS_CLOSE",
+	tokenArrayOpen: "ARRAY_OPEN",
+	tokenArrayClose: "ARRAY_CLOSE",
+	tokenHashOpen: "HASH_OPEN",
+	tokenHashClose: "HASH_CLOSE",
+	tokenEof:        "EOF",
 }
 
 const (
@@ -63,6 +78,7 @@ type stateFn func(*lexer) stateFn
 type lexer struct {
 	pos    int // The position of the last emission
 	cursor int // The position of the cursor
+	parens int // Number of still-open parenthesis in the current expression
 	input  string
 	tokens tokenStream
 	state  stateFn
@@ -120,6 +136,9 @@ func (lex *lexer) emit(t tokenType) {
 	fmt.Println(tok)
 	lex.tokens = append(lex.tokens, tok)
 	lex.pos = lex.cursor
+	if lex.pos < len(lex.input) {
+		lex.consumeWhitespace()
+	}
 }
 
 func (lex *lexer) consumeWhitespace() {
@@ -127,11 +146,11 @@ func (lex *lexer) consumeWhitespace() {
 		panic("Whitespace may only be consumed directly after emission")
 	}
 	for {
-		str := lex.input[lex.cursor : lex.cursor+1]
-		if !isSpace(str) {
+		if isSpace(lex.current()) {
+			lex.next()
+		} else {
 			break
 		}
-		lex.next()
 	}
 
 	lex.ignore()
@@ -145,6 +164,12 @@ func lexData(lex *lexer) stateFn {
 				lex.emit(tokenText)
 			}
 			return lexTagOpen
+			
+		case strings.HasPrefix(lex.input[lex.cursor:], delimOpenPrint):
+			if lex.cursor > lex.pos {
+				lex.emit(tokenText)
+			}
+			return lexPrintOpen
 		}
 
 		if lex.next() == "" {
@@ -162,17 +187,77 @@ func lexData(lex *lexer) stateFn {
 }
 
 func lexExpression(lex *lexer) stateFn {
-	lex.consumeWhitespace()
-
 	switch str := lex.current(); {
-	case str[0] == delimCloseTag[0]:
+	case strings.HasPrefix(lex.input[lex.cursor:], delimCloseTag):
+		if lex.cursor > lex.pos {
+			panic("Incomplete token?")
+		}
 		return lexTagClose
+		
+	case strings.HasPrefix(lex.input[lex.cursor:], delimClosePrint):
+		if lex.cursor > lex.pos {
+			panic("Incomplete token?")
+		}
+		return lexPrintClose
+
+	case strings.ContainsAny(str, "([{"):
+		return lexOpenParens
+		
+	case strings.ContainsAny(str, "}])"):
+		return lexCloseParens
 
 	case isAlphaNumeric(str):
 		return lexName
 	}
 
 	panic("Unknown expression")
+}
+
+func lexOpenParens(lex *lexer) stateFn {
+	switch str := lex.current(); {
+	case str == "(":
+		lex.next()
+		lex.emit(tokenParensOpen)
+		
+	case str == "[":
+		lex.next()
+		lex.emit(tokenArrayOpen)
+		
+	case str == "{":
+		lex.next()
+		lex.emit(tokenHashOpen)
+		
+	default:
+		fmt.Println(lex.current())
+		panic("Unknown parens: ")
+	}
+	
+	lex.parens += 1
+	
+	return lexExpression
+}
+
+func lexCloseParens(lex *lexer) stateFn {
+	switch str := lex.current(); {
+	case str == ")":
+		lex.next()
+		lex.emit(tokenParensClose)
+		
+	case str == "]":
+		lex.next()
+		lex.emit(tokenArrayClose)
+		
+	case str == "}":
+		lex.next()
+		lex.emit(tokenHashClose)
+		
+	default:
+		panic("Unknown parens")
+	}
+	
+	lex.parens -= 1
+	
+	return lexExpression
 }
 
 func lexName(lex *lexer) stateFn {
@@ -198,7 +283,6 @@ func lexTagOpen(lex *lexer) stateFn {
 }
 
 func lexTagName(lex *lexer) stateFn {
-	lex.consumeWhitespace()
 	for {
 		str := lex.next()
 		if !isAlphaNumeric(str) {
@@ -218,6 +302,20 @@ func lexTagClose(lex *lexer) stateFn {
 	return lexData
 }
 
+func lexPrintOpen(lex *lexer) stateFn {
+	lex.cursor += len(delimOpenPrint)
+	lex.emit(tokenPrintOpen)
+
+	return lexExpression
+}
+
+func lexPrintClose(lex *lexer) stateFn {
+	lex.cursor += len(delimClosePrint)
+	lex.emit(tokenPrintClose)
+
+	return lexData
+}
+
 func isSpace(str string) bool {
 	return str == " " || str == "\t"
 }
@@ -233,7 +331,7 @@ func isAlphaNumeric(str string) bool {
 }
 
 func main() {
-	data := "<html><head><title>{% block title %}{% endblock %}"
+	data := "<html><head><title>{% block title %}{{ ([ test ]) }}{% endblock %}"
 
 	lex := lexer{}
 
