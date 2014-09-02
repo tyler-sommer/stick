@@ -22,24 +22,30 @@ const (
 	tokenArrayClose
 	tokenHashOpen
 	tokenHashClose
+	tokenStringOpen
+	tokenStringClose
+	tokenComma
 	tokenEof
 )
 
 var names = map[tokenType]string{
-	tokenText:       "TEXT",
-	tokenName:       "NAME",
-	tokenTagOpen:    "TAG_OPEN",
-	tokenTagName:    "TAG_NAME",
-	tokenTagClose:   "TAG_CLOSE",
-	tokenPrintOpen:  "PRINT_OPEN",
-	tokenPrintClose: "PRINT_CLOSE",
-	tokenParensOpen: "PARENS_OPEN",
+	tokenText:        "TEXT",
+	tokenName:        "NAME",
+	tokenTagOpen:     "TAG_OPEN",
+	tokenTagName:     "TAG_NAME",
+	tokenTagClose:    "TAG_CLOSE",
+	tokenPrintOpen:   "PRINT_OPEN",
+	tokenPrintClose:  "PRINT_CLOSE",
+	tokenParensOpen:  "PARENS_OPEN",
 	tokenParensClose: "PARENS_CLOSE",
-	tokenArrayOpen: "ARRAY_OPEN",
-	tokenArrayClose: "ARRAY_CLOSE",
-	tokenHashOpen: "HASH_OPEN",
-	tokenHashClose: "HASH_CLOSE",
-	tokenEof:        "EOF",
+	tokenArrayOpen:   "ARRAY_OPEN",
+	tokenArrayClose:  "ARRAY_CLOSE",
+	tokenHashOpen:    "HASH_OPEN",
+	tokenHashClose:   "HASH_CLOSE",
+	tokenStringOpen:  "STRING_OPEN",
+	tokenStringClose: "STRING_CLOSE",
+	tokenComma:       "COMMA",
+	tokenEof:         "EOF",
 }
 
 const (
@@ -164,7 +170,7 @@ func lexData(lex *lexer) stateFn {
 				lex.emit(tokenText)
 			}
 			return lexTagOpen
-			
+
 		case strings.HasPrefix(lex.input[lex.cursor:], delimOpenPrint):
 			if lex.cursor > lex.pos {
 				lex.emit(tokenText)
@@ -193,24 +199,61 @@ func lexExpression(lex *lexer) stateFn {
 			panic("Incomplete token?")
 		}
 		return lexTagClose
-		
+
 	case strings.HasPrefix(lex.input[lex.cursor:], delimClosePrint):
 		if lex.cursor > lex.pos {
 			panic("Incomplete token?")
 		}
 		return lexPrintClose
 
+	case strings.ContainsAny(str, ","):
+		return lexPunctuation
+
 	case strings.ContainsAny(str, "([{"):
 		return lexOpenParens
-		
+
 	case strings.ContainsAny(str, "}])"):
 		return lexCloseParens
 
+	case str == "\"":
+		return lexString
+
 	case isAlphaNumeric(str):
 		return lexName
+
+	default:
+		panic("Unknown expression")
+	}
+}
+
+func lexPunctuation(lex *lexer) stateFn {
+	switch str := lex.current(); {
+	case str == ",":
+		lex.next()
+		lex.emit(tokenComma)
+
+	default:
+		panic("Unknown punctuation")
 	}
 
-	panic("Unknown expression")
+	return lexExpression
+}
+
+func lexString(lex *lexer) stateFn {
+	lex.next()
+	lex.emit(tokenStringOpen)
+	closePos := strings.Index(lex.input[lex.cursor:], "\"")
+	if closePos < 0 {
+		panic("Unclosed string")
+	}
+
+	lex.cursor += closePos
+	lex.emit(tokenText)
+
+	lex.next()
+	lex.emit(tokenStringClose)
+
+	return lexExpression
 }
 
 func lexOpenParens(lex *lexer) stateFn {
@@ -218,22 +261,22 @@ func lexOpenParens(lex *lexer) stateFn {
 	case str == "(":
 		lex.next()
 		lex.emit(tokenParensOpen)
-		
+
 	case str == "[":
 		lex.next()
 		lex.emit(tokenArrayOpen)
-		
+
 	case str == "{":
 		lex.next()
 		lex.emit(tokenHashOpen)
-		
+
 	default:
 		fmt.Println(lex.current())
 		panic("Unknown parens: ")
 	}
-	
+
 	lex.parens += 1
-	
+
 	return lexExpression
 }
 
@@ -242,21 +285,21 @@ func lexCloseParens(lex *lexer) stateFn {
 	case str == ")":
 		lex.next()
 		lex.emit(tokenParensClose)
-		
+
 	case str == "]":
 		lex.next()
 		lex.emit(tokenArrayClose)
-		
+
 	case str == "}":
 		lex.next()
 		lex.emit(tokenHashClose)
-		
+
 	default:
 		panic("Unknown parens")
 	}
-	
+
 	lex.parens -= 1
-	
+
 	return lexExpression
 }
 
@@ -331,7 +374,7 @@ func isAlphaNumeric(str string) bool {
 }
 
 func main() {
-	data := "<html><head><title>{% block title %}{{ ([ test ]) }}{% endblock %}"
+	data := "<html><head><title>{% block title %}{{ ([ test, \"test\" ]) }}{% endblock %}</title><body>{% block body %}<div class=\"container\"></div>{% endblock %}</body></html>"
 
 	lex := lexer{}
 
