@@ -368,6 +368,9 @@ func lexTagName(lex *lexer) stateFn {
 }
 
 func lexTagClose(lex *lexer) stateFn {
+	if lex.parens > 0 {
+		return lex.errorf("unclosed parenthesis")
+	}
 	lex.cursor += len(delimCloseTag)
 	lex.emit(tokenTagClose)
 
@@ -382,6 +385,9 @@ func lexPrintOpen(lex *lexer) stateFn {
 }
 
 func lexPrintClose(lex *lexer) stateFn {
+	if lex.parens > 0 {
+		return lex.errorf("unclosed parenthesis")
+	}
 	lex.cursor += len(delimClosePrint)
 	lex.emit(tokenPrintClose)
 

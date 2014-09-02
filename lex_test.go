@@ -20,6 +20,8 @@ var (
 	tPrintClose     = mkTok(tokenPrintClose, delimClosePrint)
 	tDblStringOpen  = mkTok(tokenStringOpen, "\"")
 	tDblStringClose = mkTok(tokenStringClose, "\"")
+	tParensOpen     = mkTok(tokenParensOpen, "(")
+	tParensClose    = mkTok(tokenParensClose, ")")
 )
 
 var lexTests = []lexTest{
@@ -62,6 +64,15 @@ var lexTests = []lexTest{
 		tPrintOpen,
 		tDblStringOpen,
 		mkTok(tokenError, "unclosed string"),
+	}},
+
+	{"unclosed parens", "{{ (test + 5 }}", []token{
+		tPrintOpen,
+		tParensOpen,
+		mkTok(tokenName, "test"),
+		mkTok(tokenOperator, "+"),
+		mkTok(tokenNumber, "5"),
+		mkTok(tokenError, "unclosed parenthesis"),
 	}},
 }
 
