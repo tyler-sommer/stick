@@ -26,6 +26,7 @@ const (
 	tokenStringClose
 	tokenPunctuation
 	tokenOperator
+	tokenError
 	tokenEof
 )
 
@@ -47,6 +48,7 @@ var names = map[tokenType]string{
 	tokenStringClose: "STRING_CLOSE",
 	tokenPunctuation: "PUNCTUATION",
 	tokenOperator:    "OPERATOR",
+	tokenError:       "ERROR",
 	tokenEof:         "EOF",
 }
 
@@ -144,6 +146,13 @@ func (lex *lexer) emit(t tokenType) {
 	if lex.pos < len(lex.input) {
 		lex.consumeWhitespace()
 	}
+}
+
+func (lex *lexer) errorf(format string, args ...interface{}) stateFn {
+	tok := token{fmt.Sprintf(format, args...), lex.pos, tokenError}
+	lex.tokens = append(lex.tokens, tok)
+
+	return nil
 }
 
 func (lex *lexer) consumeWhitespace() {
@@ -247,7 +256,7 @@ func lexString(lex *lexer) stateFn {
 	lex.emit(tokenStringOpen)
 	closePos := strings.Index(lex.input[lex.cursor:], "\"")
 	if closePos < 0 {
-		panic("Unclosed string")
+		return lex.errorf("unclosed string")
 	}
 
 	lex.cursor += closePos
@@ -379,12 +388,4 @@ func lex(input string) tokenStream {
 	lex := lexer{}
 
 	return lex.tokenize(input)
-}
-
-func main() {
-	data := "<html><head><title>{% block title %}{{ ([ test + 5, \"test\" ]) }}{% endblock %}</title><body>{% block body %}<div class=\"container\"></div>{% endblock %}</body></html>"
-
-	lex := lexer{}
-
-	fmt.Println(lex.tokenize(data))
 }

@@ -13,14 +13,22 @@ func mkTok(t tokenType, val string) token {
 }
 
 var (
-	tEof      = mkTok(tokenEof, delimEof)
-	tTagOpen  = mkTok(tokenTagOpen, delimOpenTag)
-	tTagClose = mkTok(tokenTagClose, delimCloseTag)
+	tEof            = mkTok(tokenEof, delimEof)
+	tTagOpen        = mkTok(tokenTagOpen, delimOpenTag)
+	tTagClose       = mkTok(tokenTagClose, delimCloseTag)
+	tPrintOpen      = mkTok(tokenPrintOpen, delimOpenPrint)
+	tPrintClose     = mkTok(tokenPrintClose, delimClosePrint)
+	tDblStringOpen  = mkTok(tokenStringOpen, "\"")
+	tDblStringClose = mkTok(tokenStringClose, "\"")
 )
 
 var lexTests = []lexTest{
 	{"empty", "", []token{tEof}},
-	{"text", "<html><head></head></html>", []token{mkTok(tokenText, "<html><head></head></html>"), tEof}},
+
+	{"text", "<html><head></head></html>", []token{
+		mkTok(tokenText, "<html><head></head></html>"),
+		tEof,
+	}},
 
 	{"simple block", "{% block test %}Some text{% endblock %}", []token{
 		tTagOpen,
@@ -32,6 +40,21 @@ var lexTests = []lexTest{
 		mkTok(tokenTagName, "endblock"),
 		tTagClose,
 		tEof,
+	}},
+
+	{"print string", "{{ \"this is a test\" }}", []token{
+		tPrintOpen,
+		tDblStringOpen,
+		mkTok(tokenText, "this is a test"),
+		tDblStringClose,
+		tPrintClose,
+		tEof,
+	}},
+
+	{"unclosed string", "{{ \"this is a test }}", []token{
+		tPrintOpen,
+		tDblStringOpen,
+		mkTok(tokenError, "unclosed string"),
 	}},
 }
 
