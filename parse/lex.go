@@ -79,11 +79,12 @@ const (
 type token struct {
 	value     string
 	pos       int
+	line      int
 	tokenType tokenType
 }
 
 func (tok token) String() string {
-	return fmt.Sprintf("{%s '%s' %d}", names[tok.tokenType], tok.value, tok.pos)
+	return fmt.Sprintf("{%s '%s' %d %d}", names[tok.tokenType], tok.value, tok.pos, tok.line)
 }
 
 type stateFn func(*lexer) stateFn
@@ -92,13 +93,14 @@ type lexer struct {
 	start  int // The position of the last emission
 	pos    int // The position of the cursor
 	parens int // Number of still-open parenthesis in the current expression
+	line   int // The current line number
 	input  string
 	tokens chan token
 	state  stateFn
 }
 
 func newLexer(input string) *lexer {
-	return &lexer{0, 0, 0, input, make(chan token), nil}
+	return &lexer{0, 0, 0, 1, input, make(chan token), nil}
 }
 
 func (l *lexer) next() (val string) {
@@ -132,13 +134,17 @@ func (l *lexer) emit(t tokenType) {
 		val = l.input[l.start:l.pos]
 	}
 
-	tok := token{val, l.start, t}
+	tok := token{val, l.start, l.line, t}
+	if strings.Contains(val, "\n") {
+		l.line++
+	}
+
 	l.tokens <- tok
 	l.start = l.pos
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	tok := token{fmt.Sprintf(format, args...), l.start, tokenError}
+	tok := token{fmt.Sprintf(format, args...), l.start, l.line, tokenError}
 	l.tokens <- tok
 
 	return nil
@@ -184,13 +190,13 @@ func lexExpression(l *lexer) stateFn {
 	switch str := l.peek(); {
 	case strings.HasPrefix(l.input[l.pos:], delimCloseTag):
 		if l.pos > l.start {
-			panic("Incomplete token?")
+			return l.errorf("Incompete token?")
 		}
 		return lexTagClose
 
 	case strings.HasPrefix(l.input[l.pos:], delimClosePrint):
 		if l.pos > l.start {
-			panic("Incomplete token?")
+			return l.errorf("Incompete token?")
 		}
 		return lexPrintClose
 
@@ -219,7 +225,7 @@ func lexExpression(l *lexer) stateFn {
 		return lexSpace
 
 	default:
-		panic("Unknown expression")
+		return l.errorf("Unknown expression")
 	}
 }
 
@@ -273,7 +279,7 @@ func lexPunctuation(l *lexer) stateFn {
 			break
 		}
 	}
-	
+
 	l.emit(tokenPunctuation)
 
 	return lexExpression
@@ -308,7 +314,7 @@ func lexOpenParens(l *lexer) stateFn {
 		l.emit(tokenHashOpen)
 
 	default:
-		panic("Unknown parens")
+		return l.errorf("Unknown parenthesis")
 	}
 
 	l.parens += 1
@@ -328,7 +334,7 @@ func lexCloseParens(l *lexer) stateFn {
 		l.emit(tokenHashClose)
 
 	default:
-		panic("Unknown parens")
+		return l.errorf("Unknown parenthesis")
 	}
 
 	l.parens -= 1
@@ -385,7 +391,7 @@ func lexPrintClose(l *lexer) stateFn {
 }
 
 func isSpace(str string) bool {
-	return str == " " || str == "\t"
+	return str == " " || str == "\t" || str == "\n"
 }
 
 func isName(str string) bool {
@@ -424,7 +430,7 @@ func isOperator(str string) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -434,8 +440,6 @@ func isPunctuation(str string) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
-
-

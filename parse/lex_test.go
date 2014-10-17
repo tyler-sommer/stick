@@ -9,12 +9,13 @@ type lexTest struct {
 }
 
 func mkTok(t tokenType, val string) token {
-	return token{val, 0, t}
+	return token{val, 0, 0, t}
 }
 
 var (
 	tEof            = mkTok(tokenEof, delimEof)
 	tSpace          = mkTok(tokenWhitespace, " ")
+	tNewLine        = mkTok(tokenWhitespace, "\n")
 	tTagOpen        = mkTok(tokenTagOpen, delimOpenTag)
 	tTagClose       = mkTok(tokenTagClose, delimCloseTag)
 	tPrintOpen      = mkTok(tokenPrintOpen, delimOpenPrint)
@@ -38,10 +39,10 @@ var lexTests = []lexTest{
 		tPrintClose,
 		tEof,
 	}},
-	
-	{"operator", "{{ 5 == 4 ? 'Yes' : 'No' }}", []token{
+
+	{"operator", "{{\n5 == 4 ? 'Yes' : 'No'\n}}", []token{
 		tPrintOpen,
-		tSpace,
+		tNewLine,
 		mkTok(tokenNumber, "5"),
 		tSpace,
 		mkTok(tokenOperator, "=="),
@@ -59,7 +60,7 @@ var lexTests = []lexTest{
 		tStringOpen,
 		mkTok(tokenText, "No"),
 		tStringClose,
-		tSpace,
+		tNewLine,
 		tPrintClose,
 		tEof,
 	}},
