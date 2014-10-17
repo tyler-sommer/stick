@@ -194,10 +194,10 @@ func lexExpression(l *lexer) stateFn {
 		}
 		return lexPrintClose
 
-	case strings.ContainsAny(str, "+-/*%~"):
+	case isOperator(str):
 		return lexOperator
 
-	case strings.ContainsAny(str, ",?:|"):
+	case isPunctuation(str):
 		return lexPunctuation
 
 	case strings.ContainsAny(str, "([{"):
@@ -206,7 +206,7 @@ func lexExpression(l *lexer) stateFn {
 	case strings.ContainsAny(str, "}])"):
 		return lexCloseParens
 
-	case str == "\"":
+	case strings.ContainsAny(str, "\"'"):
 		return lexString
 
 	case isNumeric(str):
@@ -252,23 +252,37 @@ func lexNumber(l *lexer) stateFn {
 }
 
 func lexOperator(l *lexer) stateFn {
-	l.next()
+	for {
+		str := l.next()
+		if !isOperator(str) {
+			l.backup()
+			break
+		}
+	}
+
 	l.emit(tokenOperator)
 
 	return lexExpression
 }
 
 func lexPunctuation(l *lexer) stateFn {
-	l.next()
+	for {
+		str := l.next()
+		if !isPunctuation(str) {
+			l.backup()
+			break
+		}
+	}
+	
 	l.emit(tokenPunctuation)
 
 	return lexExpression
 }
 
 func lexString(l *lexer) stateFn {
-	l.next()
+	open := l.next()
 	l.emit(tokenStringOpen)
-	closePos := strings.Index(l.input[l.pos:], "\"")
+	closePos := strings.Index(l.input[l.pos:], open)
 	if closePos < 0 {
 		return l.errorf("unclosed string")
 	}
@@ -403,3 +417,25 @@ func isNumeric(str string) bool {
 
 	return true
 }
+
+func isOperator(str string) bool {
+	for _, s := range str {
+		if !strings.ContainsAny(string(s), "+-/*%~=") {
+			return false
+		}
+	}
+	
+	return true
+}
+
+func isPunctuation(str string) bool {
+	for _, s := range str {
+		if !strings.ContainsAny(string(s), ",?:|") {
+			return false
+		}
+	}
+	
+	return true
+}
+
+

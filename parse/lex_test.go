@@ -21,6 +21,8 @@ var (
 	tPrintClose     = mkTok(tokenPrintClose, delimClosePrint)
 	tDblStringOpen  = mkTok(tokenStringOpen, "\"")
 	tDblStringClose = mkTok(tokenStringClose, "\"")
+	tStringOpen     = mkTok(tokenStringOpen, "'")
+	tStringClose    = mkTok(tokenStringClose, "'")
 	tParensOpen     = mkTok(tokenParensOpen, "(")
 	tParensClose    = mkTok(tokenParensClose, ")")
 )
@@ -32,6 +34,31 @@ var lexTests = []lexTest{
 		tPrintOpen,
 		tSpace,
 		mkTok(tokenNumber, "5"),
+		tSpace,
+		tPrintClose,
+		tEof,
+	}},
+	
+	{"operator", "{{ 5 == 4 ? 'Yes' : 'No' }}", []token{
+		tPrintOpen,
+		tSpace,
+		mkTok(tokenNumber, "5"),
+		tSpace,
+		mkTok(tokenOperator, "=="),
+		tSpace,
+		mkTok(tokenNumber, "4"),
+		tSpace,
+		mkTok(tokenPunctuation, "?"),
+		tSpace,
+		tStringOpen,
+		mkTok(tokenText, "Yes"),
+		tStringClose,
+		tSpace,
+		mkTok(tokenPunctuation, ":"),
+		tSpace,
+		tStringOpen,
+		mkTok(tokenText, "No"),
+		tStringClose,
 		tSpace,
 		tPrintClose,
 		tEof,
