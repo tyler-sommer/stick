@@ -1,4 +1,4 @@
-package stick
+package parse
 
 import "testing"
 
@@ -14,6 +14,7 @@ func mkTok(t tokenType, val string) token {
 
 var (
 	tEof            = mkTok(tokenEof, delimEof)
+	tSpace          = mkTok(tokenWhitespace, " ")
 	tTagOpen        = mkTok(tokenTagOpen, delimOpenTag)
 	tTagClose       = mkTok(tokenTagClose, delimCloseTag)
 	tPrintOpen      = mkTok(tokenPrintOpen, delimOpenPrint)
@@ -29,7 +30,9 @@ var lexTests = []lexTest{
 
 	{"number", "{{ 5 }}", []token{
 		tPrintOpen,
+		tSpace,
 		mkTok(tokenNumber, "5"),
+		tSpace,
 		tPrintClose,
 		tEof,
 	}},
@@ -41,46 +44,72 @@ var lexTests = []lexTest{
 
 	{"simple block", "{% block test %}Some text{% endblock %}", []token{
 		tTagOpen,
-		mkTok(tokenTagName, "block"),
+		tSpace,
+		mkTok(tokenName, "block"),
+		tSpace,
 		mkTok(tokenName, "test"),
+		tSpace,
 		tTagClose,
 		mkTok(tokenText, "Some text"),
 		tTagOpen,
-		mkTok(tokenTagName, "endblock"),
+		tSpace,
+		mkTok(tokenName, "endblock"),
+		tSpace,
 		tTagClose,
 		tEof,
 	}},
 
 	{"print string", "{{ \"this is a test\" }}", []token{
 		tPrintOpen,
+		tSpace,
 		tDblStringOpen,
 		mkTok(tokenText, "this is a test"),
 		tDblStringClose,
+		tSpace,
 		tPrintClose,
 		tEof,
 	}},
 
 	{"unclosed string", "{{ \"this is a test }}", []token{
 		tPrintOpen,
+		tSpace,
 		tDblStringOpen,
 		mkTok(tokenError, "unclosed string"),
 	}},
 
 	{"unclosed parens", "{{ (test + 5 }}", []token{
 		tPrintOpen,
+		tSpace,
 		tParensOpen,
 		mkTok(tokenName, "test"),
+		tSpace,
 		mkTok(tokenOperator, "+"),
+		tSpace,
 		mkTok(tokenNumber, "5"),
+		tSpace,
 		mkTok(tokenError, "unclosed parenthesis"),
 	}},
 }
 
-func collect(t *lexTest) tokenStream {
-	return lex(t.input)
+func (l *lexer) nextToken() token {
+	return <-l.tokens
 }
 
-func equal(stream1, stream2 tokenStream) bool {
+func collect(t *lexTest) (tokens []token) {
+	lex := newLexer(t.input)
+	go lex.tokenize()
+	for {
+		tok := lex.nextToken()
+		tokens = append(tokens, tok)
+		if tok.tokenType == tokenEof || tok.tokenType == tokenError {
+			break
+		}
+	}
+
+	return
+}
+
+func equal(stream1, stream2 []token) bool {
 	if len(stream1) != len(stream2) {
 		return false
 	}
