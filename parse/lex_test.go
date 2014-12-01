@@ -119,10 +119,6 @@ var lexTests = []lexTest{
 	}},
 }
 
-func (l *lexer) nextToken() token {
-	return <-l.tokens
-}
-
 func collect(t *lexTest) (tokens []token) {
 	lex := newLexer(t.input)
 	go lex.tokenize()

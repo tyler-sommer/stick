@@ -99,6 +99,10 @@ type lexer struct {
 	state  stateFn
 }
 
+func (l *lexer) nextToken() token {
+	return <-l.tokens
+}
+
 func newLexer(input string) *lexer {
 	return &lexer{0, 0, 0, 1, input, make(chan token), nil}
 }
