@@ -23,26 +23,27 @@ func (p pos) Pos() pos {
 
 const (
 	nodeText nodeType = iota
-	nodeList
+	nodeModule
+	nodePrint
 )
 
 // A list of nodes
-type listNode struct {
+type moduleNode struct {
 	nodeType
 	pos
 	nodes []node
 }
 
-func newListNode() *listNode {
-	return &listNode{nodeList, pos(0), make([]node, 0)}
+func newModuleNode() *moduleNode {
+	return &moduleNode{nodeModule, pos(0), make([]node, 0)}
 }
 
-func (l *listNode) append(n node) {
+func (l *moduleNode) append(n node) {
 	l.nodes = append(l.nodes, n)
 }
 
-func (l *listNode) String() string {
-	return fmt.Sprintf("List(%s)", l.nodes)
+func (l *moduleNode) String() string {
+	return fmt.Sprintf("Module%s", l.nodes)
 }
 
 // A text node
@@ -60,8 +61,17 @@ func (t *textNode) String() string {
 	return fmt.Sprintf("Text(%s)", t.data)
 }
 
-func (*textNode) Children() (children []node) {
-	children = make([]node, 0)
+// A print node
+type printNode struct {
+	nodeType
+	pos
+	exp expr
+}
 
-	return
+func newPrintNode(exp expr, p pos) *printNode {
+	return &printNode{nodePrint, p, exp}
+}
+
+func (t *printNode) String() string {
+	return fmt.Sprintf("Print(%s)", t.exp)
 }

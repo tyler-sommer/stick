@@ -1,27 +1,31 @@
 package parse
 
-import "testing"
+import (
+	"testing"
+	"fmt"
+)
 
 type parseTest struct {
 	name string
 	input string
-	expected *listNode
+	expected node
 }
 
-func mkList(nodes []node) *listNode {
-	l := newListNode()
+func mkModule(nodes []node) node {
+	l := newModuleNode()
 	for _, n := range nodes {
 		l.append(n)
 	}
 
-	return l
+	return node(l)
 }
 
 var parseTests = []parseTest{
-	{"text", "some text", mkList([]node{newTextNode([]byte("some text"), 0)})},
+	{"text", "some text", mkModule([]node{newTextNode([]byte("some text"), 0)})},
+	{"hello", "Hello {{ name }}", mkModule([]node{newTextNode([]byte("Hello "), 0), newPrintNode(expr(newNameExpr("name")), 6)})},
 }
 
-func nodeEqual(a, b *listNode) bool {
+func nodeEqual(a, b node) bool {
 	if (a.String() != b.String()) {
 		return false
 	}
@@ -32,6 +36,7 @@ func nodeEqual(a, b *listNode) bool {
 func TestParse(t *testing.T) {
 	for _, test := range parseTests {
 		tree := Parse(test.input)
+		fmt.Println(tree.root)
 		if !nodeEqual(tree.root, test.expected) {
 			t.Errorf("%s: got\n\t%+v\nexpected\n\t%v", test.name, tree.root, test.expected)
 		}
