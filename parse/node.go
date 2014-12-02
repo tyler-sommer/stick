@@ -25,6 +25,7 @@ const (
 	nodeText nodeType = iota
 	nodeModule
 	nodePrint
+	nodeTag
 )
 
 // A list of nodes
@@ -74,4 +75,21 @@ func newPrintNode(exp expr, p pos) *printNode {
 
 func (t *printNode) String() string {
 	return fmt.Sprintf("Print(%s)", t.exp)
+}
+
+// A tag node
+type tagNode struct {
+	nodeType
+	pos
+	name *nameExpr
+	body node
+	attr map[string]expr
+}
+
+func newTagNode(name string, body node, attr map[string]expr, p pos) *tagNode {
+	return &tagNode{nodeTag, p, newNameExpr(name), body, attr}
+}
+
+func (t *tagNode) String() string {
+	return fmt.Sprintf("Tag(%s: %s)", t.name, t.body)
 }

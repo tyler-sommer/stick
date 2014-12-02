@@ -38,6 +38,16 @@ func Parse(input string) (t *tree) {
 			t.nextNonSpace() // Consume the closing bracket
 			t.root.append(newPrintNode(newNameExpr(name.value), pos(name.pos)))
 
+		case tok.tokenType == tokenTagOpen:
+			name := t.nextNonSpace()
+			attr := t.nextNonSpace()
+			t.nextNonSpace() // Consume the closing bracket
+			body := t.nextNonSpace()
+			t.nextNonSpace() // Next open bracket
+			t.nextNonSpace() // Next tag name
+			t.nextNonSpace() // Next closing bracket
+			t.root.append(newTagNode(name.value, newTextNode([]byte(body.value), pos(body.pos)), map[string]expr{"name":newNameExpr(attr.value)}, pos(name.pos)))
+
 		case tok.tokenType == tokenEof:
 			return
 

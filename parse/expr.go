@@ -7,7 +7,7 @@ type expr interface {
 }
 
 const (
-	expName nodeType = iota
+	exprName nodeType = iota
 )
 
 type nameExpr struct {
@@ -17,9 +17,9 @@ type nameExpr struct {
 }
 
 func newNameExpr(name string) *nameExpr {
-	return &nameExpr{expName, 0, name}
+	return &nameExpr{exprName, 0, name}
 }
 
 func (exp *nameExpr) String() string {
-	return fmt.Sprintf("NameExpr: %s", exp.name)
+	return fmt.Sprintf("NameExpr(%s)", exp.name)
 }
