@@ -51,10 +51,10 @@ func (l *moduleNode) String() string {
 type textNode struct {
 	nodeType
 	pos
-	data []byte
+	data string
 }
 
-func newTextNode(data []byte, p pos) *textNode {
+func newTextNode(data string, p pos) *textNode {
 	return &textNode{nodeText, p, data}
 }
 
