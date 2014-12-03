@@ -22,7 +22,8 @@ func mkModule(nodes ...node) node {
 
 var parseTests = []parseTest{
 	{"text", "some text", mkModule(newTextNode("some text", 0))},
-	{"hello", "Hello {{ name }}", mkModule(newTextNode("Hello ", 0), newPrintNode(expr(newNameExpr("name")), 6))},
+	{"hello", "Hello {{ name }}", mkModule(newTextNode("Hello ", 0), newPrintNode(newNameExpr("name"), 6))},
+	{"string expr", "Hello {{ 'Tyler' }}", mkModule(newTextNode("Hello ", 0), newPrintNode(newStringExpr("Tyler"), 6))},
 	{
 		"simple tag",
 		"{% block something %}Body{% endblock %}",

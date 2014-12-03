@@ -170,6 +170,11 @@ func (t *tree) parseExpr() expr {
 		case typ == tokenName:
 			return newNameExpr(tok.value)
 
+		case typ == tokenStringOpen:
+			tok := t.expect(tokenText)
+			t.expect(tokenStringClose)
+			return newStringExpr(tok.value)
+
 		default:
 			panic("unknown expression")
 		}
