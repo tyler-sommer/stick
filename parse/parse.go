@@ -84,11 +84,7 @@ func (t *tree) parse() node {
 		return newPrintNode(name, pos(tok.pos))
 
 	case tok.tokenType == tokenTagOpen:
-		name := t.expect(tokenName)
-		attr := t.parseExpr()
-		t.expect(tokenTagClose)
-		body := t.parseUntilEndTag(name.value)
-		return newTagNode(name.value, body, map[string]expr{"name": attr}, pos(tok.pos))
+		return t.parseTag()
 
 	case tok.tokenType == tokenEof:
 		return nil
@@ -98,6 +94,51 @@ func (t *tree) parse() node {
 	}
 
 	return nil
+}
+
+func (t *tree) parseTag() expr {
+	name := t.expect(tokenName)
+	switch name.value {
+	case "block":
+		blockName := t.parseExpr()
+		t.expect(tokenTagClose)
+		body := t.parseUntilEndTag("block")
+		return newBlockNode(blockName, body, pos(name.pos))
+	case "if":
+		cond := t.parseExpr()
+		t.expect(tokenTagClose)
+		body, els := t.parseEndifOrElse()
+		return newIfNode(cond, body, els, pos(name.pos))
+	}
+
+	return nil
+}
+
+func (t *tree) parseEndifOrElse() (body *moduleNode, els *moduleNode) {
+	body = newModuleNode()
+	for {
+		switch tok := t.peek(); tok.tokenType {
+		case tokenTagOpen:
+			t.next()
+			tok := t.expect(tokenName)
+			if tok.value == "else" {
+				t.expect(tokenTagClose)
+				els = t.parseUntilEndTag("if")
+				return
+
+			} else if tok.value == "endif" {
+				t.expect(tokenTagClose)
+				return
+			}
+			t.backup()
+			t.backup()
+			t.backup()
+			body.append(t.parse())
+
+		default:
+			body.append(t.parse())
+		}
+	}
 }
 
 func (t *tree) parseUntilEndTag(name string) (n *moduleNode) {

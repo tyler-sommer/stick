@@ -17,7 +17,7 @@ func mkModule(nodes ...node) node {
 		l.append(n)
 	}
 
-	return node(l)
+	return l
 }
 
 var parseTests = []parseTest{
@@ -26,7 +26,12 @@ var parseTests = []parseTest{
 	{
 		"simple tag",
 		"{% block something %}Body{% endblock %}",
-		mkModule(newTagNode("block", mkModule(newTextNode("Body", 0)), map[string]expr{"name": newNameExpr("name")}, 0)),
+		mkModule(newBlockNode(newNameExpr("something"), mkModule(newTextNode("Body", 0)), 0)),
+	},
+	{
+		"if else",
+		"{% if something %}Do Something{% else %}Another thing{% endif %}",
+		mkModule(newIfNode(newNameExpr("something"), mkModule(newTextNode("Do Something", 0)), mkModule(newTextNode("Another thing", 0)), 0)),
 	},
 }
 

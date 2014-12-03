@@ -25,7 +25,8 @@ const (
 	nodeText nodeType = iota
 	nodeModule
 	nodePrint
-	nodeTag
+	nodeBlock
+	nodeIf
 )
 
 // A list of nodes
@@ -77,19 +78,35 @@ func (t *printNode) String() string {
 	return fmt.Sprintf("Print(%s)", t.exp)
 }
 
-// A tag node
-type tagNode struct {
+// A block node
+type blockNode struct {
 	nodeType
 	pos
-	name *nameExpr
+	name expr
 	body node
-	attr map[string]expr
 }
 
-func newTagNode(name string, body node, attr map[string]expr, p pos) *tagNode {
-	return &tagNode{nodeTag, p, newNameExpr(name), body, attr}
+func newBlockNode(name expr, body node, p pos) *blockNode {
+	return &blockNode{nodeBlock, p, name, body}
 }
 
-func (t *tagNode) String() string {
-	return fmt.Sprintf("Tag(%s: %s)", t.name, t.body)
+func (t *blockNode) String() string {
+	return fmt.Sprintf("Block(%s: %s)", t.name, t.body)
+}
+
+// An if node
+type ifNode struct {
+	nodeType
+	pos
+	cond expr
+	body node
+	els  node
+}
+
+func newIfNode(cond expr, body node, els node, p pos) *ifNode {
+	return &ifNode{nodeIf, p, cond, body, els}
+}
+
+func (t *ifNode) String() string {
+	return fmt.Sprintf("If(%s: %s Else: %s)", t.cond, t.body, t.els)
 }
