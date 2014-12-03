@@ -56,6 +56,10 @@ var names = map[tokenType]string{
 	tokenEof:         "EOF",
 }
 
+func (typ tokenType) String() string {
+	return names[typ]
+}
+
 const (
 	delimEof          = ""
 	delimOpenTag      = "{%"
@@ -84,7 +88,7 @@ type token struct {
 }
 
 func (tok token) String() string {
-	return fmt.Sprintf("{%s '%s' %d %d}", names[tok.tokenType], tok.value, tok.pos, tok.line)
+	return fmt.Sprintf("{%s '%s' %d %d}", tok.tokenType, tok.value, tok.pos, tok.line)
 }
 
 type stateFn func(*lexer) stateFn

@@ -1,6 +1,9 @@
 package parse
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 type lexTest struct {
 	name   string
@@ -151,6 +154,7 @@ func equal(stream1, stream2 []token) bool {
 func TestLex(t *testing.T) {
 	for _, test := range lexTests {
 		tokens := collect(&test)
+		fmt.Println(tokens)
 		if !equal(tokens, test.tokens) {
 			t.Errorf("%s: got\n\t%+v\nexpected\n\t%v", test.name, tokens, test.tokens)
 		}
