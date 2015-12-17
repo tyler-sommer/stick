@@ -3,7 +3,7 @@ package parse
 import "fmt"
 
 // A node is an item in the AST
-type node interface {
+type Node interface {
 	Type() nodeType
 	Pos() pos
 	String() string
@@ -22,91 +22,99 @@ func (p pos) Pos() pos {
 }
 
 const (
-	nodeText nodeType = iota
-	nodeModule
-	nodePrint
-	nodeBlock
-	nodeIf
+	NodeText nodeType = iota
+	NodeModule
+	NodePrint
+	NodeBlock
+	NodeIf
 )
 
 // A list of nodes
-type moduleNode struct {
+type ModuleNode struct {
 	nodeType
 	pos
-	nodes []node
+	nodes []Node
 }
 
-func newModuleNode() *moduleNode {
-	return &moduleNode{nodeModule, pos(0), make([]node, 0)}
+func newModuleNode() *ModuleNode {
+	return &ModuleNode{NodeModule, pos(0), make([]Node, 0)}
 }
 
-func (l *moduleNode) append(n node) {
+func (l *ModuleNode) append(n Node) {
 	l.nodes = append(l.nodes, n)
 }
 
-func (l *moduleNode) String() string {
+func (l *ModuleNode) String() string {
 	return fmt.Sprintf("Module%s", l.nodes)
 }
 
+func (l *ModuleNode) Children() []Node {
+	return l.nodes
+}
+
 // A text node
-type textNode struct {
+type TextNode struct {
 	nodeType
 	pos
 	data string
 }
 
-func newTextNode(data string, p pos) *textNode {
-	return &textNode{nodeText, p, data}
+func newTextNode(data string, p pos) *TextNode {
+	return &TextNode{NodeText, p, data}
 }
 
-func (t *textNode) String() string {
+func (t *TextNode) String() string {
 	return fmt.Sprintf("Text(%s)", t.data)
 }
 
+func (t *TextNode) Text() string {
+	return t.data
+}
+
 // A print node
-type printNode struct {
+type PrintNode struct {
 	nodeType
 	pos
 	exp expr
 }
 
-func newPrintNode(exp expr, p pos) *printNode {
-	return &printNode{nodePrint, p, exp}
+func newPrintNode(exp expr, p pos) *PrintNode {
+	return &PrintNode{NodePrint, p, exp}
 }
 
-func (t *printNode) String() string {
+func (t *PrintNode) String() string {
 	return fmt.Sprintf("Print(%s)", t.exp)
 }
 
 // A block node
-type blockNode struct {
+type BlockNode struct {
 	nodeType
 	pos
 	name expr
-	body node
+	body Node
 }
 
-func newBlockNode(name expr, body node, p pos) *blockNode {
-	return &blockNode{nodeBlock, p, name, body}
+func newBlockNode(name expr, body Node, p pos) *BlockNode {
+	return &BlockNode{NodeBlock, p, name, body}
 }
 
-func (t *blockNode) String() string {
+func (t *BlockNode) String() string {
 	return fmt.Sprintf("Block(%s: %s)", t.name, t.body)
 }
 
 // An if node
-type ifNode struct {
+type IfNode struct {
 	nodeType
 	pos
 	cond expr
-	body node
-	els  node
+	body Node
+	els  Node
 }
 
-func newIfNode(cond expr, body node, els node, p pos) *ifNode {
-	return &ifNode{nodeIf, p, cond, body, els}
+func newIfNode(cond expr, body Node, els Node, p pos) *IfNode {
+	return &IfNode{NodeIf, p, cond, body, els}
 }
 
-func (t *ifNode) String() string {
+func (t *IfNode) String() string {
 	return fmt.Sprintf("If(%s: %s Else: %s)", t.cond, t.body, t.els)
 }

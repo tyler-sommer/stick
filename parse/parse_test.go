@@ -8,10 +8,10 @@ import (
 type parseTest struct {
 	name     string
 	input    string
-	expected node
+	expected Node
 }
 
-func mkModule(nodes ...node) node {
+func mkModule(nodes ...Node) Node {
 	l := newModuleNode()
 	for _, n := range nodes {
 		l.append(n)
@@ -36,7 +36,7 @@ var parseTests = []parseTest{
 	},
 }
 
-func nodeEqual(a, b node) bool {
+func nodeEqual(a, b Node) bool {
 	if a.String() != b.String() {
 		return false
 	}

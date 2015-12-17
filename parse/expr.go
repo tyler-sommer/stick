@@ -3,7 +3,7 @@ package parse
 import "fmt"
 
 type expr interface {
-	node
+	Node
 }
 
 const (

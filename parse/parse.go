@@ -2,28 +2,32 @@ package parse
 
 import "fmt"
 
-type tree struct {
-	root   *moduleNode
+type Tree struct {
+	root   *ModuleNode
 	input  string
 	lex    *lexer
 	unread []token
 	read   []token
 }
 
-func (t *tree) peek() (tok token) {
+func (t *Tree) Root() Node {
+	return t.root
+}
+
+func (t *Tree) peek() (tok token) {
 	tok = t.next()
 	t.backup()
 
 	return
 }
 
-func (t *tree) backup() {
+func (t *Tree) backup() {
 	var tok token
 	tok, t.read = t.read[len(t.read)-1], t.read[:len(t.read)-1]
 	t.unread = append(t.unread, tok)
 }
 
-func (t *tree) next() (tok token) {
+func (t *Tree) next() (tok token) {
 	if len(t.unread) > 0 {
 		tok, t.unread = t.unread[len(t.unread)-1], t.unread[:len(t.unread)-1]
 	} else {
@@ -35,7 +39,7 @@ func (t *tree) next() (tok token) {
 	return
 }
 
-func (t *tree) nextNonSpace() token {
+func (t *Tree) nextNonSpace() token {
 	var next token
 	for {
 		next = t.next()
@@ -45,7 +49,7 @@ func (t *tree) nextNonSpace() token {
 	}
 }
 
-func (t *tree) expect(typ tokenType) token {
+func (t *Tree) expect(typ tokenType) token {
 	tok := t.nextNonSpace()
 	if tok.tokenType != typ {
 		panic(fmt.Sprintf("expected %s got %s", typ, tok.tokenType))
@@ -54,12 +58,12 @@ func (t *tree) expect(typ tokenType) token {
 	return tok
 }
 
-func Parse(input string) (t *tree) {
+func Parse(input string) (t *Tree) {
 	lex := newLexer(input)
 
 	go lex.tokenize()
 
-	t = &tree{newModuleNode(), input, lex, make([]token, 0), make([]token, 0)}
+	t = &Tree{newModuleNode(), input, lex, make([]token, 0), make([]token, 0)}
 
 	for {
 		n := t.parse()
@@ -72,7 +76,7 @@ func Parse(input string) (t *tree) {
 	return
 }
 
-func (t *tree) parse() node {
+func (t *Tree) parse() Node {
 	tok := t.nextNonSpace()
 	switch {
 	case tok.tokenType == tokenText:
@@ -96,7 +100,7 @@ func (t *tree) parse() node {
 	return nil
 }
 
-func (t *tree) parseTag() expr {
+func (t *Tree) parseTag() expr {
 	name := t.expect(tokenName)
 	switch name.value {
 	case "block":
@@ -114,7 +118,7 @@ func (t *tree) parseTag() expr {
 	return nil
 }
 
-func (t *tree) parseEndifOrElse() (body *moduleNode, els *moduleNode) {
+func (t *Tree) parseEndifOrElse() (body *ModuleNode, els *ModuleNode) {
 	body = newModuleNode()
 	for {
 		switch tok := t.peek(); tok.tokenType {
@@ -141,7 +145,7 @@ func (t *tree) parseEndifOrElse() (body *moduleNode, els *moduleNode) {
 	}
 }
 
-func (t *tree) parseUntilEndTag(name string) (n *moduleNode) {
+func (t *Tree) parseUntilEndTag(name string) (n *ModuleNode) {
 	n = newModuleNode()
 	for {
 		switch tok := t.peek(); tok.tokenType {
@@ -163,7 +167,7 @@ func (t *tree) parseUntilEndTag(name string) (n *moduleNode) {
 	}
 }
 
-func (t *tree) parseExpr() expr {
+func (t *Tree) parseExpr() expr {
 	for {
 		tok := t.nextNonSpace()
 		switch typ := tok.tokenType; {
