@@ -1,9 +1,13 @@
 package parse
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Tree struct {
 	root   *ModuleNode
+	blocks []string
+	blockRefs map[string]*BlockNode
 	input  string
 	lex    *lexer
 	unread []token
@@ -12,6 +16,18 @@ type Tree struct {
 
 func (t *Tree) Root() Node {
 	return t.root
+}
+
+func (t *Tree) popBlockStack(name string) {
+	t.blocks = t.blocks[0:len(t.blocks)-1]
+}
+
+func (t *Tree) pushBlockStack(name string) {
+	t.blocks = append(t.blocks, name)
+}
+
+func (t *Tree) setBlock(name string, body *BlockNode) {
+	t.blockRefs[name] = body
 }
 
 func (t *Tree) peek() (tok token) {
@@ -25,6 +41,17 @@ func (t *Tree) backup() {
 	var tok token
 	tok, t.read = t.read[len(t.read)-1], t.read[:len(t.read)-1]
 	t.unread = append(t.unread, tok)
+}
+
+func (t *Tree) backup2() {
+	t.backup()
+	t.backup()
+}
+
+func (t *Tree) backup3() {
+	t.backup()
+	t.backup()
+	t.backup()
 }
 
 func (t *Tree) next() (tok token) {
@@ -43,31 +70,32 @@ func (t *Tree) nextNonSpace() token {
 	var next token
 	for {
 		next = t.next()
-		if next.tokenType != tokenWhitespace {
+		if next.tokenType != tokenWhitespace || next.tokenType == tokenEof {
 			return next
 		}
 	}
 }
 
-func (t *Tree) expect(typ tokenType) token {
+func (t *Tree) expect(typ tokenType) (token, error) {
 	tok := t.nextNonSpace()
 	if tok.tokenType != typ {
-		panic(fmt.Sprintf("expected %s got %s", typ, tok.tokenType))
+		return tok, fmt.Errorf("expected %s got %s", typ, tok.tokenType)
 	}
 
-	return tok
+	return tok, nil
 }
 
-func Parse(input string) (t *Tree) {
+func Parse(input string) (t *Tree, e error) {
 	lex := newLexer(input)
 
 	go lex.tokenize()
 
-	t = &Tree{newModuleNode(), input, lex, make([]token, 0), make([]token, 0)}
+	t = &Tree{newModuleNode(), make([]string, 0), make(map[string]*BlockNode), input, lex, make([]token, 0), make([]token, 0)}
 
 	for {
-		n := t.parse()
-		if n == nil {
+		n, err := t.parse()
+		if err != nil || n == nil {
+			e = err
 			return
 		}
 		t.root.append(n)
@@ -76,111 +104,191 @@ func Parse(input string) (t *Tree) {
 	return
 }
 
-func (t *Tree) parse() Node {
+func (t *Tree) parse() (n Node, e error) {
 	tok := t.nextNonSpace()
 	switch {
 	case tok.tokenType == tokenText:
-		return newTextNode(tok.value, pos(tok.pos))
+		n = newTextNode(tok.value, pos(tok.pos))
 
 	case tok.tokenType == tokenPrintOpen:
-		name := t.parseExpr()
-		t.expect(tokenPrintClose)
-		return newPrintNode(name, pos(tok.pos))
+		name, err := t.parseExpr()
+		if err != nil {
+			e = err
+			return
+		}
+		_, err = t.expect(tokenPrintClose)
+		if err != nil {
+			e = err
+			return
+		}
+		n = newPrintNode(name, pos(tok.pos))
 
 	case tok.tokenType == tokenTagOpen:
-		return t.parseTag()
+		n, e = t.parseTag()
 
 	case tok.tokenType == tokenEof:
-		return nil
+		return
 
 	default:
-		panic(fmt.Sprintf("parse error near %s", tok.value))
+		e = fmt.Errorf("parse error near %s", tok.value)
 	}
 
-	return nil
+	return
 }
 
-func (t *Tree) parseTag() expr {
-	name := t.expect(tokenName)
+func (t *Tree) parseTag() (n Node, e error) {
+	name, err := t.expect(tokenName)
+	if err != nil {
+		e = err
+		return
+	}
 	switch name.value {
 	case "block":
-		blockName := t.parseExpr()
+		blockName, err := t.expect(tokenName)
+		if err != nil {
+			e = err
+			return
+		}
 		t.expect(tokenTagClose)
-		body := t.parseUntilEndTag("block")
-		return newBlockNode(blockName, body, pos(name.pos))
+		t.pushBlockStack(blockName.value)
+		body, err := t.parseUntilEndTag("block")
+		if err != nil {
+			e = err
+			return
+		}
+		t.popBlockStack(blockName.value)
+		nod := newBlockNode(blockName.value, body, pos(name.pos))
+		t.setBlock(blockName.value, nod)
+		return nod, nil
 	case "if":
-		cond := t.parseExpr()
+		cond, err := t.parseExpr()
+		if err != nil {
+			e = err
+			return
+		}
 		t.expect(tokenTagClose)
-		body, els := t.parseEndifOrElse()
-		return newIfNode(cond, body, els, pos(name.pos))
+		body, els, err := t.parseEndifOrElse()
+		if err != nil {
+			e = err
+			return
+		}
+		n = newIfNode(cond, body, els, pos(name.pos))
 	}
-
-	return nil
+	return
 }
 
-func (t *Tree) parseEndifOrElse() (body *ModuleNode, els *ModuleNode) {
+func (t *Tree) parseEndifOrElse() (body *ModuleNode, els *ModuleNode, e error) {
 	body = newModuleNode()
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenTagOpen:
 			t.next()
-			tok := t.expect(tokenName)
+			tok, err := t.expect(tokenName)
+			if err != nil {
+				e = err
+				return
+			}
 			if tok.value == "else" {
-				t.expect(tokenTagClose)
-				els = t.parseUntilEndTag("if")
+				_, err := t.expect(tokenTagClose)
+				if err != nil {
+					e = err
+					return
+				}
+				els, err = t.parseUntilEndTag("if")
+				if err != nil {
+					e = err
+					return
+				}
 				return
 
 			} else if tok.value == "endif" {
-				t.expect(tokenTagClose)
+				_, e = t.expect(tokenTagClose)
 				return
 			}
-			t.backup()
-			t.backup()
-			t.backup()
-			body.append(t.parse())
+			t.backup3()
+			n, err := t.parse()
+			if err != nil {
+				e = err
+				return
+			}
+			body.append(n)
 
 		default:
-			body.append(t.parse())
+			n, err := t.parse()
+			if err != nil {
+				e = err
+				return
+			}
+			body.append(n)
 		}
 	}
 }
 
-func (t *Tree) parseUntilEndTag(name string) (n *ModuleNode) {
+func (t *Tree) parseUntilEndTag(name string) (n *ModuleNode, e error) {
 	n = newModuleNode()
 	for {
 		switch tok := t.peek(); tok.tokenType {
+		case tokenEof:
+			e = fmt.Errorf("Unclosed tag %s", name)
+			return
+
 		case tokenTagOpen:
 			t.next()
-			tok := t.expect(tokenName)
-			if tok.value == "end"+name {
-				t.expect(tokenTagClose)
+			tok, err := t.expect(tokenName)
+			if err != nil {
+				e = err
 				return
 			}
-			t.backup()
-			t.backup()
-			t.backup()
-			n.append(t.parse())
+			if tok.value == "end"+name {
+				_, err = t.expect(tokenTagClose)
+				if err != nil {
+					e = err
+				}
+				return
+			}
+			t.backup3()
+			o, err := t.parse()
+			if err != nil {
+				e = err
+				return
+			}
+			n.append(o)
 
 		default:
-			n.append(t.parse())
+			o, err := t.parse()
+			if err != nil {
+				e = err
+				return
+			}
+			n.append(o)
 		}
 	}
 }
 
-func (t *Tree) parseExpr() expr {
-	for {
-		tok := t.nextNonSpace()
-		switch typ := tok.tokenType; {
-		case typ == tokenName:
-			return newNameExpr(tok.value)
+func (t *Tree) parseExpr() (exp expr, e error) {
+	tok := t.nextNonSpace()
+	switch tok.tokenType {
+	case tokenEof:
+		return
 
-		case typ == tokenStringOpen:
-			tok := t.expect(tokenText)
-			t.expect(tokenStringClose)
-			return newStringExpr(tok.value)
+	case tokenName:
+		exp = newNameExpr(tok.value)
 
-		default:
-			panic("unknown expression")
+	case tokenStringOpen:
+		tok, err := t.expect(tokenText)
+		if err != nil {
+			e = err
+			return
 		}
+		_, err = t.expect(tokenStringClose)
+		if err != nil {
+			e = err
+			return
+		}
+		exp = newStringExpr(tok.value)
+
+	default:
+		return nil, fmt.Errorf("unknown expression: %s", tok)
 	}
+	return
 }

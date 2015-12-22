@@ -9,7 +9,8 @@ import (
 type tokenType int
 
 const (
-	tokenText tokenType = iota
+	tokenEof tokenType = iota
+	tokenText
 	tokenName
 	tokenNumber
 	tokenTagOpen
@@ -29,7 +30,6 @@ const (
 	tokenOperator
 	tokenWhitespace
 	tokenError
-	tokenEof
 )
 
 var names = map[tokenType]string{
@@ -149,6 +149,9 @@ func (l *lexer) emit(t tokenType) {
 
 	l.tokens <- tok
 	l.start = l.pos
+	if tok.tokenType == tokenEof {
+		close(l.tokens)
+	}
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
@@ -196,6 +199,9 @@ func lexData(l *lexer) stateFn {
 
 func lexExpression(l *lexer) stateFn {
 	switch str := l.peek(); {
+	case str == delimEof:
+		return lexData
+
 	case strings.HasPrefix(l.input[l.pos:], delimCloseTag):
 		if l.pos > l.start {
 			return l.errorf("Incompete token?")
@@ -353,6 +359,9 @@ func lexCloseParens(l *lexer) stateFn {
 func lexName(l *lexer) stateFn {
 	for {
 		str := l.next()
+		if str == delimEof {
+			break
+		}
 		if !isAlphaNumeric(str) {
 			l.backup()
 			break

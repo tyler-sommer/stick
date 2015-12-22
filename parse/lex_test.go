@@ -1,7 +1,6 @@
 package parse
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -118,7 +117,18 @@ var lexTests = []lexTest{
 		tSpace,
 		mkTok(tokenNumber, "5"),
 		tSpace,
-		mkTok(tokenError, "unclosed parenthesis"),
+		mkTok(tokenError, "unclosed parenthesis"), // TODO: parser should handle this, perhaps
+	}},
+
+	{"unclosed tag (block)", "{% block test %}", []token{
+		tTagOpen,
+		tSpace,
+		mkTok(tokenName, "block"),
+		tSpace,
+		mkTok(tokenName, "test"),
+		tSpace,
+		tTagClose,
+		tEof,
 	}},
 }
 
@@ -154,7 +164,6 @@ func equal(stream1, stream2 []token) bool {
 func TestLex(t *testing.T) {
 	for _, test := range lexTests {
 		tokens := collect(&test)
-		fmt.Println(tokens)
 		if !equal(tokens, test.tokens) {
 			t.Errorf("%s: got\n\t%+v\nexpected\n\t%v", test.name, tokens, test.tokens)
 		}

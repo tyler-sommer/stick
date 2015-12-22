@@ -9,32 +9,52 @@ type expr interface {
 const (
 	exprName nodeType = iota
 	exprString
+	exprFunc
 )
 
-type nameExpr struct {
+type NameExpr struct {
 	nodeType
 	pos
 	name string
 }
 
-func newNameExpr(name string) *nameExpr {
-	return &nameExpr{exprName, 0, name}
+func newNameExpr(name string) *NameExpr {
+	return &NameExpr{exprName, 0, name}
 }
 
-func (exp *nameExpr) String() string {
+func (exp *NameExpr) Name() string {
+	return exp.name
+}
+
+func (exp *NameExpr) String() string {
 	return fmt.Sprintf("NameExpr(%s)", exp.name)
 }
 
-type stringExpr struct {
+type StringExpr struct {
 	nodeType
 	pos
 	text string
 }
 
-func newStringExpr(text string) *stringExpr {
-	return &stringExpr{exprString, 0, text}
+func newStringExpr(text string) *StringExpr {
+	return &StringExpr{exprString, 0, text}
 }
 
-func (exp *stringExpr) String() string {
+func (exp *StringExpr) String() string {
 	return fmt.Sprintf("StringExpr(%s)", exp.text)
+}
+
+type FuncExpr struct {
+	nodeType
+	pos
+	name string
+	args []expr
+}
+
+func newFuncExpr(name string, args []expr) *FuncExpr {
+	return &FuncExpr{exprFunc, 0, name, args}
+}
+
+func (exp *FuncExpr) String() string {
+	return fmt.Sprintf("FuncExpr(%s, [%s])", exp.name, exp.args)
 }

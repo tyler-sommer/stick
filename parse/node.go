@@ -22,22 +22,23 @@ func (p pos) Pos() pos {
 }
 
 const (
-	NodeText nodeType = iota
-	NodeModule
-	NodePrint
-	NodeBlock
-	NodeIf
+	nodeText nodeType = iota
+	nodeModule
+	nodePrint
+	nodeBlock
+	nodeIf
 )
 
 // A list of nodes
 type ModuleNode struct {
 	nodeType
 	pos
+	parent *Node
 	nodes []Node
 }
 
 func newModuleNode() *ModuleNode {
-	return &ModuleNode{NodeModule, pos(0), make([]Node, 0)}
+	return &ModuleNode{nodeModule, pos(0), nil, make([]Node, 0)}
 }
 
 func (l *ModuleNode) append(n Node) {
@@ -60,7 +61,7 @@ type TextNode struct {
 }
 
 func newTextNode(data string, p pos) *TextNode {
-	return &TextNode{NodeText, p, data}
+	return &TextNode{nodeText, p, data}
 }
 
 func (t *TextNode) String() string {
@@ -79,7 +80,7 @@ type PrintNode struct {
 }
 
 func newPrintNode(exp expr, p pos) *PrintNode {
-	return &PrintNode{NodePrint, p, exp}
+	return &PrintNode{nodePrint, p, exp}
 }
 
 func (t *PrintNode) String() string {
@@ -90,12 +91,12 @@ func (t *PrintNode) String() string {
 type BlockNode struct {
 	nodeType
 	pos
-	name expr
+	name string
 	body Node
 }
 
-func newBlockNode(name expr, body Node, p pos) *BlockNode {
-	return &BlockNode{NodeBlock, p, name, body}
+func newBlockNode(name string, body Node, p pos) *BlockNode {
+	return &BlockNode{nodeBlock, p, name, body}
 }
 
 func (t *BlockNode) String() string {
@@ -112,7 +113,7 @@ type IfNode struct {
 }
 
 func newIfNode(cond expr, body Node, els Node, p pos) *IfNode {
-	return &IfNode{NodeIf, p, cond, body, els}
+	return &IfNode{nodeIf, p, cond, body, els}
 }
 
 func (t *IfNode) String() string {

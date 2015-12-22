@@ -7,7 +7,10 @@ import (
 )
 
 func TestExec(t *testing.T) {
-	tree := parse.Parse("Hello")
+	tree, err := parse.Parse("Hello")
+	if err != nil {
+		t.Errorf("Parse error: %s", err)
+	}
 
 	w := &bytes.Buffer{}
 

@@ -37,7 +37,10 @@ func (s *state) walk(node parse.Node) {
 }
 
 func Execute(tmpl string, out io.Writer) {
-	tree := parse.Parse(tmpl)
+	tree, err := parse.Parse(tmpl)
+	if err != nil {
+		panic(err)
+	}
 
 	s := newState(out)
 
