@@ -6,6 +6,7 @@ import (
 	"unicode"
 )
 
+// tokenType defines a unique type of token
 type tokenType int
 
 const (
@@ -70,16 +71,6 @@ const (
 	delimCloseComment = "#}"
 )
 
-type lexerState int
-
-const (
-	stateData lexerState = iota
-	stateBlock
-	stateVar
-	stateString
-	stateInterpolation
-)
-
 type token struct {
 	value     string
 	pos       int
@@ -91,8 +82,10 @@ func (tok token) String() string {
 	return fmt.Sprintf("{%s '%s' %d %d}", tok.tokenType, tok.value, tok.pos, tok.line)
 }
 
+// stateFn may emit zero or more tokens.
 type stateFn func(*lexer) stateFn
 
+// lexer contains the current state of a lexer.
 type lexer struct {
 	start  int // The position of the last emission
 	pos    int // The position of the cursor
@@ -136,6 +129,8 @@ func (l *lexer) peek() (val string) {
 	return
 }
 
+// emit will create a token with a value starting from the last emission
+// until the current cursor position.
 func (l *lexer) emit(t tokenType) {
 	val := ""
 	if l.pos <= len(l.input) {
@@ -161,6 +156,7 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	return nil
 }
 
+// tokenize kicks things off.
 func (l *lexer) tokenize() {
 	for l.state = lexData; l.state != nil; {
 		l.state = l.state(l)

@@ -2,13 +2,13 @@ package stick
 
 import (
 	"github.com/tyler-sommer/stick/parse"
-	"reflect"
 	"io"
+	"reflect"
 )
 
 type state struct {
-	out io.Writer
-	node parse.Node
+	out     io.Writer
+	node    parse.Node
 	context map[string]variable
 }
 
@@ -32,7 +32,7 @@ func (s *state) walk(node parse.Node) {
 	case *parse.TextNode:
 		io.WriteString(s.out, node.Text())
 	default:
-		io.WriteString(s.out, "Unknown node " + node.String())
+		io.WriteString(s.out, "Unknown node "+node.String())
 	}
 }
 

@@ -1,25 +1,29 @@
+// Package parse handles transforming Stick source code
+// into AST for further processing.
 package parse
 
 import (
 	"fmt"
 )
 
+// Tree represents the state of a parser.
 type Tree struct {
-	root   *ModuleNode
-	blocks []string
+	root      *ModuleNode
+	blocks    []string
 	blockRefs map[string]*BlockNode
-	input  string
-	lex    *lexer
-	unread []token
-	read   []token
+	input     string
+	lex       *lexer
+	unread    []token
+	read      []token
 }
 
+// Root returns the root module node.
 func (t *Tree) Root() Node {
 	return t.root
 }
 
 func (t *Tree) popBlockStack(name string) {
-	t.blocks = t.blocks[0:len(t.blocks)-1]
+	t.blocks = t.blocks[0 : len(t.blocks)-1]
 }
 
 func (t *Tree) pushBlockStack(name string) {
@@ -85,6 +89,7 @@ func (t *Tree) expect(typ tokenType) (token, error) {
 	return tok, nil
 }
 
+// Parse parses the given input.
 func Parse(input string) (t *Tree, e error) {
 	lex := newLexer(input)
 

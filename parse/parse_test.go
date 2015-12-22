@@ -8,7 +8,7 @@ type parseTest struct {
 	name     string
 	input    string
 	expected *ModuleNode
-	err	 	 string
+	err      string
 }
 
 const noError = ""

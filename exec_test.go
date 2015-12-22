@@ -1,9 +1,9 @@
 package stick
 
 import (
-	"testing"
-	"github.com/tyler-sommer/stick/parse"
 	"bytes"
+	"github.com/tyler-sommer/stick/parse"
+	"testing"
 )
 
 func TestExec(t *testing.T) {
@@ -18,7 +18,7 @@ func TestExec(t *testing.T) {
 
 	s.walk(tree.Root())
 
-	if (w.String() != "Hello") {
+	if w.String() != "Hello" {
 		t.Errorf("Unexpected output: '%s'", w.String())
 	}
 }

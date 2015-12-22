@@ -29,12 +29,12 @@ const (
 	nodeIf
 )
 
-// A list of nodes
+// ModuleNode represents a set of nodes.
 type ModuleNode struct {
 	nodeType
 	pos
 	parent *Node
-	nodes []Node
+	nodes  []Node
 }
 
 func newModuleNode() *ModuleNode {
@@ -53,7 +53,7 @@ func (l *ModuleNode) Children() []Node {
 	return l.nodes
 }
 
-// A text node
+// TextNode represents raw, non Stick source code, like plain HTML.
 type TextNode struct {
 	nodeType
 	pos
@@ -72,7 +72,7 @@ func (t *TextNode) Text() string {
 	return t.data
 }
 
-// A print node
+// PrintNode represents a print statement
 type PrintNode struct {
 	nodeType
 	pos
@@ -87,7 +87,7 @@ func (t *PrintNode) String() string {
 	return fmt.Sprintf("Print(%s)", t.exp)
 }
 
-// A block node
+// BlockNode represents a block statement
 type BlockNode struct {
 	nodeType
 	pos
@@ -103,7 +103,7 @@ func (t *BlockNode) String() string {
 	return fmt.Sprintf("Block(%s: %s)", t.name, t.body)
 }
 
-// An if node
+// IfNode represents an if statement
 type IfNode struct {
 	nodeType
 	pos

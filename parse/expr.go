@@ -12,6 +12,7 @@ const (
 	exprFunc
 )
 
+// NameExpr represents an identifier, such as a variable.
 type NameExpr struct {
 	nodeType
 	pos
@@ -30,6 +31,7 @@ func (exp *NameExpr) String() string {
 	return fmt.Sprintf("NameExpr(%s)", exp.name)
 }
 
+// StringExpr represents a string literal.
 type StringExpr struct {
 	nodeType
 	pos
@@ -44,6 +46,7 @@ func (exp *StringExpr) String() string {
 	return fmt.Sprintf("StringExpr(%s)", exp.text)
 }
 
+// FuncExpr represents a function call.
 type FuncExpr struct {
 	nodeType
 	pos
