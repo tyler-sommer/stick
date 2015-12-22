@@ -2,10 +2,6 @@
 // into AST for further processing.
 package parse
 
-import (
-	"fmt"
-)
-
 // Tree represents the state of a parser.
 type Tree struct {
 	root      *ModuleNode
@@ -80,13 +76,15 @@ func (t *Tree) nextNonSpace() token {
 	}
 }
 
-func (t *Tree) expect(typ tokenType) (token, error) {
+func (t *Tree) expect(typs ...tokenType) (token, error) {
 	tok := t.nextNonSpace()
-	if tok.tokenType != typ {
-		return tok, fmt.Errorf("expected %s got %s", typ, tok.tokenType)
+	for _, typ := range typs {
+		if tok.tokenType == typ {
+			return tok, nil
+		}
 	}
 
-	return tok, nil
+	return tok, newUnexpectedTokenError(tok, typs...)
 }
 
 // Parse parses the given input.
@@ -110,12 +108,12 @@ func Parse(input string) (t *Tree, e error) {
 }
 
 func (t *Tree) parse() (n Node, e error) {
-	tok := t.nextNonSpace()
-	switch {
-	case tok.tokenType == tokenText:
-		n = newTextNode(tok.value, pos(tok.pos))
 
-	case tok.tokenType == tokenPrintOpen:
+	switch tok := t.nextNonSpace(); tok.tokenType {
+	case tokenText:
+		n = newTextNode(tok.value, tok.Pos())
+
+	case tokenPrintOpen:
 		name, err := t.parseExpr()
 		if err != nil {
 			e = err
@@ -126,16 +124,16 @@ func (t *Tree) parse() (n Node, e error) {
 			e = err
 			return
 		}
-		n = newPrintNode(name, pos(tok.pos))
+		n = newPrintNode(name, tok.Pos())
 
-	case tok.tokenType == tokenTagOpen:
+	case tokenTagOpen:
 		n, e = t.parseTag()
 
-	case tok.tokenType == tokenEof:
+	case tokenEof:
 		return
 
 	default:
-		e = fmt.Errorf("parse error near %s", tok.value)
+		e = newParseError(tok)
 	}
 
 	return
@@ -156,13 +154,13 @@ func (t *Tree) parseTag() (n Node, e error) {
 		}
 		t.expect(tokenTagClose)
 		t.pushBlockStack(blockName.value)
-		body, err := t.parseUntilEndTag("block")
+		body, err := t.parseUntilEndTag("block", name.Pos())
 		if err != nil {
 			e = err
 			return
 		}
 		t.popBlockStack(blockName.value)
-		nod := newBlockNode(blockName.value, body, pos(name.pos))
+		nod := newBlockNode(blockName.value, body, name.Pos())
 		t.setBlock(blockName.value, nod)
 		return nod, nil
 	case "if":
@@ -172,20 +170,24 @@ func (t *Tree) parseTag() (n Node, e error) {
 			return
 		}
 		t.expect(tokenTagClose)
-		body, els, err := t.parseEndifOrElse()
+		body, els, err := t.parseEndifOrElse(name.Pos())
 		if err != nil {
 			e = err
 			return
 		}
-		n = newIfNode(cond, body, els, pos(name.pos))
+		n = newIfNode(cond, body, els, name.Pos())
 	}
 	return
 }
 
-func (t *Tree) parseEndifOrElse() (body *ModuleNode, els *ModuleNode, e error) {
+func (t *Tree) parseEndifOrElse(start pos) (body *ModuleNode, els *ModuleNode, e error) {
 	body = newModuleNode()
 	for {
 		switch tok := t.peek(); tok.tokenType {
+		case tokenEof:
+			e = newUnclosedTagError("if", start)
+			return
+
 		case tokenTagOpen:
 			t.next()
 			tok, err := t.expect(tokenName)
@@ -199,7 +201,7 @@ func (t *Tree) parseEndifOrElse() (body *ModuleNode, els *ModuleNode, e error) {
 					e = err
 					return
 				}
-				els, err = t.parseUntilEndTag("if")
+				els, err = t.parseUntilEndTag("if", start.Pos())
 				if err != nil {
 					e = err
 					return
@@ -208,6 +210,9 @@ func (t *Tree) parseEndifOrElse() (body *ModuleNode, els *ModuleNode, e error) {
 
 			} else if tok.value == "endif" {
 				_, e = t.expect(tokenTagClose)
+				return
+			} else {
+				e = newUnclosedTagError("if", start)
 				return
 			}
 			t.backup3()
@@ -229,12 +234,12 @@ func (t *Tree) parseEndifOrElse() (body *ModuleNode, els *ModuleNode, e error) {
 	}
 }
 
-func (t *Tree) parseUntilEndTag(name string) (n *ModuleNode, e error) {
+func (t *Tree) parseUntilEndTag(name string, start pos) (n *ModuleNode, e error) {
 	n = newModuleNode()
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenEof:
-			e = fmt.Errorf("Unclosed tag %s", name)
+			e = newUnclosedTagError(name, start)
 			return
 
 		case tokenTagOpen:
@@ -277,7 +282,19 @@ func (t *Tree) parseExpr() (exp expr, e error) {
 		return
 
 	case tokenName:
-		exp = newNameExpr(tok.value)
+		n := newNameExpr(tok.value, tok.Pos())
+		tok = t.nextNonSpace()
+		if tok.tokenType == tokenParensOpen {
+			f, err := t.parseFunc(n)
+			if err != nil {
+				e = err
+				return
+			}
+			exp = f
+		} else {
+			t.backup()
+			exp = n
+		}
 
 	case tokenStringOpen:
 		tok, err := t.expect(tokenText)
@@ -290,10 +307,50 @@ func (t *Tree) parseExpr() (exp expr, e error) {
 			e = err
 			return
 		}
-		exp = newStringExpr(tok.value)
+		exp = newStringExpr(tok.value, tok.Pos())
 
 	default:
-		return nil, fmt.Errorf("unknown expression: %s", tok)
+		return nil, newParseError(tok)
 	}
 	return
+}
+
+func (t *Tree) parseFunc(name *NameExpr) (exp expr, e error) {
+	var args []expr
+	for {
+		switch tok := t.peek(); tok.tokenType {
+		case tokenEof:
+			e = newUnexpectedEofError(tok)
+			return
+
+		default:
+			argexp, err := t.parseExpr()
+			if err != nil {
+				e = err
+				return
+			}
+
+			args = append(args, argexp)
+		}
+
+		switch tok := t.nextNonSpace(); tok.tokenType {
+		case tokenEof:
+			e = newUnexpectedEofError(tok)
+			return
+
+		case tokenPunctuation:
+			if tok.value != "," {
+				e = newUnexpectedPunctuationError(tok, ",")
+				return
+			}
+
+		case tokenParensClose:
+			exp = newFuncExpr(name, args, name.Pos())
+			return
+
+		default:
+			e = newUnexpectedTokenError(tok, tokenPunctuation, tokenParensClose)
+			return
+		}
+	}
 }

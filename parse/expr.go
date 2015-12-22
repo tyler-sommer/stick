@@ -19,8 +19,8 @@ type NameExpr struct {
 	name string
 }
 
-func newNameExpr(name string) *NameExpr {
-	return &NameExpr{exprName, 0, name}
+func newNameExpr(name string, pos pos) *NameExpr {
+	return &NameExpr{exprName, pos, name}
 }
 
 func (exp *NameExpr) Name() string {
@@ -38,8 +38,8 @@ type StringExpr struct {
 	text string
 }
 
-func newStringExpr(text string) *StringExpr {
-	return &StringExpr{exprString, 0, text}
+func newStringExpr(text string, pos pos) *StringExpr {
+	return &StringExpr{exprString, pos, text}
 }
 
 func (exp *StringExpr) String() string {
@@ -50,14 +50,14 @@ func (exp *StringExpr) String() string {
 type FuncExpr struct {
 	nodeType
 	pos
-	name string
+	name *NameExpr
 	args []expr
 }
 
-func newFuncExpr(name string, args []expr) *FuncExpr {
-	return &FuncExpr{exprFunc, 0, name, args}
+func newFuncExpr(name *NameExpr, args []expr, pos pos) *FuncExpr {
+	return &FuncExpr{exprFunc, pos, name, args}
 }
 
 func (exp *FuncExpr) String() string {
-	return fmt.Sprintf("FuncExpr(%s, [%s])", exp.name, exp.args)
+	return fmt.Sprintf("FuncExpr(%s, %s)", exp.name, exp.args)
 }

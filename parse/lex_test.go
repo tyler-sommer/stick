@@ -117,7 +117,8 @@ var lexTests = []lexTest{
 		tSpace,
 		mkTok(tokenNumber, "5"),
 		tSpace,
-		mkTok(tokenError, "unclosed parenthesis"), // TODO: parser should handle this, perhaps
+		tPrintClose,
+		tEof,
 	}},
 
 	{"unclosed tag (block)", "{% block test %}", []token{

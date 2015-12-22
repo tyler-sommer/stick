@@ -15,10 +15,21 @@ func (t nodeType) Type() nodeType {
 	return t
 }
 
-type pos int
+type pos struct {
+	Line int
+	Offset int
+}
+
+func newPos(line, offset int) pos {
+	return pos{line, offset}
+}
 
 func (p pos) Pos() pos {
 	return p
+}
+
+func (p pos) String() string {
+	return fmt.Sprintf("%d:%d", p.Line, p.Offset)
 }
 
 const (
@@ -38,7 +49,7 @@ type ModuleNode struct {
 }
 
 func newModuleNode() *ModuleNode {
-	return &ModuleNode{nodeModule, pos(0), nil, make([]Node, 0)}
+	return &ModuleNode{nodeModule, newPos(1, 0), nil, make([]Node, 0)}
 }
 
 func (l *ModuleNode) append(n Node) {

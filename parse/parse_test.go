@@ -31,24 +31,31 @@ func mkModule(nodes ...Node) *ModuleNode {
 }
 
 var parseTests = []parseTest{
-	newErrorTest("parse error", "{% block test %}", "Unclosed tag block"),
-	newParseTest("text", "some text", mkModule(newTextNode("some text", 0))),
-	newParseTest("hello", "Hello {{ name }}", mkModule(newTextNode("Hello ", 0), newPrintNode(newNameExpr("name"), 6))),
-	newParseTest("string expr", "Hello {{ 'Tyler' }}", mkModule(newTextNode("Hello ", 0), newPrintNode(newStringExpr("Tyler"), 6))),
+	// Errors
+	newErrorTest("unclosed block", "{% block test %}", "parse error: unclosed tag \"block\" starting on line 1, offset 3"),
+	newErrorTest("unclosed if", "{% if test %}", "parse error: unclosed tag \"if\" starting on line 1, offset 3"),
+	newErrorTest("unexpected end (function call)", "{{ func('arg1'", "parse error: unexpected end of input on line 1, offset 14"),
+	newErrorTest("unclosed parenthesis", "{{ func(arg1 }}", "parse error: expected one of [PUNCTUATION, PARENS_CLOSE], got \"PRINT_CLOSE\" on line 1, offset 13"),
+	newErrorTest("unexpected punctuation", "{{ func(arg1. arg2) }}", "parse error: unexpected punctuation \".\", expected \",\" on line 1, offset 12"),
+
+	// Valid
+	newParseTest("text", "some text", mkModule(newTextNode("some text", pos{1,6}))),
+	newParseTest("hello", "Hello {{ name }}", mkModule(newTextNode("Hello ", pos{1,0}), newPrintNode(newNameExpr("name", pos{1,6}), pos{1,6}))),
+	newParseTest("string expr", "Hello {{ 'Tyler' }}", mkModule(newTextNode("Hello ", pos{1,0}), newPrintNode(newStringExpr("Tyler", pos{1,6}), pos{1,6}))),
 	newParseTest(
 		"simple tag",
 		"{% block something %}Body{% endblock %}",
-		mkModule(newBlockNode("something", mkModule(newTextNode("Body", 0)), 0)),
+		mkModule(newBlockNode("something", mkModule(newTextNode("Body", pos{1,6})), pos{1,6})),
 	),
 	newParseTest(
 		"if else",
 		"{% if something %}Do Something{% else %}Another thing{% endif %}",
-		mkModule(newIfNode(newNameExpr("something"), mkModule(newTextNode("Do Something", 0)), mkModule(newTextNode("Another thing", 0)), 0)),
+		mkModule(newIfNode(newNameExpr("something", pos{1,6}), mkModule(newTextNode("Do Something", pos{1,6})), mkModule(newTextNode("Another thing", pos{1,6})), pos{1,6})),
 	),
 	newParseTest(
 		"function expr",
 		"{{ func('arg1', arg2) }}",
-		mkModule(newPrintNode(newFuncExpr("func", []expr{newStringExpr("arg1"), newNameExpr("arg2")}), 0)),
+		mkModule(newPrintNode(newFuncExpr(newNameExpr("func", pos{1,0}), []expr{newStringExpr("arg1", pos{1,6}), newNameExpr("arg2", pos{1,6})}, pos{1,6}), pos{1,6})),
 	),
 }
 
@@ -60,16 +67,20 @@ func nodeEqual(a, b Node) bool {
 	return true
 }
 
+func evaluateTest(t *testing.T, test parseTest) {
+	tree, err := Parse(test.input)
+	if test.err != noError && err != nil && test.err != err.Error() {
+		t.Errorf("%s: got error\n\t%+v\nexpected error\n\t%v", test.name, err, test.err)
+	} else if !nodeEqual(tree.root, test.expected) {
+		t.Errorf("%s: got\n\t%+v\nexpected\n\t%v", test.name, tree.root, test.expected)
+		if err != nil {
+			t.Errorf("%s: got error\n\t%v", test.name, err.Error())
+		}
+	}
+}
+
 func TestParse(t *testing.T) {
 	for _, test := range parseTests {
-		tree, err := Parse(test.input)
-		if test.err != noError && err != nil && test.err != err.Error() {
-			t.Errorf("%s: got error\n\t%+v\nexpected error\n\t%v", test.name, err, test.err)
-		} else if !nodeEqual(tree.root, test.expected) {
-			t.Errorf("%s: got\n\t%+v\nexpected\n\t%v", test.name, tree.root, test.expected)
-			if err != nil {
-				t.Errorf("%s: got error\n\t%v", test.name, err.Error())
-			}
-		}
+		evaluateTest(t, test)
 	}
 }

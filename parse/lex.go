@@ -73,13 +73,17 @@ const (
 
 type token struct {
 	value     string
-	pos       int
+	offset    int
 	line      int
 	tokenType tokenType
 }
 
+func (tok token) Pos() pos {
+	return pos{tok.line, tok.offset}
+}
+
 func (tok token) String() string {
-	return fmt.Sprintf("{%s '%s' %d %d}", tok.tokenType, tok.value, tok.pos, tok.line)
+	return fmt.Sprintf("{%s '%s' %s}", tok.tokenType, tok.value, tok.Pos())
 }
 
 // stateFn may emit zero or more tokens.
@@ -89,19 +93,27 @@ type stateFn func(*lexer) stateFn
 type lexer struct {
 	start  int // The position of the last emission
 	pos    int // The position of the cursor
-	parens int // Number of still-open parenthesis in the current expression
 	line   int // The current line number
+	offset int // The current character offset on the current line
 	input  string
 	tokens chan token
 	state  stateFn
+	last   token // The last emitted token
 }
 
 func (l *lexer) nextToken() token {
-	return <-l.tokens
+	for v, ok := <-l.tokens; ok; {
+		l.last = v
+		return v
+	}
+
+	fmt.Println("Reading closed token channel, last token: ", l.last)
+
+	return l.last
 }
 
 func newLexer(input string) *lexer {
-	return &lexer{0, 0, 0, 1, input, make(chan token), nil}
+	return &lexer{0, 0, 1, 0, input, make(chan token), nil, token{}}
 }
 
 func (l *lexer) next() (val string) {
@@ -137,9 +149,16 @@ func (l *lexer) emit(t tokenType) {
 		val = l.input[l.start:l.pos]
 	}
 
-	tok := token{val, l.start, l.line, t}
-	if strings.Contains(val, "\n") {
-		l.line++
+	tok := token{val, l.offset, l.line, t}
+
+	fmt.Println(tok)
+
+	if c := strings.Count(val, "\n"); c > 0 {
+		l.line += c
+		lpos := strings.LastIndex(val, "\n")
+		l.offset = len(val[lpos+1:])
+	} else {
+		l.offset += len(val)
 	}
 
 	l.tokens <- tok
@@ -327,8 +346,6 @@ func lexOpenParens(l *lexer) stateFn {
 		return l.errorf("Unknown parenthesis")
 	}
 
-	l.parens += 1
-
 	return lexExpression
 }
 
@@ -346,8 +363,6 @@ func lexCloseParens(l *lexer) stateFn {
 	default:
 		return l.errorf("Unknown parenthesis")
 	}
-
-	l.parens -= 1
 
 	return lexExpression
 }
@@ -377,9 +392,6 @@ func lexTagOpen(l *lexer) stateFn {
 }
 
 func lexTagClose(l *lexer) stateFn {
-	if l.parens > 0 {
-		return l.errorf("unclosed parenthesis")
-	}
 	l.pos += len(delimCloseTag)
 	l.emit(tokenTagClose)
 
@@ -394,9 +406,6 @@ func lexPrintOpen(l *lexer) stateFn {
 }
 
 func lexPrintClose(l *lexer) stateFn {
-	if l.parens > 0 {
-		return l.errorf("unclosed parenthesis")
-	}
 	l.pos += len(delimClosePrint)
 	l.emit(tokenPrintClose)
 
@@ -449,7 +458,7 @@ func isOperator(str string) bool {
 
 func isPunctuation(str string) bool {
 	for _, s := range str {
-		if !strings.ContainsAny(string(s), ",?:|") {
+		if !strings.ContainsAny(string(s), ",?:|.") {
 			return false
 		}
 	}
