@@ -22,7 +22,7 @@ func newParseError(tok token) error {
 // UnexpectedTokenError is generated when the current token
 // is not of the expected type.
 type UnexpectedTokenError struct {
-	actual token
+	actual   token
 	expected []tokenType
 }
 
@@ -48,7 +48,7 @@ func newUnexpectedTokenError(actual token, expected ...tokenType) error {
 
 // UnclosedTagError is generated when a tag is not properly closed.
 type UnclosedTagError struct {
-	name string
+	name  string
 	start pos
 }
 
@@ -77,7 +77,7 @@ func newUnexpectedEofError(tok token) error {
 
 // UnexpectedPunctuationError describes an invalid or unexpected punctuation token.
 type UnexpectedPunctuationError struct {
-	tok token
+	tok      token
 	expected string
 }
 

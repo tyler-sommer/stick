@@ -2,7 +2,7 @@ package parse
 
 import "fmt"
 
-type expr interface {
+type Expr interface {
 	Node
 }
 
@@ -51,10 +51,10 @@ type FuncExpr struct {
 	nodeType
 	pos
 	name *NameExpr
-	args []expr
+	args []Expr
 }
 
-func newFuncExpr(name *NameExpr, args []expr, pos pos) *FuncExpr {
+func newFuncExpr(name *NameExpr, args []Expr, pos pos) *FuncExpr {
 	return &FuncExpr{exprFunc, pos, name, args}
 }
 

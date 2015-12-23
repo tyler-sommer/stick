@@ -13,6 +13,9 @@ type parseTest struct {
 
 const noError = ""
 
+// Position testing isnt implemented
+var noPos = pos{0, 0}
+
 func newParseTest(name, input string, expected *ModuleNode) parseTest {
 	return parseTest{name, input, expected, noError}
 }
@@ -39,41 +42,41 @@ var parseTests = []parseTest{
 	newErrorTest("unexpected punctuation", "{{ func(arg1. arg2) }}", "parse error: unexpected punctuation \".\", expected \",\" on line 1, offset 12"),
 
 	// Valid
-	newParseTest("text", "some text", mkModule(newTextNode("some text", pos{1,6}))),
-	newParseTest("hello", "Hello {{ name }}", mkModule(newTextNode("Hello ", pos{1,0}), newPrintNode(newNameExpr("name", pos{1,6}), pos{1,6}))),
-	newParseTest("string expr", "Hello {{ 'Tyler' }}", mkModule(newTextNode("Hello ", pos{1,0}), newPrintNode(newStringExpr("Tyler", pos{1,6}), pos{1,6}))),
+	newParseTest("text", "some text", mkModule(newTextNode("some text", noPos))),
+	newParseTest("hello", "Hello {{ name }}", mkModule(newTextNode("Hello ", noPos), newPrintNode(newNameExpr("name", noPos), noPos))),
+	newParseTest("string expr", "Hello {{ 'Tyler' }}", mkModule(newTextNode("Hello ", noPos), newPrintNode(newStringExpr("Tyler", noPos), noPos))),
 	newParseTest(
 		"simple tag",
 		"{% block something %}Body{% endblock %}",
-		mkModule(newBlockNode("something", mkModule(newTextNode("Body", pos{1,6})), pos{1,6})),
+		mkModule(newBlockNode("something", mkModule(newTextNode("Body", noPos)), noPos)),
 	),
 	newParseTest(
 		"if",
 		"{% if something %}Do Something{% endif %}",
-		mkModule(newIfNode(newNameExpr("something", pos{1,6}), mkModule(newTextNode("Do Something", pos{1,6})), mkModule(), pos{1,6})),
+		mkModule(newIfNode(newNameExpr("something", noPos), mkModule(newTextNode("Do Something", noPos)), mkModule(), noPos)),
 	),
 	newParseTest(
 		"if else",
 		"{% if something %}Do Something{% else %}Another thing{% endif %}",
-		mkModule(newIfNode(newNameExpr("something", pos{1,6}), mkModule(newTextNode("Do Something", pos{1,6})), mkModule(newTextNode("Another thing", pos{1,6})), pos{1,6})),
+		mkModule(newIfNode(newNameExpr("something", noPos), mkModule(newTextNode("Do Something", noPos)), mkModule(newTextNode("Another thing", noPos)), noPos)),
 	),
 	newParseTest(
 		"if else if",
 		"{% if something %}Do Something{% else if another %}Another thing{% endif %}",
 		mkModule(newIfNode(
-			newNameExpr("something", pos{1,6}),
-			mkModule(newTextNode("Do Something", pos{1,6})),
+			newNameExpr("something", noPos),
+			mkModule(newTextNode("Do Something", noPos)),
 			mkModule(newIfNode(
-				newNameExpr("another", pos{1,6}),
-				mkModule(newTextNode("Another thing", pos{1,6})),
+				newNameExpr("another", noPos),
+				mkModule(newTextNode("Another thing", noPos)),
 				mkModule(),
-				pos{1,6})),
-			pos{1,6})),
+				noPos)),
+			noPos)),
 	),
 	newParseTest(
 		"function expr",
 		"{{ func('arg1', arg2) }}",
-		mkModule(newPrintNode(newFuncExpr(newNameExpr("func", pos{1,0}), []expr{newStringExpr("arg1", pos{1,6}), newNameExpr("arg2", pos{1,6})}, pos{1,6}), pos{1,6})),
+		mkModule(newPrintNode(newFuncExpr(newNameExpr("func", noPos), []Expr{newStringExpr("arg1", noPos), newNameExpr("arg2", noPos)}, noPos), noPos)),
 	),
 }
 

@@ -315,7 +315,7 @@ func (t *Tree) parseUntilTag(name string, start pos) (n *ModuleNode, e error) {
 	}
 }
 
-func (t *Tree) parseExpr() (exp expr, e error) {
+func (t *Tree) parseExpr() (exp Expr, e error) {
 	tok := t.nextNonSpace()
 	switch tok.tokenType {
 	case tokenEof:
@@ -355,8 +355,8 @@ func (t *Tree) parseExpr() (exp expr, e error) {
 	return
 }
 
-func (t *Tree) parseFunc(name *NameExpr) (exp expr, e error) {
-	var args []expr
+func (t *Tree) parseFunc(name *NameExpr) (exp Expr, e error) {
+	var args []Expr
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenEof:

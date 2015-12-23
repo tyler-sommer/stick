@@ -16,7 +16,7 @@ func (t nodeType) Type() nodeType {
 }
 
 type pos struct {
-	Line int
+	Line   int
 	Offset int
 }
 
@@ -87,11 +87,15 @@ func (t *TextNode) Text() string {
 type PrintNode struct {
 	nodeType
 	pos
-	exp expr
+	exp Expr
 }
 
-func newPrintNode(exp expr, p pos) *PrintNode {
+func newPrintNode(exp Expr, p pos) *PrintNode {
 	return &PrintNode{nodePrint, p, exp}
+}
+
+func (t *PrintNode) Expr() Expr {
+	return t.exp
 }
 
 func (t *PrintNode) String() string {
@@ -118,12 +122,12 @@ func (t *BlockNode) String() string {
 type IfNode struct {
 	nodeType
 	pos
-	cond expr
+	cond Expr
 	body Node
 	els  Node
 }
 
-func newIfNode(cond expr, body Node, els Node, p pos) *IfNode {
+func newIfNode(cond Expr, body Node, els Node, p pos) *IfNode {
 	return &IfNode{nodeIf, p, cond, body, els}
 }
 
