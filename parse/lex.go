@@ -73,13 +73,8 @@ const (
 
 type token struct {
 	value     string
-	offset    int
-	line      int
 	tokenType tokenType
-}
-
-func (tok token) Pos() pos {
-	return pos{tok.line, tok.offset}
+	pos
 }
 
 func (tok token) String() string {
@@ -149,7 +144,7 @@ func (l *lexer) emit(t tokenType) {
 		val = l.input[l.start:l.pos]
 	}
 
-	tok := token{val, l.offset, l.line, t}
+	tok := token{val, t, newPos(l.line, l.offset)}
 
 	fmt.Println(tok)
 
@@ -169,7 +164,7 @@ func (l *lexer) emit(t tokenType) {
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	tok := token{fmt.Sprintf(format, args...), l.start, l.line, tokenError}
+	tok := token{fmt.Sprintf(format, args...), tokenError, newPos(l.line, l.offset)}
 	l.tokens <- tok
 
 	return nil

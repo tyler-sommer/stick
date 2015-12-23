@@ -48,8 +48,8 @@ type ModuleNode struct {
 	nodes  []Node
 }
 
-func newModuleNode() *ModuleNode {
-	return &ModuleNode{nodeModule, newPos(1, 0), nil, make([]Node, 0)}
+func newModuleNode(nodes ...Node) *ModuleNode {
+	return &ModuleNode{nodeModule, newPos(1, 0), nil, nodes}
 }
 
 func (l *ModuleNode) append(n Node) {

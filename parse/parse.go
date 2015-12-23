@@ -147,41 +147,53 @@ func (t *Tree) parseTag() (n Node, e error) {
 	}
 	switch name.value {
 	case "block":
-		blockName, err := t.expect(tokenName)
-		if err != nil {
-			e = err
-			return
-		}
-		t.expect(tokenTagClose)
-		t.pushBlockStack(blockName.value)
-		body, err := t.parseUntilEndTag("block", name.Pos())
-		if err != nil {
-			e = err
-			return
-		}
-		t.popBlockStack(blockName.value)
-		nod := newBlockNode(blockName.value, body, name.Pos())
-		t.setBlock(blockName.value, nod)
-		return nod, nil
+		n, e = t.parseBlock(name.Pos())
 	case "if":
-		cond, err := t.parseExpr()
-		if err != nil {
-			e = err
-			return
-		}
-		t.expect(tokenTagClose)
-		body, els, err := t.parseEndifOrElse(name.Pos())
-		if err != nil {
-			e = err
-			return
-		}
-		n = newIfNode(cond, body, els, name.Pos())
+		n, e = t.parseIf(name.Pos())
+	default:
+		e = newParseError(name)
 	}
 	return
 }
 
-func (t *Tree) parseEndifOrElse(start pos) (body *ModuleNode, els *ModuleNode, e error) {
+func (t *Tree) parseBlock(start pos) (n Node, e error) {
+	blockName, err := t.expect(tokenName)
+	if err != nil {
+		e = err
+		return
+	}
+	t.expect(tokenTagClose)
+	t.pushBlockStack(blockName.value)
+	body, err := t.parseUntilEndTag("block", start)
+	if err != nil {
+		e = err
+		return
+	}
+	t.popBlockStack(blockName.value)
+	nod := newBlockNode(blockName.value, body, start)
+	t.setBlock(blockName.value, nod)
+	return nod, nil
+}
+
+func (t *Tree) parseIf(start pos) (n Node, e error) {
+	cond, err := t.parseExpr()
+	if err != nil {
+		e = err
+		return
+	}
+	t.expect(tokenTagClose)
+	body, els, err := t.parseIfBody(start)
+	if err != nil {
+		e = err
+		return
+	}
+	n = newIfNode(cond, body, els, start)
+	return
+}
+
+func (t *Tree) parseIfBody(start pos) (body *ModuleNode, els *ModuleNode, e error) {
 	body = newModuleNode()
+	els = newModuleNode()
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenEof:
@@ -196,18 +208,12 @@ func (t *Tree) parseEndifOrElse(start pos) (body *ModuleNode, els *ModuleNode, e
 				return
 			}
 			if tok.value == "else" {
-				_, err := t.expect(tokenTagClose)
+				n, err := t.parseElse(tok.Pos())
 				if err != nil {
 					e = err
 					return
 				}
-				els, err = t.parseUntilEndTag("if", start.Pos())
-				if err != nil {
-					e = err
-					return
-				}
-				return
-
+				els.nodes = n.nodes
 			} else if tok.value == "endif" {
 				_, e = t.expect(tokenTagClose)
 				return
@@ -215,13 +221,8 @@ func (t *Tree) parseEndifOrElse(start pos) (body *ModuleNode, els *ModuleNode, e
 				e = newUnclosedTagError("if", start)
 				return
 			}
-			t.backup3()
-			n, err := t.parse()
-			if err != nil {
-				e = err
-				return
-			}
-			body.append(n)
+
+			return
 
 		default:
 			n, err := t.parse()
@@ -234,12 +235,51 @@ func (t *Tree) parseEndifOrElse(start pos) (body *ModuleNode, els *ModuleNode, e
 	}
 }
 
+func (t *Tree) parseElse(start pos) (n *ModuleNode, e error) {
+	switch tok := t.nextNonSpace(); tok.tokenType {
+	case tokenTagClose:
+		m, err := t.parseUntilEndTag("if", start)
+		if err != nil {
+			e = err
+			return
+		}
+		n = m
+
+	case tokenName:
+		if tok.value != "if" {
+			e = newParseError(tok)
+			return
+		}
+		t.backup()
+		in, err := t.parseTag()
+		if err != nil {
+			e = err
+			return
+		}
+		n = newModuleNode(in)
+
+	default:
+		e = newParseError(tok)
+	}
+	return
+}
+
 func (t *Tree) parseUntilEndTag(name string, start pos) (n *ModuleNode, e error) {
+	tok := t.peek()
+	if tok.tokenType == tokenEof {
+		e = newUnclosedTagError(name, start)
+		return
+	}
+
+	return t.parseUntilTag("end"+name, start)
+}
+
+func (t *Tree) parseUntilTag(name string, start pos) (n *ModuleNode, e error) {
 	n = newModuleNode()
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenEof:
-			e = newUnclosedTagError(name, start)
+			e = newUnexpectedEofError(tok)
 			return
 
 		case tokenTagOpen:
@@ -249,7 +289,7 @@ func (t *Tree) parseUntilEndTag(name string, start pos) (n *ModuleNode, e error)
 				e = err
 				return
 			}
-			if tok.value == "end"+name {
+			if tok.value == name {
 				_, err = t.expect(tokenTagClose)
 				if err != nil {
 					e = err

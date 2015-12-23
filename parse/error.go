@@ -11,7 +11,7 @@ type ParseError struct {
 }
 
 func (e *ParseError) Error() string {
-	return fmt.Sprintf("parse error: unexpected token \"%s\" on line %d, offset %d", e.tok, e.tok.line, e.tok.offset)
+	return fmt.Sprintf("parse error: unexpected token \"%s\" on line %d, offset %d", e.tok, e.tok.Line, e.tok.Offset)
 }
 
 // newParseError returns a new ParseError.
@@ -38,7 +38,7 @@ func (e *UnexpectedTokenError) Error() string {
 
 	s = s + "]"
 
-	return fmt.Sprintf("parse error: expected one of %s, got \"%s\" on line %d, offset %d", s, e.actual.tokenType, e.actual.line, e.actual.offset)
+	return fmt.Sprintf("parse error: expected one of %s, got \"%s\" on line %d, offset %d", s, e.actual.tokenType, e.actual.Line, e.actual.Offset)
 }
 
 // newUnexpectedTokenError returns a new UnexpectedTokenError
@@ -67,7 +67,7 @@ type UnexpectedEofError struct {
 }
 
 func (e *UnexpectedEofError) Error() string {
-	return fmt.Sprintf("parse error: unexpected end of input on line %d, offset %d", e.tok.line, e.tok.offset)
+	return fmt.Sprintf("parse error: unexpected end of input on line %d, offset %d", e.tok.Line, e.tok.Offset)
 }
 
 // newUnexpectedEofError returns a new UnexpectedEofError
@@ -82,7 +82,7 @@ type UnexpectedPunctuationError struct {
 }
 
 func (e *UnexpectedPunctuationError) Error() string {
-	return fmt.Sprintf("parse error: unexpected punctuation \"%s\", expected \"%s\" on line %d, offset %d", e.tok.value, e.expected, e.tok.line, e.tok.offset)
+	return fmt.Sprintf("parse error: unexpected punctuation \"%s\", expected \"%s\" on line %d, offset %d", e.tok.value, e.expected, e.tok.Line, e.tok.Offset)
 }
 
 // newUnexpectedPunctuationError returns a new UnexpectedPunctuationError
