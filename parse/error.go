@@ -75,17 +75,31 @@ func newUnexpectedEofError(tok token) error {
 	return &UnexpectedEofError{tok}
 }
 
-// UnexpectedPunctuationError describes an invalid or unexpected punctuation token.
-type UnexpectedPunctuationError struct {
-	tok      token
-	expected string
+// UnexpectedValueError describes an invalid or unexpected value inside a token.
+type UnexpectedValueError struct {
+	tok token		// The actual token
+	val string		// The expected value
 }
 
-func (e *UnexpectedPunctuationError) Error() string {
-	return fmt.Sprintf("parse error: unexpected punctuation \"%s\", expected \"%s\" on line %d, offset %d", e.tok.value, e.expected, e.tok.Line, e.tok.Offset)
+func (e *UnexpectedValueError) Error() string {
+	return fmt.Sprintf("parse error: unexpected \"%s\", expected \"%s\" on line %d, offset %d", e.tok.value, e.val, e.tok.Line, e.tok.Offset)
 }
 
-// newUnexpectedPunctuationError returns a new UnexpectedPunctuationError
-func newUnexpectedPunctuationError(tok token, expected string) error {
-	return &UnexpectedPunctuationError{tok, expected}
+// newUnexpectedValueError returns a new UnexpectedPunctuationError
+func newUnexpectedValueError(tok token, expected string) error {
+	return &UnexpectedValueError{tok, expected}
+}
+
+// MultipleExtendsError describes an attempt to extend from multiple parent templates.
+type MultipleExtendsError struct {
+	start pos
+}
+
+func (e *MultipleExtendsError) Error() string {
+	return fmt.Sprintf("parse error: a template may have only one \"extends\" statement, near line %d, offset %d", e.start.Line, e.start.Offset)
+}
+
+// newMultipleExtendsError returns a new MultipleExtendsError
+func newMultipleExtendsError(start pos) error {
+	return &MultipleExtendsError{start}
 }

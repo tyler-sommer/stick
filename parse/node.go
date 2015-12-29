@@ -38,6 +38,7 @@ const (
 	nodePrint
 	nodeBlock
 	nodeIf
+	nodeExtends
 )
 
 // ModuleNode represents a set of nodes.
@@ -133,4 +134,19 @@ func newIfNode(cond Expr, body Node, els Node, p pos) *IfNode {
 
 func (t *IfNode) String() string {
 	return fmt.Sprintf("If(%s: %s Else: %s)", t.cond, t.body, t.els)
+}
+
+// ExtendsNode represents an extends statement
+type ExtendsNode struct {
+	nodeType
+	pos
+	tplRef Expr
+}
+
+func newExtendsNode(tplRef Expr, p pos) *ExtendsNode {
+	return &ExtendsNode{nodeExtends, p, tplRef}
+}
+
+func (t *ExtendsNode) String() string {
+	return fmt.Sprintf("Extends(%s)", t.tplRef)
 }
