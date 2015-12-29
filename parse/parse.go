@@ -5,7 +5,7 @@ package parse
 // Tree represents the state of a parser.
 type Tree struct {
 	root      *ModuleNode
-	parent	  *ExtendsNode
+	parent    *ExtendsNode
 	blocks    []string
 	blockRefs map[string]*BlockNode
 	input     string
@@ -81,7 +81,6 @@ func (t *Tree) nextNonSpace() token {
 	}
 }
 
-
 // expect returns the next non-space token. Additionally, if the token is not of the expected types,
 // an UnexpectedTokenError is returned.
 func (t *Tree) expect(typs ...tokenType) (token, error) {
@@ -136,7 +135,7 @@ func Parse(input string) (*Tree, error) {
 // parse is intended to pick up at the beginning of input, such as the start of a tag's body
 // or the more obvious start of a document.
 func (t *Tree) parse() (Node, error) {
-	tok := t.nextNonSpace();
+	tok := t.nextNonSpace()
 	switch tok.tokenType {
 	case tokenText:
 		return newTextNode(tok.value, tok.Pos()), nil
@@ -282,7 +281,7 @@ func (t *Tree) parseIfBody(start pos) (body *ModuleNode, els *ModuleNode, e erro
 
 // parseElse parses an if statement's "else" body or "else if" statement.
 func (t *Tree) parseElse(start pos) (*ModuleNode, error) {
-	tok := t.nextNonSpace();
+	tok := t.nextNonSpace()
 	switch tok.tokenType {
 	case tokenTagClose:
 		return t.parseUntilEndTag("if", start)

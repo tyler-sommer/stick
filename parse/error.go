@@ -77,8 +77,8 @@ func newUnexpectedEofError(tok token) error {
 
 // UnexpectedValueError describes an invalid or unexpected value inside a token.
 type UnexpectedValueError struct {
-	tok token		// The actual token
-	val string		// The expected value
+	tok token  // The actual token
+	val string // The expected value
 }
 
 func (e *UnexpectedValueError) Error() string {
