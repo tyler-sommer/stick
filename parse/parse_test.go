@@ -86,27 +86,32 @@ var parseTests = []parseTest{
 	newParseTest(
 		"basic binary operation",
 		"{{ something + else }}",
-		mkModule(newPrintNode(newBinaryExpr(newNameExpr("something", noPos), Operators["+"], newNameExpr("else", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newNameExpr("something", noPos), BinaryAdd, newNameExpr("else", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"number literal binary operation",
 		"{{ 4.123 + else - test }}",
-		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("4.123", noPos), Operators["+"], newNameExpr("else", noPos), noPos), Operators["-"], newNameExpr("test", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("4.123", noPos), BinaryAdd, newNameExpr("else", noPos), noPos), BinarySubtract, newNameExpr("test", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"parenthesis grouping expression",
 		"{{ (4 + else) / 10 }}",
-		mkModule(newPrintNode(newBinaryExpr(newGroupExpr(newBinaryExpr(newNumberExpr("4", noPos), Operators["+"], newNameExpr("else", noPos), noPos), noPos), Operators["/"], newNumberExpr("10", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newGroupExpr(newBinaryExpr(newNumberExpr("4", noPos), BinaryAdd, newNameExpr("else", noPos), noPos), noPos), BinaryDivide, newNumberExpr("10", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"correct order of operations",
 		"{{ 10 + 5 / 5 }}",
-		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), Operators["+"], newBinaryExpr(newNumberExpr("5", noPos), Operators["/"], newNumberExpr("5", noPos), noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), BinaryAdd, newBinaryExpr(newNumberExpr("5", noPos), BinaryDivide, newNumberExpr("5", noPos), noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"correct ** associativity",
 		"{{ 10 ** 2 ** 5 }}",
-		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), Operators["**"], newBinaryExpr(newNumberExpr("2", noPos), Operators["**"], newNumberExpr("5", noPos), noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), BinaryPower, newBinaryExpr(newNumberExpr("2", noPos), BinaryPower, newNumberExpr("5", noPos), noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"extended binary expression",
+		"{{ 5 + 10 + 15 * 12 / 4 }}",
+		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("5", noPos), BinaryAdd, newNumberExpr("10", noPos), noPos), BinaryAdd, newBinaryExpr(newBinaryExpr(newNumberExpr("15", noPos), BinaryMultiply, newNumberExpr("12", noPos), noPos), BinaryDivide, newNumberExpr("4", noPos), noPos), noPos), noPos)),
 	),
 }
 

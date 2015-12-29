@@ -146,8 +146,6 @@ func (l *lexer) emit(t tokenType) {
 
 	tok := token{val, t, newPos(l.line, l.offset)}
 
-	fmt.Println(tok)
-
 	if c := strings.Count(val, "\n"); c > 0 {
 		l.line += c
 		lpos := strings.LastIndex(val, "\n")
@@ -208,6 +206,10 @@ func lexData(l *lexer) stateFn {
 }
 
 func lexExpression(l *lexer) stateFn {
+	if l.tryLexOperator() {
+		// Special handling for operators is necessary because of the alphabetical operators like "not" and "is"
+		return lexExpression
+	}
 	switch str := l.peek(); {
 	case str == delimEof:
 		return lexData
@@ -223,9 +225,6 @@ func lexExpression(l *lexer) stateFn {
 			return l.errorf("Incompete token?")
 		}
 		return lexPrintClose
-
-	case isOperator(str):
-		return lexOperator
 
 	case isPunctuation(str):
 		return lexPunctuation
@@ -253,6 +252,22 @@ func lexExpression(l *lexer) stateFn {
 	}
 }
 
+func (l *lexer) tryLexOperator() bool {
+	op := operatorTest.FindString(l.input[l.pos:])
+	if op == "" {
+		return false
+	} else if op == "%" {
+		// Ensure this is not a tag close token "%}"
+		if l.input[l.pos+1:l.pos+2] == "}" {
+			return false
+		}
+	}
+	l.pos += len(op)
+	l.emit(tokenOperator)
+
+	return true
+}
+
 func lexSpace(l *lexer) stateFn {
 	for {
 		str := l.next()
@@ -277,20 +292,6 @@ func lexNumber(l *lexer) stateFn {
 	}
 
 	l.emit(tokenNumber)
-
-	return lexExpression
-}
-
-func lexOperator(l *lexer) stateFn {
-	for {
-		str := l.next()
-		if !isOperator(str) {
-			l.backup()
-			break
-		}
-	}
-
-	l.emit(tokenOperator)
 
 	return lexExpression
 }
@@ -441,19 +442,9 @@ func isNumeric(str string) bool {
 	return true
 }
 
-func isOperator(str string) bool {
-	for _, s := range str {
-		if !strings.ContainsAny(string(s), "+-/*%~=") {
-			return false
-		}
-	}
-
-	return true
-}
-
 func isPunctuation(str string) bool {
 	for _, s := range str {
-		if !strings.ContainsAny(string(s), ",?:|.") {
+		if !strings.ContainsAny(string(s), ",|?:.") {
 			return false
 		}
 	}

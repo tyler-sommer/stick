@@ -366,7 +366,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 		}
 
 	case tokenOperator:
-		op, ok := Operators[nt.value]
+		op, ok := binaryOperators[nt.value]
 		if !ok || op.IsUnary() {
 			return nil, newParseError(nt)
 		}
@@ -378,7 +378,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 
 		ntt := t.nextNonSpace()
 		if ntt.tokenType == tokenOperator {
-			nxop, ok := Operators[ntt.value]
+			nxop, ok := binaryOperators[ntt.value]
 			if !ok {
 				return nil, newParseError(ntt)
 			}
@@ -386,12 +386,11 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				t.backup()
 				return t.parseOuterExpr(newBinaryExpr(expr, op, right, expr.Pos()))
 			}
-			nxright, err := t.parseExpr()
+			t.backup()
+			right, err = t.parseOuterExpr(right)
 			if err != nil {
 				return nil, err
 			}
-
-			right = newBinaryExpr(right, nxop, nxright, right.Pos())
 		} else {
 			t.backup()
 		}

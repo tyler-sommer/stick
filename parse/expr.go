@@ -67,53 +67,6 @@ func (exp *FuncExpr) String() string {
 	return fmt.Sprintf("FuncExpr(%s, %s)", exp.name, exp.args)
 }
 
-type associativity int
-
-const (
-	operatorLeftAssoc associativity = iota
-	operatorRightAssoc
-)
-
-type operator struct {
-	operand string
-	precedence int
-	assoc associativity
-	unary bool
-}
-
-func (o operator) Operand() string {
-	return o.operand
-}
-
-func (o operator) Precedence() int {
-	return o.precedence
-}
-
-func (o operator) IsLeftAssociative() bool {
-	return o.assoc == operatorLeftAssoc
-}
-
-func (o operator) IsUnary() bool {
-	return o.unary
-}
-
-func (o operator) IsBinary() bool {
-	return !o.unary
-}
-
-func (o operator) String() string {
-	return o.operand
-}
-
-var Operators = map[string]operator{
-	"+": operator{"+", 30, operatorLeftAssoc, false},
-	"-": operator{"-", 30, operatorLeftAssoc, false},
-	"*": operator{"*", 60, operatorLeftAssoc, false},
-	"/": operator{"/", 60, operatorLeftAssoc, false},
-	"%": operator{"%", 60, operatorLeftAssoc, false},
-	"**": operator{"**", 200, operatorRightAssoc, false},
-}
-
 type BinaryExpr struct {
 	pos
 	left    Expr
