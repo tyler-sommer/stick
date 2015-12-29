@@ -83,6 +83,31 @@ var parseTests = []parseTest{
 		"{% extends '::base.html.twig' %}",
 		mkModule(newExtendsNode(newStringExpr("::base.html.twig", noPos), noPos)),
 	),
+	newParseTest(
+		"basic binary operation",
+		"{{ something + else }}",
+		mkModule(newPrintNode(newBinaryExpr(newNameExpr("something", noPos), Operators["+"], newNameExpr("else", noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"number literal binary operation",
+		"{{ 4.123 + else - test }}",
+		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("4.123", noPos), Operators["+"], newNameExpr("else", noPos), noPos), Operators["-"], newNameExpr("test", noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"parenthesis grouping expression",
+		"{{ (4 + else) / 10 }}",
+		mkModule(newPrintNode(newBinaryExpr(newGroupExpr(newBinaryExpr(newNumberExpr("4", noPos), Operators["+"], newNameExpr("else", noPos), noPos), noPos), Operators["/"], newNumberExpr("10", noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"correct order of operations",
+		"{{ 10 + 5 / 5 }}",
+		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), Operators["+"], newBinaryExpr(newNumberExpr("5", noPos), Operators["/"], newNumberExpr("5", noPos), noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"correct ** associativity",
+		"{{ 10 ** 2 ** 5 }}",
+		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), Operators["**"], newBinaryExpr(newNumberExpr("2", noPos), Operators["**"], newNumberExpr("5", noPos), noPos), noPos), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

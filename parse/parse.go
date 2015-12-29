@@ -81,7 +81,7 @@ func (t *Tree) nextNonSpace() token {
 	}
 }
 
-// expect returns the next non-space token. Additionally, if the token is not of the expected types,
+// expect returns the next non-space token. Additionally, if the token is not of one of the expected types,
 // an UnexpectedTokenError is returned.
 func (t *Tree) expect(typs ...tokenType) (token, error) {
 	tok := t.nextNonSpace()
@@ -347,24 +347,96 @@ func (t *Tree) parseUntilTag(name string, start pos) (*ModuleNode, error) {
 
 // parseExpr parses an expression.
 func (t *Tree) parseExpr() (Expr, error) {
+	expr, err := t.parseInnerExpr()
+	if err != nil {
+		return nil, err
+	}
+
+	return t.parseOuterExpr(expr)
+}
+
+func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
+	switch nt := t.nextNonSpace(); nt.tokenType {
+	case tokenParensOpen:
+		switch name := expr.(type) {
+		case *NameExpr:
+			return t.parseFunc(name)
+		default:
+			return nil, newParseError(nt)
+		}
+
+	case tokenOperator:
+		op, ok := Operators[nt.value]
+		if !ok || op.IsUnary() {
+			return nil, newParseError(nt)
+		}
+
+		right, err := t.parseInnerExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		ntt := t.nextNonSpace()
+		if ntt.tokenType == tokenOperator {
+			nxop, ok := Operators[ntt.value]
+			if !ok {
+				return nil, newParseError(ntt)
+			}
+			if nxop.Precedence() < op.Precedence() || (nxop.Precedence() == op.Precedence() && op.IsLeftAssociative()) {
+				t.backup()
+				return t.parseOuterExpr(newBinaryExpr(expr, op, right, expr.Pos()))
+			}
+			nxright, err := t.parseExpr()
+			if err != nil {
+				return nil, err
+			}
+
+			right = newBinaryExpr(right, nxop, nxright, right.Pos())
+		} else {
+			t.backup()
+		}
+		return newBinaryExpr(expr, op, right, expr.Pos()), nil
+
+	default:
+		t.backup()
+		return expr, nil
+	}
+}
+
+func (t *Tree) parseInnerExpr() (Expr, error) {
 	tok := t.nextNonSpace()
 	switch tok.tokenType {
 	case tokenEof:
 		return nil, newUnexpectedEofError(tok)
 
-	case tokenName:
-		switch nt := t.peek(); nt.tokenType {
-		case tokenParensOpen:
-			t.backup()
-			return t.parseFunc()
-
-		case tokenOperator:
-			// TODO: Implement binary operator parsing
-			return nil, newParseError(nt)
-
-		default:
-			return newNameExpr(tok.value, tok.Pos()), nil
+	case tokenParensOpen:
+		inner, err := t.parseExpr()
+		if err != nil {
+			return nil, err
 		}
+		_, err = t.expect(tokenParensClose)
+		if err != nil {
+			return nil, err
+		}
+
+		return newGroupExpr(inner, tok.Pos()), nil
+
+	case tokenNumber:
+		nxt := t.peek()
+		val := tok.value
+		if nxt.tokenType == tokenPunctuation || nxt.value == "." {
+			val = val + "."
+			t.next()
+			nxt, err := t.expect(tokenNumber)
+			if err != nil {
+				return nil, err
+			}
+			val = val + nxt.value
+		}
+		return newNumberExpr(val, tok.Pos()), nil
+
+	case tokenName:
+		return newNameExpr(tok.value, tok.Pos()), nil
 
 	case tokenStringOpen:
 		txt, err := t.expect(tokenText)
@@ -380,17 +452,8 @@ func (t *Tree) parseExpr() (Expr, error) {
 	return nil, newParseError(tok)
 }
 
-// parseFunc parses a function call expression from the opening parenthesis until the closing parenthesis.
-func (t *Tree) parseFunc() (Expr, error) {
-	tok, err := t.expect(tokenName)
-	if err != nil {
-		return nil, err
-	}
-	_, err = t.expectValue(tokenParensOpen, "(")
-	if err != nil {
-		return nil, err
-	}
-	name := newNameExpr(tok.value, tok.Pos())
+// parseFunc parses a function call expression from the first argument expression until the closing parenthesis.
+func (t *Tree) parseFunc(name *NameExpr) (Expr, error) {
 	var args []Expr
 	for {
 		switch tok := t.peek(); tok.tokenType {
