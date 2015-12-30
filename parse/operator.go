@@ -8,12 +8,14 @@ import (
 func init() {
 	var ops = make([]string, 0)
 	for op, _ := range binaryOperators {
-		if op != `**` && op != `is not` && op != `//` {
+		// Because there is some overlap between operators (like "*" and "**") we have to
+		// ensure that some ordering is forced.
+		if op != "**" && op != "is not" && op != "//" && op != "not in" {
 			ops = append(ops, regexp.QuoteMeta(op))
 		}
 	}
-	operatorTest = regexp.MustCompile(`^(\*\*|is not|//|` + strings.Join(ops, "|") + ")")
-	println(operatorTest.String())
+	// Additionally, we add the unary "not" operator since it has no binary counterpart.
+	operatorTest = regexp.MustCompile(`^(not in|not|\*\*|is not|//|` + strings.Join(ops, "|") + ")")
 }
 
 var operatorTest *regexp.Regexp
@@ -27,14 +29,14 @@ const (
 )
 
 type operator struct {
-	operand    string
+	op         string
 	precedence int
 	assoc      associativity
 	unary      bool
 }
 
-func (o operator) Operand() string {
-	return o.operand
+func (o operator) Operation() string {
+	return o.op
 }
 
 func (o operator) Precedence() int {
@@ -54,7 +56,7 @@ func (o operator) IsBinary() bool {
 }
 
 func (o operator) String() string {
-	return o.operand
+	return o.op
 }
 
 var (

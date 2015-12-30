@@ -69,17 +69,31 @@ func (exp *FuncExpr) String() string {
 
 type BinaryExpr struct {
 	pos
-	left    Expr
-	operand operator
-	right   Expr
+	left  Expr
+	op    operator
+	right Expr
 }
 
-func newBinaryExpr(left Expr, operand operator, right Expr, pos pos) *BinaryExpr {
-	return &BinaryExpr{pos, left, operand, right}
+func newBinaryExpr(left Expr, op operator, right Expr, pos pos) *BinaryExpr {
+	return &BinaryExpr{pos, left, op, right}
 }
 
 func (exp *BinaryExpr) String() string {
-	return fmt.Sprintf("BinaryExpr(%s %s %s)", exp.left, exp.operand, exp.right)
+	return fmt.Sprintf("BinaryExpr(%s %s %s)", exp.left, exp.op, exp.right)
+}
+
+type UnaryExpr struct {
+	pos
+	op   operator
+	expr Expr
+}
+
+func newUnaryExpr(op operator, expr Expr, pos pos) *UnaryExpr {
+	return &UnaryExpr{pos, op, expr}
+}
+
+func (exp *UnaryExpr) String() string {
+	return fmt.Sprintf("UnaryExpr(%s %s)", exp.op, exp.expr)
 }
 
 type GroupExpr struct {

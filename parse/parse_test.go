@@ -113,6 +113,11 @@ var parseTests = []parseTest{
 		"{{ 5 + 10 + 15 * 12 / 4 }}",
 		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("5", noPos), BinaryAdd, newNumberExpr("10", noPos), noPos), BinaryAdd, newBinaryExpr(newBinaryExpr(newNumberExpr("15", noPos), BinaryMultiply, newNumberExpr("12", noPos), noPos), BinaryDivide, newNumberExpr("4", noPos), noPos), noPos), noPos)),
 	),
+	newParseTest(
+		"unary not expression",
+		"{{ not something }}",
+		mkModule(newPrintNode(newUnaryExpr(UnaryNot, newNameExpr("something", noPos), noPos), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

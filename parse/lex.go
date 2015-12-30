@@ -102,8 +102,6 @@ func (l *lexer) nextToken() token {
 		return v
 	}
 
-	fmt.Println("Reading closed token channel, last token: ", l.last)
-
 	return l.last
 }
 
@@ -252,12 +250,16 @@ func lexExpression(l *lexer) stateFn {
 	}
 }
 
+// tryLexOperator attempts to match the next sequence of characters to a list of operators.
+// This is implemented this way because Twig supports many alphabetical operators like "in",
+// which require more than just a check of the next character.
 func (l *lexer) tryLexOperator() bool {
 	op := operatorTest.FindString(l.input[l.pos:])
 	if op == "" {
 		return false
 	} else if op == "%" {
-		// Ensure this is not a tag close token "%}"
+		// Ensure this is not a tag close token "%}".
+		// Go's regexp engine does not support negative lookahead.
 		if l.input[l.pos+1:l.pos+2] == "}" {
 			return false
 		}

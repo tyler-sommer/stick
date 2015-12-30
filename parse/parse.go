@@ -408,6 +408,17 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 	case tokenEof:
 		return nil, newUnexpectedEofError(tok)
 
+	case tokenOperator:
+		op, ok := unaryOperators[tok.value]
+		if !ok {
+			return nil, newParseError(tok)
+		}
+		expr, err := t.parseInnerExpr()
+		if err != nil {
+			return nil, err
+		}
+		return newUnaryExpr(op, expr, tok.Pos()), nil
+
 	case tokenParensOpen:
 		inner, err := t.parseExpr()
 		if err != nil {
@@ -417,7 +428,6 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		return newGroupExpr(inner, tok.Pos()), nil
 
 	case tokenNumber:

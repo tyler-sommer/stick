@@ -135,7 +135,18 @@ var lexTests = []lexTest{
 		tEof,
 	}},
 
-	{"negation operator", "{{ -100 }}", []token{
+	{"unary not operator", "{{ not 100 }}", []token{
+		tPrintOpen,
+		tSpace,
+		mkTok(tokenOperator, "not"),
+		tSpace,
+		mkTok(tokenNumber, "100"),
+		tSpace,
+		tPrintClose,
+		tEof,
+	}},
+
+	{"unary negation operator", "{{ -100 }}", []token{
 		tPrintOpen,
 		tSpace,
 		mkTok(tokenOperator, "-"),
