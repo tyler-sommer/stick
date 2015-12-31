@@ -8,24 +8,24 @@ import (
 func init() {
 	var ops = make([]string, 0)
 	for op, _ := range binaryOperators {
-		// Because there is some overlap between operators (like "*" and "**") we have to
+		// Because there is overlap between operators (like "*" and "**") we have to
 		// ensure that some ordering is forced.
-		if op != "**" && op != "is not" && op != "//" && op != "not in" {
+		if op != "**" && op != "is not" && op != "//" && op != "not in" && op != ">=" && op != "<=" {
 			ops = append(ops, regexp.QuoteMeta(op))
 		}
 	}
 	// Additionally, we add the unary "not" operator since it has no binary counterpart.
-	operatorTest = regexp.MustCompile(`^(not in|not|\*\*|is not|//|` + strings.Join(ops, "|") + ")")
+	operatorMatcher = regexp.MustCompile(`^(not in|not|\*\*|is not|//|>=|<=|` + strings.Join(ops, "|") + ")")
 }
 
-var operatorTest *regexp.Regexp
+var operatorMatcher *regexp.Regexp
 
 type associativity int
 
 const (
-	operatorLeftAssoc associativity = iota
-	operatorRightAssoc
-	operatorNonAssoc
+	opLeftAssoc associativity = iota
+	opRightAssoc
+	opNonAssoc
 )
 
 type operator struct {
@@ -35,96 +35,84 @@ type operator struct {
 	unary      bool
 }
 
-func (o operator) Operation() string {
+const (
+	OpUnaryNot      = "not"
+	OpUnaryPositive = "+"
+	OpUnaryNegative = "-"
+
+	OpBinaryOr           = "or"
+	OpBinaryAnd          = "and"
+	OpBinaryBitwiseOr    = "b-or"
+	OpBinaryBitwiseXor   = "b-xor"
+	OpBinaryBitwiseAnd   = "b-and"
+	OpBinaryEqual        = "=="
+	OpBinaryNotEqual     = "!="
+	OpBinaryLessThan     = "<"
+	OpBinaryLessEqual    = "<="
+	OpBinaryGreaterThan  = ">"
+	OpBinaryGreaterEqual = ">="
+	OpBinaryNotIn        = "not in"
+	OpBinaryIn           = "in"
+	OpBinaryMatches      = "matches"
+	OpBinaryStartsWith   = "starts with"
+	OpBinaryEndsWith     = "ends with"
+	OpBinaryRange        = ".."
+	OpBinaryAdd          = "+"
+	OpBinarySubtract     = "-"
+	OpBinaryConcat       = "~"
+	OpBinaryMultiply     = "*"
+	OpBinaryDivide       = "/"
+	OpBinaryFloorDiv     = "//"
+	OpBinaryModulo       = "%"
+	OpBinaryIs           = "is"
+	OpBinaryIsNot        = "is not"
+	OpBinaryPower        = "**"
+)
+
+func (o operator) Operator() string {
 	return o.op
 }
 
-func (o operator) Precedence() int {
-	return o.precedence
-}
-
-func (o operator) IsLeftAssociative() bool {
-	return o.assoc == operatorLeftAssoc
-}
-
-func (o operator) IsUnary() bool {
-	return o.unary
-}
-
-func (o operator) IsBinary() bool {
-	return !o.unary
+func (o operator) leftAssoc() bool {
+	return o.assoc == opLeftAssoc
 }
 
 func (o operator) String() string {
 	return o.op
 }
 
-var (
-	UnaryNot = operator{"not", 50, operatorNonAssoc, true}
-	UnaryPos = operator{"+", 500, operatorNonAssoc, true}
-	UnaryNeg = operator{"-", 500, operatorNonAssoc, true}
-
-	BinaryOr           = operator{"or", 10, operatorLeftAssoc, false}
-	BinaryAnd          = operator{"and", 15, operatorLeftAssoc, false}
-	BinaryBitwiseOr    = operator{"b-or", 16, operatorLeftAssoc, false}
-	BinaryBitwiseXor   = operator{"b-xor", 17, operatorLeftAssoc, false}
-	BinaryBitwiseAnd   = operator{"b-and", 18, operatorLeftAssoc, false}
-	BinaryEqual        = operator{"==", 20, operatorLeftAssoc, false}
-	BinaryNotEqual     = operator{"!=", 20, operatorLeftAssoc, false}
-	BinaryLessThan     = operator{"<", 20, operatorLeftAssoc, false}
-	BinaryLessEqual    = operator{"<=", 20, operatorLeftAssoc, false}
-	BinaryGreaterThan  = operator{">", 20, operatorLeftAssoc, false}
-	BinaryGreaterEqual = operator{">=", 20, operatorLeftAssoc, false}
-	BinaryNotIn        = operator{"not in", 20, operatorLeftAssoc, false}
-	BinaryIn           = operator{"in", 20, operatorLeftAssoc, false}
-	BinaryMatches      = operator{"matches", 20, operatorLeftAssoc, false}
-	BinaryStartsWith   = operator{"starts with", 20, operatorLeftAssoc, false}
-	BinaryEndsWith     = operator{"ends with", 20, operatorLeftAssoc, false}
-	BinaryRange        = operator{"..", 20, operatorLeftAssoc, false}
-	BinaryAdd          = operator{"+", 30, operatorLeftAssoc, false}
-	BinarySubtract     = operator{"-", 30, operatorLeftAssoc, false}
-	BinaryConcat       = operator{"~", 40, operatorLeftAssoc, false}
-	BinaryMultiply     = operator{"*", 60, operatorLeftAssoc, false}
-	BinaryDivide       = operator{"/", 60, operatorLeftAssoc, false}
-	BinaryFloorDiv     = operator{"//", 60, operatorLeftAssoc, false}
-	BinaryModulo       = operator{"%", 60, operatorLeftAssoc, false}
-	BinaryIs           = operator{"is", 100, operatorLeftAssoc, false}
-	BinaryIsNot        = operator{"is not", 100, operatorLeftAssoc, false}
-	BinaryPower        = operator{"**", 200, operatorRightAssoc, false}
-)
-
 var unaryOperators = map[string]operator{
-	"not": UnaryNot,
-	"+":   UnaryPos,
-	"-":   UnaryNeg,
+	OpUnaryNot:      operator{OpUnaryNot, 50, opNonAssoc, true},
+	OpUnaryPositive: operator{OpUnaryPositive, 500, opNonAssoc, true},
+	OpUnaryNegative: operator{OpUnaryNegative, 500, opNonAssoc, true},
 }
 
 var binaryOperators = map[string]operator{
-	"or":          BinaryOr,
-	"and":         BinaryAnd,
-	"b-or":        BinaryBitwiseOr,
-	"b-xor":       BinaryBitwiseXor,
-	"b-and":       BinaryBitwiseAnd,
-	"==":          BinaryEqual,
-	"!=":          BinaryNotEqual,
-	"<":           BinaryLessThan,
-	"<=":          BinaryLessEqual,
-	">":           BinaryGreaterThan,
-	">=":          BinaryGreaterEqual,
-	"not in":      BinaryNotIn,
-	"in":          BinaryIn,
-	"matches":     BinaryMatches,
-	"starts with": BinaryStartsWith,
-	"ends with":   BinaryEndsWith,
-	"..":          BinaryRange,
-	"+":           BinaryAdd,
-	"-":           BinarySubtract,
-	"~":           BinaryConcat,
-	"*":           BinaryMultiply,
-	"/":           BinaryDivide,
-	"//":          BinaryFloorDiv,
-	"%":           BinaryModulo,
-	"is":          BinaryIs,
-	"is not":      BinaryIsNot,
-	"**":          BinaryPower,
+	OpBinaryOr:           operator{OpBinaryOr, 10, opLeftAssoc, false},
+	OpBinaryAnd:          operator{OpBinaryAnd, 15, opLeftAssoc, false},
+	OpBinaryBitwiseOr:    operator{OpBinaryBitwiseOr, 16, opLeftAssoc, false},
+	OpBinaryBitwiseXor:   operator{OpBinaryBitwiseXor, 17, opLeftAssoc, false},
+	OpBinaryBitwiseAnd:   operator{OpBinaryBitwiseAnd, 18, opLeftAssoc, false},
+	OpBinaryEqual:        operator{OpBinaryEqual, 20, opLeftAssoc, false},
+	OpBinaryNotEqual:     operator{OpBinaryNotEqual, 20, opLeftAssoc, false},
+	OpBinaryLessThan:     operator{OpBinaryLessThan, 20, opLeftAssoc, false},
+	OpBinaryLessEqual:    operator{OpBinaryLessEqual, 20, opLeftAssoc, false},
+	OpBinaryGreaterThan:  operator{OpBinaryGreaterThan, 20, opLeftAssoc, false},
+	OpBinaryGreaterEqual: operator{OpBinaryGreaterEqual, 20, opLeftAssoc, false},
+	OpBinaryNotIn:        operator{OpBinaryNotIn, 20, opLeftAssoc, false},
+	OpBinaryIn:           operator{OpBinaryIn, 20, opLeftAssoc, false},
+	OpBinaryMatches:      operator{OpBinaryMatches, 20, opLeftAssoc, false},
+	OpBinaryStartsWith:   operator{OpBinaryStartsWith, 20, opLeftAssoc, false},
+	OpBinaryEndsWith:     operator{OpBinaryEndsWith, 20, opLeftAssoc, false},
+	OpBinaryRange:        operator{OpBinaryRange, 20, opLeftAssoc, false},
+	OpBinaryAdd:          operator{OpBinaryAdd, 30, opLeftAssoc, false},
+	OpBinarySubtract:     operator{OpBinarySubtract, 30, opLeftAssoc, false},
+	OpBinaryConcat:       operator{OpBinaryConcat, 40, opLeftAssoc, false},
+	OpBinaryMultiply:     operator{OpBinaryMultiply, 60, opLeftAssoc, false},
+	OpBinaryDivide:       operator{OpBinaryDivide, 60, opLeftAssoc, false},
+	OpBinaryFloorDiv:     operator{OpBinaryFloorDiv, 60, opLeftAssoc, false},
+	OpBinaryModulo:       operator{OpBinaryModulo, 60, opLeftAssoc, false},
+	OpBinaryIs:           operator{OpBinaryIs, 100, opLeftAssoc, false},
+	OpBinaryIsNot:        operator{OpBinaryIsNot, 100, opLeftAssoc, false},
+	OpBinaryPower:        operator{OpBinaryPower, 200, opRightAssoc, false},
 }

@@ -254,7 +254,7 @@ func lexExpression(l *lexer) stateFn {
 // This is implemented this way because Twig supports many alphabetical operators like "in",
 // which require more than just a check of the next character.
 func (l *lexer) tryLexOperator() bool {
-	op := operatorTest.FindString(l.input[l.pos:])
+	op := operatorMatcher.FindString(l.input[l.pos:])
 	if op == "" {
 		return false
 	} else if op == "%" {

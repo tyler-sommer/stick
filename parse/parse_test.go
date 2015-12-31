@@ -39,7 +39,7 @@ var parseTests = []parseTest{
 	newErrorTest("unclosed if", "{% if test %}", "parse error: unclosed tag \"if\" starting on line 1, offset 3"),
 	newErrorTest("unexpected end (function call)", "{{ func('arg1'", "parse error: unexpected end of input on line 1, offset 14"),
 	newErrorTest("unclosed parenthesis", "{{ func(arg1 }}", "parse error: expected one of [PUNCTUATION, PARENS_CLOSE], got \"PRINT_CLOSE\" on line 1, offset 13"),
-	newErrorTest("unexpected punctuation", "{{ func(arg1. arg2) }}", "parse error: unexpected \".\", expected \",\" on line 1, offset 12"),
+	newErrorTest("unexpected punctuation", "{{ func(arg1? arg2) }}", "parse error: unexpected \"?\", expected \",\" on line 1, offset 12"),
 
 	// Valid
 	newParseTest("text", "some text", mkModule(newTextNode("some text", noPos))),
@@ -86,37 +86,57 @@ var parseTests = []parseTest{
 	newParseTest(
 		"basic binary operation",
 		"{{ something + else }}",
-		mkModule(newPrintNode(newBinaryExpr(newNameExpr("something", noPos), BinaryAdd, newNameExpr("else", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newNameExpr("something", noPos), OpBinaryAdd, newNameExpr("else", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"number literal binary operation",
 		"{{ 4.123 + else - test }}",
-		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("4.123", noPos), BinaryAdd, newNameExpr("else", noPos), noPos), BinarySubtract, newNameExpr("test", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("4.123", noPos), OpBinaryAdd, newNameExpr("else", noPos), noPos), OpBinarySubtract, newNameExpr("test", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"parenthesis grouping expression",
 		"{{ (4 + else) / 10 }}",
-		mkModule(newPrintNode(newBinaryExpr(newGroupExpr(newBinaryExpr(newNumberExpr("4", noPos), BinaryAdd, newNameExpr("else", noPos), noPos), noPos), BinaryDivide, newNumberExpr("10", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newGroupExpr(newBinaryExpr(newNumberExpr("4", noPos), OpBinaryAdd, newNameExpr("else", noPos), noPos), noPos), OpBinaryDivide, newNumberExpr("10", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"correct order of operations",
 		"{{ 10 + 5 / 5 }}",
-		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), BinaryAdd, newBinaryExpr(newNumberExpr("5", noPos), BinaryDivide, newNumberExpr("5", noPos), noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryAdd, newBinaryExpr(newNumberExpr("5", noPos), OpBinaryDivide, newNumberExpr("5", noPos), noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"correct ** associativity",
 		"{{ 10 ** 2 ** 5 }}",
-		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), BinaryPower, newBinaryExpr(newNumberExpr("2", noPos), BinaryPower, newNumberExpr("5", noPos), noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryPower, newBinaryExpr(newNumberExpr("2", noPos), OpBinaryPower, newNumberExpr("5", noPos), noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"extended binary expression",
 		"{{ 5 + 10 + 15 * 12 / 4 }}",
-		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("5", noPos), BinaryAdd, newNumberExpr("10", noPos), noPos), BinaryAdd, newBinaryExpr(newBinaryExpr(newNumberExpr("15", noPos), BinaryMultiply, newNumberExpr("12", noPos), noPos), BinaryDivide, newNumberExpr("4", noPos), noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("5", noPos), OpBinaryAdd, newNumberExpr("10", noPos), noPos), OpBinaryAdd, newBinaryExpr(newBinaryExpr(newNumberExpr("15", noPos), OpBinaryMultiply, newNumberExpr("12", noPos), noPos), OpBinaryDivide, newNumberExpr("4", noPos), noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"unary not expression",
 		"{{ not something }}",
-		mkModule(newPrintNode(newUnaryExpr(UnaryNot, newNameExpr("something", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newUnaryExpr(OpUnaryNot, newNameExpr("something", noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"dot notation accessor",
+		"{{ something.another.else }}",
+		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newNameExpr("something", noPos), newNameExpr("another", noPos), noPos), newNameExpr("else", noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"dot notation array access mix",
+		"{{ something().another['test'].further }}",
+		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newGetAttrExpr(newFuncExpr(newNameExpr("something", noPos), []Expr{}, noPos), newNameExpr("another", noPos), noPos), newStringExpr("test", noPos), noPos), newNameExpr("further", noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"basic filter",
+		"{{ something|default('another') }}",
+		mkModule(newPrintNode(newFuncExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos), newStringExpr("another", noPos)}, noPos), noPos)),
+	),
+	newParseTest(
+		"filter with no args",
+		"{{ something|default }}",
+		mkModule(newPrintNode(newFuncExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos)}, noPos), noPos)),
 	),
 }
 

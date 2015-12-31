@@ -14,7 +14,7 @@ func TestExec(t *testing.T) {
 
 	w := &bytes.Buffer{}
 
-	s := newState(w)
+	s := newState(w, map[string]*variable{})
 
 	s.walk(tree.Root())
 
