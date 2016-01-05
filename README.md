@@ -1,4 +1,4 @@
-stick
+Stick
 =====
 
 A Go language port of the [Twig](http://twig.sensiolabs.org/) templating engine. 
@@ -12,12 +12,37 @@ horizontal reuse including multiple inheritance, and an easy-to-learn syntax tha
 promotes separation of logic and markup.
 
 
-Current status
---------------
+### Current status
 
-Stick is made up of three main parts: a lexer, a parser, and an executer.
+##### In development
 
-Stick's lexer and parser are nearly complete.
+Stick is made up of three main parts: a lexer, a parser, and an executer. Stick's lexer and parser are 
+nearly complete. Basic template execution is implemented as well.
+
+See the [to do list](#to-do) for additional information.
+
+
+Usage
+-----
+
+Execute a simple Stick template.
+
+```go
+package main
+
+import (
+	"github.com/tyler-sommer/stick"
+	"os"
+)
+
+func main() {
+	stick.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"})
+}
+```
+
+
+To do
+-----
 
 #### Lexer
 - [x] Text
