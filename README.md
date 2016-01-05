@@ -36,7 +36,8 @@ import (
 )
 
 func main() {
-	stick.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"})
+    env := stick.NewEnv(nil)
+	env.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"})
 }
 ```
 
@@ -77,6 +78,7 @@ To do
 - [ ] Method calls
 
 #### Executer
+- [x] Basic execution
 - [ ] Template loading
 - [ ] Inheritance
     - [ ] extends

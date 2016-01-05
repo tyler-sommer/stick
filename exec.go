@@ -12,10 +12,12 @@ type state struct {
 	out     io.Writer
 	node    parse.Node
 	context map[string]Value
+
+	loader  Loader
 }
 
-func newState(out io.Writer, ctx map[string]Value) *state {
-	return &state{out, nil, ctx}
+func newState(out io.Writer, ctx map[string]Value, loader Loader) *state {
+	return &state{out, nil, ctx, loader}
 }
 
 func (s *state) walk(node parse.Node) error {
@@ -109,13 +111,13 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 	return
 }
 
-func Execute(tmpl string, out io.Writer, ctx map[string]Value) error {
-	tree, err := parse.Parse(tmpl)
+func execute(in string, out io.Writer, ctx map[string]Value, loader Loader) error {
+	tree, err := parse.Parse(in)
 	if err != nil {
 		return err
 	}
 
-	s := newState(out, ctx)
+	s := newState(out, ctx, loader)
 	err = s.walk(tree.Root())
 	if err != nil {
 		return err
