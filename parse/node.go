@@ -111,6 +111,18 @@ func newIfNode(cond Expr, body Node, els Node, p pos) *IfNode {
 	return &IfNode{p, cond, body, els}
 }
 
+func (t *IfNode) Cond() Expr {
+	return t.cond
+}
+
+func (t *IfNode) Body() Node {
+	return t.body
+}
+
+func (t *IfNode) Else() Node {
+	return t.els
+}
+
 func (t *IfNode) String() string {
 	return fmt.Sprintf("If(%s: %s Else: %s)", t.cond, t.body, t.els)
 }
