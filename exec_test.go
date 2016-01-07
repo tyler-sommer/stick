@@ -6,9 +6,9 @@ import (
 )
 
 type execTest struct {
-	name string
-	tmpl string
-	ctx map[string]Value
+	name     string
+	tmpl     string
+	ctx      map[string]Value
 	expected string
 }
 
@@ -18,6 +18,7 @@ var tests = []execTest{
 	{"Hello, World", "Hello, World!", emptyCtx, "Hello, World!"},
 	{"Hello, Tyler!", "Hello, {{ name }}!", map[string]Value{"name": "Tyler"}, "Hello, Tyler!"},
 	{"Simple if", `<li class="{% if active %}active{% endif %}">`, map[string]Value{"active": true}, `<li class="active">`},
+	{"Simple inheritance", `{% extends 'Hello, {% block test %}universe{% endblock %}!' %}{% block test %}world{% endblock %}`, emptyCtx, `Hello, world!`},
 }
 
 func evaluateTest(t *testing.T, test execTest) {

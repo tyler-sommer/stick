@@ -5,7 +5,6 @@ package parse
 // Tree represents the state of a parser.
 type Tree struct {
 	root      *ModuleNode
-	parent    *ExtendsNode
 	blocks    []string
 	blockRefs map[string]*BlockNode
 	input     string
@@ -15,8 +14,13 @@ type Tree struct {
 }
 
 // Root returns the root module node.
-func (t *Tree) Root() Node {
+func (t *Tree) Root() *ModuleNode {
 	return t.root
+}
+
+// Blocks returns a map of blocks in this tree.
+func (t *Tree) Blocks() map[string]*BlockNode {
+	return t.blockRefs
 }
 
 func (t *Tree) popBlockStack(name string) {
@@ -130,7 +134,7 @@ func Parse(input string) (*Tree, error) {
 
 	go lex.tokenize()
 
-	t := &Tree{newModuleNode(), nil, make([]string, 0), make(map[string]*BlockNode), input, lex, make([]token, 0), make([]token, 0)}
+	t := &Tree{newModuleNode(), make([]string, 0), make(map[string]*BlockNode), input, lex, make([]token, 0), make([]token, 0)}
 
 	for {
 		n, err := t.parse()
@@ -173,14 +177,4 @@ func (t *Tree) parse() (Node, error) {
 		return nil, nil
 	}
 	return nil, newParseError(tok)
-}
-
-// parseExpr parses an expression.
-func (t *Tree) parseExpr() (Expr, error) {
-	expr, err := t.parseInnerExpr()
-	if err != nil {
-		return nil, err
-	}
-
-	return t.parseOuterExpr(expr)
 }

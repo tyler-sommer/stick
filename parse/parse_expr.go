@@ -1,5 +1,15 @@
 package parse
 
+// parseExpr parses an expression.
+func (t *Tree) parseExpr() (Expr, error) {
+	expr, err := t.parseInnerExpr()
+	if err != nil {
+		return nil, err
+	}
+
+	return t.parseOuterExpr(expr)
+}
+
 func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 	switch nt := t.nextNonSpace(); nt.tokenType {
 	case tokenParensOpen:
@@ -10,9 +20,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			return nil, newParseError(nt)
 		}
 
-	case tokenArrayOpen:
-		fallthrough
-	case tokenPunctuation:
+	case tokenArrayOpen, tokenPunctuation:
 		switch nt.value {
 		case ".", "[":
 			attr, err := t.parseInnerExpr()

@@ -15,6 +15,7 @@ const noError = ""
 
 // Position testing isnt implemented
 var noPos = pos{0, 0}
+var nilBody = func() *BodyNode { return nil }()
 
 func newParseTest(name, input string, expected *ModuleNode) parseTest {
 	return parseTest{name, input, expected, noError}
@@ -48,28 +49,28 @@ var parseTests = []parseTest{
 	newParseTest(
 		"simple tag",
 		"{% block something %}Body{% endblock %}",
-		mkModule(newBlockNode("something", mkModule(newTextNode("Body", noPos)), noPos)),
+		mkModule(newBlockNode("something", newBodyNode(noPos, newTextNode("Body", noPos)), noPos)),
 	),
 	newParseTest(
 		"if",
 		"{% if something %}Do Something{% endif %}",
-		mkModule(newIfNode(newNameExpr("something", noPos), mkModule(newTextNode("Do Something", noPos)), mkModule(), noPos)),
+		mkModule(newIfNode(newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("Do Something", noPos)), nilBody, noPos)),
 	),
 	newParseTest(
 		"if else",
 		"{% if something %}Do Something{% else %}Another thing{% endif %}",
-		mkModule(newIfNode(newNameExpr("something", noPos), mkModule(newTextNode("Do Something", noPos)), mkModule(newTextNode("Another thing", noPos)), noPos)),
+		mkModule(newIfNode(newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("Do Something", noPos)), newBodyNode(noPos, newTextNode("Another thing", noPos)), noPos)),
 	),
 	newParseTest(
 		"if else if",
 		"{% if something %}Do Something{% else if another %}Another thing{% endif %}",
 		mkModule(newIfNode(
 			newNameExpr("something", noPos),
-			mkModule(newTextNode("Do Something", noPos)),
-			mkModule(newIfNode(
+			newBodyNode(noPos, newTextNode("Do Something", noPos)),
+			newBodyNode(noPos, newIfNode(
 				newNameExpr("another", noPos),
-				mkModule(newTextNode("Another thing", noPos)),
-				mkModule(),
+				newBodyNode(noPos, newTextNode("Another thing", noPos)),
+				nilBody,
 				noPos)),
 			noPos)),
 	),

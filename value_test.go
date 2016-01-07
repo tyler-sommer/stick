@@ -4,27 +4,27 @@ import (
 	"testing"
 )
 
-var stringTests = map[Value]string {
+var stringTests = map[Value]string{
 	"string": "string",
-	true: "1",
-	false: "",
-	3: "3",
-	3.14: "3.14",
+	true:     "1",
+	false:    "",
+	3:        "3",
+	3.14:     "3.14",
 }
 
-var boolTests = map[Value]bool {
-	true: true,
-	false: false,
-	1: true,
-	0: false,
+var boolTests = map[Value]bool{
+	true:   true,
+	false:  false,
+	1:      true,
+	0:      false,
 	"true": true,
-	"": false,
+	"":     false,
 }
 
-var numberTests = map[Value]float64 {
-	3: 3.0,
-	"3": 3.0,
-	true: 1,
+var numberTests = map[Value]float64{
+	3:     3.0,
+	"3":   3.0,
+	true:  1,
 	false: 0,
 }
 

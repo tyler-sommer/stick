@@ -27,24 +27,40 @@ func (p pos) String() string {
 
 // ModuleNode represents a set of nodes.
 type ModuleNode struct {
-	pos
-	parent *Node
-	nodes  []Node
+	*BodyNode
+	parent *ExtendsNode
 }
 
 func newModuleNode(nodes ...Node) *ModuleNode {
-	return &ModuleNode{newPos(1, 0), nil, nodes}
+	return &ModuleNode{newBodyNode(newPos(1, 0), nodes...), nil}
 }
 
-func (l *ModuleNode) append(n Node) {
-	l.nodes = append(l.nodes, n)
+func (l *ModuleNode) Parent() *ExtendsNode {
+	return l.parent
 }
 
 func (l *ModuleNode) String() string {
 	return fmt.Sprintf("Module%s", l.nodes)
 }
 
-func (l *ModuleNode) Children() []Node {
+type BodyNode struct {
+	pos
+	nodes []Node
+}
+
+func newBodyNode(pos pos, nodes ...Node) *BodyNode {
+	return &BodyNode{pos, nodes}
+}
+
+func (l *BodyNode) append(n Node) {
+	l.nodes = append(l.nodes, n)
+}
+
+func (l *BodyNode) String() string {
+	return fmt.Sprintf("Body%s", l.nodes)
+}
+
+func (l *BodyNode) Children() []Node {
 	return l.nodes
 }
 
@@ -95,6 +111,14 @@ func newBlockNode(name string, body Node, p pos) *BlockNode {
 	return &BlockNode{p, name, body}
 }
 
+func (t *BlockNode) Name() string {
+	return t.name
+}
+
+func (t *BlockNode) Body() Node {
+	return t.body
+}
+
 func (t *BlockNode) String() string {
 	return fmt.Sprintf("Block(%s: %s)", t.name, t.body)
 }
@@ -135,6 +159,10 @@ type ExtendsNode struct {
 
 func newExtendsNode(tplRef Expr, p pos) *ExtendsNode {
 	return &ExtendsNode{p, tplRef}
+}
+
+func (t *ExtendsNode) TemplateRef() Expr {
+	return t.tplRef
 }
 
 func (t *ExtendsNode) String() string {

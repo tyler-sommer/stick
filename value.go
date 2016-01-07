@@ -1,8 +1,8 @@
 package stick
 
 import (
-	"strconv"
 	"fmt"
+	"strconv"
 )
 
 // A Value represents some value, scalar or otherwise, able to be passed into

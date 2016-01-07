@@ -16,7 +16,7 @@ func (e *UnableToLoadTemplateErr) Error() string {
 	return fmt.Sprintf("Unable to load template: %s", e.name)
 }
 
-type StringLoader struct {}
+type StringLoader struct{}
 
 func (l *StringLoader) Load(name string) (string, error) {
 	return name, nil

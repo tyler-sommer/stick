@@ -2,28 +2,57 @@ package stick
 
 import (
 	"errors"
+	"fmt"
 	"github.com/tyler-sommer/stick/parse"
 	"io"
 	"strconv"
-	"fmt"
 )
 
 type state struct {
 	out     io.Writer
 	node    parse.Node
 	context map[string]Value
+	blocks  []map[string]*parse.BlockNode
 
-	loader  Loader
+	loader Loader
 }
 
 func newState(out io.Writer, ctx map[string]Value, loader Loader) *state {
-	return &state{out, nil, ctx, loader}
+	return &state{out, nil, ctx, make([]map[string]*parse.BlockNode, 0), loader}
+}
+
+func (s *state) getBlock(name string) *parse.BlockNode {
+	for _, blocks := range s.blocks {
+		if block, ok := blocks[name]; ok {
+			return block
+		}
+	}
+
+	return nil
 }
 
 func (s *state) walk(node parse.Node) error {
 	s.node = node
 	switch node := node.(type) {
 	case *parse.ModuleNode:
+		if p := node.Parent(); p != nil {
+			tplName, err := s.walkExpr(p.TemplateRef())
+			if err != nil {
+				return err
+			}
+			tmpl, err := s.loader.Load(CoerceString(tplName))
+			if err != nil {
+				return err
+			}
+			tree, err := parse.Parse(tmpl)
+			if err != nil {
+				return err
+			}
+			s.blocks = append(s.blocks, tree.Blocks())
+			return s.walk(tree.Root())
+		}
+		return s.walk(node.BodyNode)
+	case *parse.BodyNode:
 		for _, c := range node.Children() {
 			err := s.walk(c)
 			if err != nil {
@@ -38,6 +67,13 @@ func (s *state) walk(node parse.Node) error {
 			return err
 		}
 		io.WriteString(s.out, fmt.Sprintf("%v", v))
+	case *parse.BlockNode:
+		name := node.Name()
+		if block := s.getBlock(name); block != nil {
+			return s.walk(block.Body())
+		}
+		// TODO: It seems this should never occur.
+		return errors.New("Unable to locate block " + name)
 	case *parse.IfNode:
 		v, err := s.walkExpr(node.Cond())
 		if err != nil {
@@ -118,6 +154,7 @@ func execute(in string, out io.Writer, ctx map[string]Value, loader Loader) erro
 	}
 
 	s := newState(out, ctx, loader)
+	s.blocks = append(s.blocks, tree.Blocks())
 	err = s.walk(tree.Root())
 	if err != nil {
 		return err
