@@ -16,10 +16,5 @@ func NewEnv(loader Loader) *Env {
 }
 
 func (env *Env) Execute(tmpl string, out io.Writer, ctx map[string]Value) error {
-	in, err := env.loader.Load(tmpl)
-	if err != nil {
-		return err
-	}
-
-	return execute(in, out, ctx, env.loader)
+	return execute(tmpl, out, ctx, env.loader)
 }

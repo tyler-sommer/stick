@@ -15,10 +15,27 @@ type state struct {
 	blocks  []map[string]*parse.BlockNode
 
 	loader Loader
+	cache  map[string]*parse.Tree
 }
 
 func newState(out io.Writer, ctx map[string]Value, loader Loader) *state {
-	return &state{out, nil, ctx, make([]map[string]*parse.BlockNode, 0), loader}
+	return &state{out, nil, ctx, make([]map[string]*parse.BlockNode, 0), loader, make(map[string]*parse.Tree)}
+}
+
+func (s *state) load(name string) (*parse.Tree, error) {
+	if v, ok := s.cache[name]; ok {
+		return v, nil
+	}
+	tmpl, err := s.loader.Load(name)
+	if err != nil {
+		return nil, err
+	}
+	tree, err := parse.Parse(tmpl)
+	if err != nil {
+		return nil, err
+	}
+	s.cache[name] = tree
+	return tree, nil
 }
 
 func (s *state) getBlock(name string) *parse.BlockNode {
@@ -40,11 +57,7 @@ func (s *state) walk(node parse.Node) error {
 			if err != nil {
 				return err
 			}
-			tmpl, err := s.loader.Load(CoerceString(tplName))
-			if err != nil {
-				return err
-			}
-			tree, err := parse.Parse(tmpl)
+			tree, err := s.load(CoerceString(tplName))
 			if err != nil {
 				return err
 			}
@@ -147,13 +160,12 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 	return
 }
 
-func execute(in string, out io.Writer, ctx map[string]Value, loader Loader) error {
-	tree, err := parse.Parse(in)
+func execute(name string, out io.Writer, ctx map[string]Value, loader Loader) error {
+	s := newState(out, ctx, loader)
+	tree, err := s.load(name)
 	if err != nil {
 		return err
 	}
-
-	s := newState(out, ctx, loader)
 	s.blocks = append(s.blocks, tree.Blocks())
 	err = s.walk(tree.Root())
 	if err != nil {

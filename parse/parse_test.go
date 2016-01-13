@@ -139,6 +139,16 @@ var parseTests = []parseTest{
 		"{{ something|default }}",
 		mkModule(newPrintNode(newFuncExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos)}, noPos), noPos)),
 	),
+	newParseTest(
+		"basic for loop",
+		"{% for val in something %}body{% endfor %}",
+		mkModule(newForNode(nil, newNameExpr("val", noPos), newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos)),
+	),
+	newParseTest(
+		"for loop",
+		"{% for k, val in something if val %}body{% else %}No results.{% endfor %}",
+		mkModule(newForNode(newNameExpr("k", noPos), newNameExpr("val", noPos), newNameExpr("something", noPos), newIfNode(newNameExpr("val", noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos), newBodyNode(noPos, newTextNode("No results.", noPos)), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

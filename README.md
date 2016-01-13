@@ -58,7 +58,7 @@ To do
     - [x] if/else if/else/endif
     - [x] extends
     - [x] block
-    - [ ] for loop
+    - [x] for loop
     - [ ] include
     - [ ] import
     - [ ] from
@@ -79,9 +79,9 @@ To do
 
 #### Executer
 - [x] Basic execution
-- [ ] Template loading
+- [x] Template loading
 - [ ] Inheritance
-    - [ ] extends
+    - [x] extends
     - [ ] embed
     - [ ] use
     - [ ] include

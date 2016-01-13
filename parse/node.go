@@ -168,3 +168,21 @@ func (t *ExtendsNode) TemplateRef() Expr {
 func (t *ExtendsNode) String() string {
 	return fmt.Sprintf("Extends(%s)", t.tplRef)
 }
+
+// ForNode represents a for loop construct.
+type ForNode struct {
+	pos
+	key  *NameExpr
+	val  *NameExpr
+	expr Expr
+	body Node
+	els  Node
+}
+
+func newForNode(k, v *NameExpr, expr, body, els Node, p pos) *ForNode {
+	return &ForNode{p, k, v, expr, body, els}
+}
+
+func (t *ForNode) String() string {
+	return fmt.Sprintf("For(%s, %s in %s: %s else %s)", t.key, t.val, t.expr, t.body, t.els)
+}

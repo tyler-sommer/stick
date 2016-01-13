@@ -1,5 +1,7 @@
 package parse
 
+import "errors"
+
 // A tagParser can parse the body of a tag, returning the resulting Node or an error.
 type tagParser func(t *Tree, start pos) (Node, error)
 
@@ -17,6 +19,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseBlock(t, name.Pos())
 	case "if":
 		return parseIf(t, name.Pos())
+	case "for":
+		return parseFor(t, name.Pos())
 	default:
 		return nil, newParseError(name)
 	}
@@ -29,11 +33,28 @@ func (t *Tree) parseUntilEndTag(name string, start pos) (*BodyNode, error) {
 		return nil, newUnclosedTagError(name, start)
 	}
 
-	return t.parseUntilTag("end"+name, start)
+	n, err := t.parseUntilTag(start, "end"+name)
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.expect(tokenTagClose)
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
+}
+
+func contains(haystack []string, needle string) bool {
+	for _, v := range haystack {
+		if v == needle {
+			return true
+		}
+	}
+	return false
 }
 
 // parseUntilTag parses until it reaches the specified tag node, returning a parse error otherwise.
-func (t *Tree) parseUntilTag(name string, start pos) (*BodyNode, error) {
+func (t *Tree) parseUntilTag(start pos, names ...string) (*BodyNode, error) {
 	n := newBodyNode(start)
 	for {
 		switch tok := t.peek(); tok.tokenType {
@@ -46,9 +67,8 @@ func (t *Tree) parseUntilTag(name string, start pos) (*BodyNode, error) {
 			if err != nil {
 				return n, err
 			}
-			if tok.value == name {
-				_, err = t.expect(tokenTagClose)
-				return n, err
+			if contains(names, tok.value) {
+				return n, nil
 			}
 			t.backup3()
 			o, err := t.parse()
@@ -185,4 +205,85 @@ func parseElse(t *Tree, start pos) (*BodyNode, error) {
 		return newBodyNode(start, in), nil
 	}
 	return nil, newParseError(tok)
+}
+
+// parseFor parses a for loop construct.
+//
+// TODO: This needs proper error reporting.
+func parseFor(t *Tree, start pos) (*ForNode, error) {
+	var kName, vName *NameExpr
+	name, err := t.parseInnerExpr()
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := name.(*NameExpr); !ok {
+		return nil, errors.New("parse error: a parse error occured, expected name")
+	}
+	nxt := t.peekNonSpace()
+	if nxt.tokenType == tokenPunctuation && nxt.value == "," {
+		t.next()
+		kName = name.(*NameExpr)
+		name, err = t.parseInnerExpr()
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := name.(*NameExpr); !ok {
+			return nil, errors.New("parse error: a parse error occured, expected name")
+		}
+		vName = name.(*NameExpr)
+	} else {
+		vName = name.(*NameExpr)
+	}
+	tok := t.nextNonSpace()
+	if tok.tokenType != tokenName && tok.value != "in" {
+		return nil, newParseError(tok)
+	}
+	expr, err := t.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	tok, err = t.expect(tokenTagClose, tokenName)
+	if err != nil {
+		return nil, err
+	}
+	var ifCond Expr
+	if tok.tokenType == tokenName {
+		if tok.value != "if" {
+			return nil, errors.New("parse error: a parse error occured")
+		}
+		ifCond, err = t.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+		tok, err = t.expect(tokenTagClose)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var body Node
+	body, err = t.parseUntilTag(tok.Pos(), "endfor", "else")
+	if err != nil {
+		return nil, err
+	}
+	if ifCond != nil {
+		body = newIfNode(ifCond, body, nil, tok.Pos())
+	}
+	t.backup()
+	tok = t.next()
+	var elseBody Node
+	if tok.value == "else" {
+		_, err = t.expect(tokenTagClose)
+		if err != nil {
+			return nil, err
+		}
+		elseBody, err = t.parseUntilTag(tok.Pos(), "endfor")
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = t.expect(tokenTagClose)
+	if err != nil {
+		return nil, err
+	}
+	return newForNode(kName, vName, expr, body, elseBody, start), nil
 }
