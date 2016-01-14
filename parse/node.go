@@ -186,3 +186,18 @@ func newForNode(k, v *NameExpr, expr, body, els Node, p pos) *ForNode {
 func (t *ForNode) String() string {
 	return fmt.Sprintf("For(%s, %s in %s: %s else %s)", t.key, t.val, t.expr, t.body, t.els)
 }
+
+// IncludeNode is an include statement.
+type IncludeNode struct {
+	pos
+	tmpl Expr
+	with Expr
+}
+
+func newIncludeNode(tmpl Expr, with Expr, pos pos) *IncludeNode {
+	return &IncludeNode{pos, tmpl, with}
+}
+
+func (t *IncludeNode) String() string {
+	return fmt.Sprintf("Include(%s with %s)", t.tmpl, t.with)
+}

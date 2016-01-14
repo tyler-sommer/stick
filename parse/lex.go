@@ -263,6 +263,11 @@ func (l *lexer) tryLexOperator() bool {
 		if l.input[l.pos+1:l.pos+2] == "}" {
 			return false
 		}
+	} else if op == "in" {
+		// TODO: Workaround to avoid matching "include" tags.
+		if l.input[l.pos+1:l.pos+2] != " " {
+			return false
+		}
 	}
 	l.pos += len(op)
 	l.emit(tokenOperator)

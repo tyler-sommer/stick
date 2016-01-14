@@ -73,14 +73,14 @@ To do
     - [x] extends
     - [x] block
     - [x] for loop
-    - [ ] include
+    - [x] include
     - [ ] import
     - [ ] from
     - [ ] set
     - [ ] filter
     - [ ] embed
     - [ ] use
-    - [ ] macros
+    - [ ] macro
     - [ ] do
 - [x] Unary expressions
 - [x] Binary expressions

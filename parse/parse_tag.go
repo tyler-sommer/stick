@@ -21,6 +21,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseIf(t, name.Pos())
 	case "for":
 		return parseFor(t, name.Pos())
+	case "include":
+		return parseInclude(t, name.Pos())
 	default:
 		return nil, newParseError(name)
 	}
@@ -199,7 +201,6 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, e error) {
 }
 
 // parseFor parses a for loop construct.
-//
 // TODO: This needs proper error reporting.
 func parseFor(t *Tree, start pos) (*ForNode, error) {
 	var kName, vName *NameExpr
@@ -277,4 +278,34 @@ func parseFor(t *Tree, start pos) (*ForNode, error) {
 		return nil, err
 	}
 	return newForNode(kName, vName, expr, body, elseBody, start), nil
+}
+
+func parseInclude(t *Tree, start pos) (Node, error) {
+	expr, err := t.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	var with Expr
+	switch tok := t.peekNonSpace(); tok.tokenType {
+	case tokenEof:
+		return nil, newUnexpectedEofError(tok)
+	case tokenName:
+		if tok.value != "with" {
+			return nil, newParseError(tok)
+		}
+		t.next()
+		with, err = t.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+	case tokenTagClose:
+		// no op
+	default:
+		return nil, newParseError(tok)
+	}
+	_, err = t.expect(tokenTagClose)
+	if err != nil {
+		return nil, err
+	}
+	return newIncludeNode(expr, with, start), nil
 }

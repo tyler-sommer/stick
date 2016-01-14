@@ -149,6 +149,16 @@ var parseTests = []parseTest{
 		"{% for k, val in something if val %}body{% else %}No results.{% endfor %}",
 		mkModule(newForNode(newNameExpr("k", noPos), newNameExpr("val", noPos), newNameExpr("something", noPos), newIfNode(newNameExpr("val", noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos), newBodyNode(noPos, newTextNode("No results.", noPos)), noPos)),
 	),
+	newParseTest(
+		"include",
+		"{% include '::_subnav.html.twig' %}",
+		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), nil, noPos)),
+	),
+	newParseTest(
+		"include",
+		"{% include '::_subnav.html.twig' with var %}",
+		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), newNameExpr("var", noPos), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {
