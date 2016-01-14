@@ -8,8 +8,12 @@ Introduction
 ------------
 
 Twig is a powerful templating language that supports macros, vertical and 
-horizontal reuse including multiple inheritance, and an easy-to-learn syntax that
-promotes separation of logic and markup.
+horizontal reuse, and an easy-to-learn syntax that promotes separation of 
+logic and markup. Twig is also extremely extensible, and by default will
+autoescape content based on content type.
+
+
+Stick is an attempt to bring these great features to Go projects.
 
 
 ### Current status
@@ -20,6 +24,16 @@ Stick is made up of three main parts: a lexer, a parser, and an executer. Stick'
 nearly complete. Basic template execution is implemented as well.
 
 See the [to do list](#to-do) for additional information.
+
+
+Installation
+------------
+
+Stick is intended to be used as a library. The recommended way to install the library is using `go get`.
+
+```bash
+go get -u github.com/tyler-sommer/stick
+```
 
 
 Usage

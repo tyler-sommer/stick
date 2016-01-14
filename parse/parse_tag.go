@@ -17,7 +17,7 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseExtends(t, name.Pos())
 	case "block":
 		return parseBlock(t, name.Pos())
-	case "if":
+	case "if", "elseif":
 		return parseIf(t, name.Pos())
 	case "for":
 		return parseFor(t, name.Pos())
@@ -159,20 +159,32 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, e error) {
 				e = err
 				return
 			}
-			if tok.value == "else" {
-				els, err = parseElse(t, tok.Pos())
+			switch tok.value {
+			case "else":
+				_, err := t.expect(tokenTagClose)
 				if err != nil {
 					e = err
 					return
 				}
-			} else if tok.value == "endif" {
+				els, err = t.parseUntilEndTag("if", start)
+				if err != nil {
+					e = err
+					return
+				}
+			case "elseif":
+				t.backup()
+				in, err := t.parseTag()
+				if err != nil {
+					return nil, nil, err
+				}
+				els = newBodyNode(start, in)
+			case "endif":
 				_, e = t.expect(tokenTagClose)
 				return
-			} else {
+			default:
 				e = newUnclosedTagError("if", start)
 				return
 			}
-
 			return
 
 		default:
@@ -184,27 +196,6 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, e error) {
 			body.append(n)
 		}
 	}
-}
-
-// parseElse parses an if statement's "else" body or "else if" statement.
-func parseElse(t *Tree, start pos) (*BodyNode, error) {
-	tok := t.nextNonSpace()
-	switch tok.tokenType {
-	case tokenTagClose:
-		return t.parseUntilEndTag("if", start)
-
-	case tokenName:
-		if tok.value != "if" {
-			return nil, newParseError(tok)
-		}
-		t.backup()
-		in, err := t.parseTag()
-		if err != nil {
-			return nil, err
-		}
-		return newBodyNode(start, in), nil
-	}
-	return nil, newParseError(tok)
 }
 
 // parseFor parses a for loop construct.

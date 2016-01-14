@@ -62,15 +62,15 @@ var parseTests = []parseTest{
 		mkModule(newIfNode(newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("Do Something", noPos)), newBodyNode(noPos, newTextNode("Another thing", noPos)), noPos)),
 	),
 	newParseTest(
-		"if else if",
-		"{% if something %}Do Something{% else if another %}Another thing{% endif %}",
+		"if elseif else",
+		"{% if something %}Do Something{% elseif another %}Another thing{% else %}Final thing{% endif %}",
 		mkModule(newIfNode(
 			newNameExpr("something", noPos),
 			newBodyNode(noPos, newTextNode("Do Something", noPos)),
 			newBodyNode(noPos, newIfNode(
 				newNameExpr("another", noPos),
 				newBodyNode(noPos, newTextNode("Another thing", noPos)),
-				nilBody,
+				newBodyNode(noPos, newTextNode("Final thing", noPos)),
 				noPos)),
 			noPos)),
 	),
