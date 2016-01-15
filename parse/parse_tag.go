@@ -90,6 +90,8 @@ func (t *Tree) parseUntilTag(start pos, names ...string) (*BodyNode, error) {
 }
 
 // parseExtends parses an extends tag.
+//
+//   {% extends <expr> %}
 func parseExtends(t *Tree, start pos) (Node, error) {
 	if t.Root().parent != nil {
 		return nil, newMultipleExtendsError(start)
@@ -108,6 +110,10 @@ func parseExtends(t *Tree, start pos) (Node, error) {
 }
 
 // parseBlock parses a block and any body it may contain.
+// TODO: {% endblock <name> %} support
+//
+//   {% block <name> %}
+//   {% endblock %}
 func parseBlock(t *Tree, start pos) (Node, error) {
 	blockName, err := t.expect(tokenName)
 	if err != nil {
@@ -129,6 +135,9 @@ func parseBlock(t *Tree, start pos) (Node, error) {
 }
 
 // parseIf parses the opening tag and conditional expression in an if-statement.
+//
+//   {% if <expr> %}
+//   {% elseif <expr> %}
 func parseIf(t *Tree, start pos) (Node, error) {
 	cond, err := t.parseExpr()
 	if err != nil {
@@ -146,6 +155,9 @@ func parseIf(t *Tree, start pos) (Node, error) {
 }
 
 // parseIfBody parses the body of an if statement.
+//
+//   {% else %}
+//   {% endif %}
 func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, e error) {
 	body = newBodyNode(start)
 	for {
@@ -202,6 +214,11 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, e error) {
 
 // parseFor parses a for loop construct.
 // TODO: This needs proper error reporting.
+//
+//   {% for <name, [name]> in <expr> %}
+//   {% for <name, [name]> in <expr> if <expr> %}
+//   {% else %}
+//   {% endfor %}
 func parseFor(t *Tree, start pos) (*ForNode, error) {
 	var kName, vName *NameExpr
 	name, err := t.parseInnerExpr()
@@ -280,6 +297,13 @@ func parseFor(t *Tree, start pos) (*ForNode, error) {
 	return newForNode(kName, vName, expr, body, elseBody, start), nil
 }
 
+// parseInclude parses an include statement.
+// TODO: Implement "ignore missing" support
+//
+//   {% include <expr> %}
+//   {% include <expr> with <expr> %}
+//   {% include <expr> with <expr> only %}
+//   {% include <expr> only %}
 func parseInclude(t *Tree, start pos) (Node, error) {
 	expr, err := t.parseExpr()
 	if err != nil {
@@ -291,7 +315,7 @@ func parseInclude(t *Tree, start pos) (Node, error) {
 	case tokenEof:
 		return nil, newUnexpectedEofError(tok)
 	case tokenName:
-		if tok.value == "only" {
+		if tok.value == "only" { // {% include <expr> only %}
 			t.next()
 			_, err = t.expect(tokenTagClose)
 			if err != nil {
