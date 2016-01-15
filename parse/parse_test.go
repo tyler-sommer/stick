@@ -152,12 +152,22 @@ var parseTests = []parseTest{
 	newParseTest(
 		"include",
 		"{% include '::_subnav.html.twig' %}",
-		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), nil, noPos)),
+		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), nil, false, noPos)),
 	),
 	newParseTest(
-		"include",
+		"include with",
 		"{% include '::_subnav.html.twig' with var %}",
-		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), newNameExpr("var", noPos), noPos)),
+		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), newNameExpr("var", noPos), false, noPos)),
+	),
+	newParseTest(
+		"include with only",
+		"{% include '::_subnav.html.twig' with var only %}",
+		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), newNameExpr("var", noPos), true, noPos)),
+	),
+	newParseTest(
+		"include only",
+		"{% include '::_subnav.html.twig' only %}",
+		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), nil, true, noPos)),
 	),
 }
 

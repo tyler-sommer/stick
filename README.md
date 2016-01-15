@@ -98,7 +98,7 @@ To do
     - [x] extends
     - [ ] embed
     - [ ] use
-    - [ ] include
+    - [x] include
 - [ ] Other basic tags
 - [ ] Macros
 - [ ] User defined functions

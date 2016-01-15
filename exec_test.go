@@ -19,6 +19,8 @@ var tests = []execTest{
 	{"Hello, Tyler!", "Hello, {{ name }}!", map[string]Value{"name": "Tyler"}, "Hello, Tyler!"},
 	{"Simple if", `<li class="{% if active %}active{% endif %}">`, map[string]Value{"active": true}, `<li class="active">`},
 	{"Simple inheritance", `{% extends 'Hello, {% block test %}universe{% endblock %}!' %}{% block test %}world{% endblock %}`, emptyCtx, `Hello, world!`},
+	{"Simple include", `This is a test. {% include 'Hello, {{ name }}!' %} This concludes the test.`, map[string]Value{"name": "John"}, `This is a test. Hello, John! This concludes the test.`},
+	{"Include with", `{% include 'Hello, {{ name }}{{ value }}' with vars %}`, map[string]Value{"value": "!", "vars": map[string]Value{"name": "Adam"}}, `Hello, Adam!`},
 }
 
 func evaluateTest(t *testing.T, test execTest) {

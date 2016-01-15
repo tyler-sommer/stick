@@ -97,10 +97,39 @@ func (s *state) walk(node parse.Node) error {
 		} else {
 			s.walk(node.Else())
 		}
+	case *parse.IncludeNode:
+		v, err := s.walkExpr(node.Tpl())
+		if err != nil {
+			return err
+		}
+		var with Value
+		if n := node.With(); n != nil {
+			with, err = s.walkExpr(n)
+			// TODO: Assert with is a hash?
+			if err != nil {
+				return err
+			}
+		}
+		ctx := make(map[string]Value)
+		if !node.Only() {
+			for k, v := range s.context {
+				ctx[k] = v
+			}
+		}
+		if with != nil {
+			if with, ok := with.(map[string]Value); ok {
+				for k, v := range with {
+					ctx[k] = v
+				}
+			}
+		}
+		err = execute(CoerceString(v), s.out, ctx, s.loader)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("Unknown node " + node.String())
 	}
-
 	return nil
 }
 

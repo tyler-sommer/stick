@@ -192,12 +192,25 @@ type IncludeNode struct {
 	pos
 	tmpl Expr
 	with Expr
+	only bool
 }
 
-func newIncludeNode(tmpl Expr, with Expr, pos pos) *IncludeNode {
-	return &IncludeNode{pos, tmpl, with}
+func newIncludeNode(tmpl Expr, with Expr, only bool, pos pos) *IncludeNode {
+	return &IncludeNode{pos, tmpl, with, only}
 }
 
 func (t *IncludeNode) String() string {
-	return fmt.Sprintf("Include(%s with %s)", t.tmpl, t.with)
+	return fmt.Sprintf("Include(%s with %s %v)", t.tmpl, t.with, t.only)
+}
+
+func (t *IncludeNode) Tpl() Expr {
+	return t.tmpl
+}
+
+func (t *IncludeNode) With() Expr {
+	return t.with
+}
+
+func (t *IncludeNode) Only() bool {
+	return t.only
 }

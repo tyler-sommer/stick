@@ -286,11 +286,20 @@ func parseInclude(t *Tree, start pos) (Node, error) {
 		return nil, err
 	}
 	var with Expr
+	var only bool = false
 	switch tok := t.peekNonSpace(); tok.tokenType {
 	case tokenEof:
 		return nil, newUnexpectedEofError(tok)
 	case tokenName:
-		if tok.value != "with" {
+		if tok.value == "only" {
+			t.next()
+			_, err = t.expect(tokenTagClose)
+			if err != nil {
+				return nil, err
+			}
+			only = true
+			return newIncludeNode(expr, with, only, start), nil
+		} else if tok.value != "with" {
 			return nil, newParseError(tok)
 		}
 		t.next()
@@ -303,9 +312,22 @@ func parseInclude(t *Tree, start pos) (Node, error) {
 	default:
 		return nil, newParseError(tok)
 	}
-	_, err = t.expect(tokenTagClose)
-	if err != nil {
-		return nil, err
+	switch tok := t.nextNonSpace(); tok.tokenType {
+	case tokenEof:
+		return nil, newUnexpectedEofError(tok)
+	case tokenName:
+		if tok.value != "only" {
+			return nil, newParseError(tok)
+		}
+		_, err = t.expect(tokenTagClose)
+		if err != nil {
+			return nil, err
+		}
+		only = true
+	case tokenTagClose:
+		// no op
+	default:
+		return nil, newParseError(tok)
 	}
-	return newIncludeNode(expr, with, start), nil
+	return newIncludeNode(expr, with, only, start), nil
 }
