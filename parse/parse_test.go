@@ -169,6 +169,11 @@ var parseTests = []parseTest{
 		"{% include '::_subnav.html.twig' only %}",
 		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), nil, true, noPos)),
 	),
+	newParseTest(
+		"embed",
+		"{% embed '::_modal.html.twig' %}{% block title %}Hello{% endblock %}{% endembed  %}",
+		mkModule(newEmbedNode(newStringExpr("::_modal.html.twig", noPos), nil, false, map[string]*BlockNode{"title": newBlockNode("title", newBodyNode(noPos, newTextNode("Hello", noPos)), noPos)}, noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

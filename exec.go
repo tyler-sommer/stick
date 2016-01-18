@@ -98,32 +98,26 @@ func (s *state) walk(node parse.Node) error {
 			s.walk(node.Else())
 		}
 	case *parse.IncludeNode:
-		v, err := s.walkExpr(node.Tpl())
+		tpl, ctx, err := s.walkInclude(node)
 		if err != nil {
 			return err
 		}
-		var with Value
-		if n := node.With(); n != nil {
-			with, err = s.walkExpr(n)
-			// TODO: Assert with is a hash?
-			if err != nil {
-				return err
-			}
+		err = execute(tpl, s.out, ctx, s.loader)
+		if err != nil {
+			return err
 		}
-		ctx := make(map[string]Value)
-		if !node.Only() {
-			for k, v := range s.context {
-				ctx[k] = v
-			}
+	case *parse.EmbedNode:
+		tpl, ctx, err := s.walkInclude(node.IncludeNode)
+		if err != nil {
+			return err
 		}
-		if with != nil {
-			if with, ok := with.(map[string]Value); ok {
-				for k, v := range with {
-					ctx[k] = v
-				}
-			}
+		s := newState(s.out, ctx, s.loader)
+		tree, err := s.load(tpl)
+		if err != nil {
+			return err
 		}
-		err = execute(CoerceString(v), s.out, ctx, s.loader)
+		s.blocks = append(s.blocks, node.Blocks(), tree.Blocks())
+		err = s.walk(tree.Root())
 		if err != nil {
 			return err
 		}
@@ -131,6 +125,36 @@ func (s *state) walk(node parse.Node) error {
 		return errors.New("Unknown node " + node.String())
 	}
 	return nil
+}
+
+func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string]Value, err error) {
+	ctx = make(map[string]Value)
+	v, err := s.walkExpr(node.Tpl())
+	if err != nil {
+		return
+	}
+	tpl = CoerceString(v)
+	var with Value
+	if n := node.With(); n != nil {
+		with, err = s.walkExpr(n)
+		// TODO: Assert with is a hash?
+		if err != nil {
+			return
+		}
+	}
+	if !node.Only() {
+		for k, v := range s.context {
+			ctx[k] = v
+		}
+	}
+	if with != nil {
+		if with, ok := with.(map[string]Value); ok {
+			for k, v := range with {
+				ctx[k] = v
+			}
+		}
+	}
+	return
 }
 
 func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {

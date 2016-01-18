@@ -23,6 +23,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseFor(t, name.Pos())
 	case "include":
 		return parseInclude(t, name.Pos())
+	case "embed":
+		return parseEmbed(t, name.Pos())
 	default:
 		return nil, newParseError(name)
 	}
@@ -123,12 +125,10 @@ func parseBlock(t *Tree, start pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	t.pushBlockStack(blockName.value)
 	body, err := t.parseUntilEndTag("block", start)
 	if err != nil {
 		return nil, err
 	}
-	t.popBlockStack(blockName.value)
 	nod := newBlockNode(blockName.value, body, start)
 	t.setBlock(blockName.value, nod)
 	return nod, nil
@@ -298,60 +298,114 @@ func parseFor(t *Tree, start pos) (*ForNode, error) {
 }
 
 // parseInclude parses an include statement.
+func parseInclude(t *Tree, start pos) (Node, error) {
+	expr, with, only, err := parseIncludeOrEmbed(t)
+	if err != nil {
+		return nil, err
+	}
+	return newIncludeNode(expr, with, only, start), nil
+}
+
+// parseEmbed parses an embed statement and body.
+func parseEmbed(t *Tree, start pos) (Node, error) {
+	expr, with, only, err := parseIncludeOrEmbed(t)
+	if err != nil {
+		return nil, err
+	}
+	t.pushBlockStack()
+	for {
+		tok := t.nextNonSpace()
+		if tok.tokenType == tokenEof {
+			return nil, newUnclosedTagError("embed", start)
+		} else if tok.tokenType == tokenTagOpen {
+			tok, err := t.expect(tokenName)
+			if err != nil {
+				return nil, err
+			}
+			if tok.value == "endembed" {
+				t.next()
+				_, err := t.expect(tokenTagClose)
+				if err != nil {
+					return nil, err
+				}
+				break
+			} else if tok.value == "block" {
+				n, err := parseBlock(t, start)
+				if err != nil {
+					return nil, err
+				}
+				if _, ok := n.(*BlockNode); !ok {
+					return nil, newParseError(tok)
+				}
+			} else {
+				return nil, newUnexpectedValueError(tok, "endembed or block")
+			}
+		}
+	}
+	blockRefs := t.popBlockStack()
+	return newEmbedNode(expr, with, only, blockRefs, start), nil
+}
+
+// parseIncludeOrEmbed parses an include or embed tag's parameters.
 // TODO: Implement "ignore missing" support
 //
 //   {% include <expr> %}
 //   {% include <expr> with <expr> %}
 //   {% include <expr> with <expr> only %}
 //   {% include <expr> only %}
-func parseInclude(t *Tree, start pos) (Node, error) {
-	expr, err := t.parseExpr()
+func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
+	expr, err = t.parseExpr()
 	if err != nil {
-		return nil, err
+		return
 	}
-	var with Expr
-	var only bool = false
+	only = false
 	switch tok := t.peekNonSpace(); tok.tokenType {
 	case tokenEof:
-		return nil, newUnexpectedEofError(tok)
+		err = newUnexpectedEofError(tok)
+		return
 	case tokenName:
 		if tok.value == "only" { // {% include <expr> only %}
 			t.next()
 			_, err = t.expect(tokenTagClose)
 			if err != nil {
-				return nil, err
+				return
 			}
 			only = true
-			return newIncludeNode(expr, with, only, start), nil
+			return expr, with, only, nil
 		} else if tok.value != "with" {
-			return nil, newParseError(tok)
+			err = newParseError(tok)
+			return
 		}
 		t.next()
 		with, err = t.parseExpr()
 		if err != nil {
-			return nil, err
+			return
 		}
 	case tokenTagClose:
-		// no op
+	// no op
 	default:
-		return nil, newParseError(tok)
+		err = newParseError(tok)
+		return
 	}
 	switch tok := t.nextNonSpace(); tok.tokenType {
 	case tokenEof:
-		return nil, newUnexpectedEofError(tok)
+		err = newUnexpectedEofError(tok)
+		return
 	case tokenName:
 		if tok.value != "only" {
-			return nil, newParseError(tok)
+			err = newParseError(tok)
+			return
 		}
 		_, err = t.expect(tokenTagClose)
 		if err != nil {
-			return nil, err
+			return
 		}
 		only = true
 	case tokenTagClose:
-		// no op
+	// no op
 	default:
-		return nil, newParseError(tok)
+		err = newParseError(tok)
+		return
 	}
-	return newIncludeNode(expr, with, only, start), nil
+	return
 }

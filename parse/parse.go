@@ -4,13 +4,12 @@ package parse
 
 // Tree represents the state of a parser.
 type Tree struct {
-	root      *ModuleNode
-	blocks    []string
-	blockRefs map[string]*BlockNode
-	input     string
-	lex       *lexer
-	unread    []token
-	read      []token
+	root   *ModuleNode
+	blocks []map[string]*BlockNode
+	input  string
+	lex    *lexer
+	unread []token
+	read   []token
 }
 
 // Root returns the root module node.
@@ -20,19 +19,21 @@ func (t *Tree) Root() *ModuleNode {
 
 // Blocks returns a map of blocks in this tree.
 func (t *Tree) Blocks() map[string]*BlockNode {
-	return t.blockRefs
+	return t.blocks[len(t.blocks)-1]
 }
 
-func (t *Tree) popBlockStack(name string) {
+func (t *Tree) popBlockStack() map[string]*BlockNode {
+	blocks := t.Blocks()
 	t.blocks = t.blocks[0 : len(t.blocks)-1]
+	return blocks
 }
 
-func (t *Tree) pushBlockStack(name string) {
-	t.blocks = append(t.blocks, name)
+func (t *Tree) pushBlockStack() {
+	t.blocks = append(t.blocks, make(map[string]*BlockNode))
 }
 
 func (t *Tree) setBlock(name string, body *BlockNode) {
-	t.blockRefs[name] = body
+	t.blocks[len(t.blocks)-1][name] = body
 }
 
 // peek returns the next unread token without advancing the internal cursor.
@@ -134,7 +135,8 @@ func Parse(input string) (*Tree, error) {
 
 	go lex.tokenize()
 
-	t := &Tree{newModuleNode(), make([]string, 0), make(map[string]*BlockNode), input, lex, make([]token, 0), make([]token, 0)}
+	t := &Tree{newModuleNode(), make([]map[string]*BlockNode, 0), input, lex, make([]token, 0), make([]token, 0)}
+	t.pushBlockStack()
 
 	for {
 		n, err := t.parse()

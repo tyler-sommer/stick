@@ -214,3 +214,21 @@ func (t *IncludeNode) With() Expr {
 func (t *IncludeNode) Only() bool {
 	return t.only
 }
+
+// EmbedNode is a special include statement.
+type EmbedNode struct {
+	*IncludeNode
+	blockRefs map[string]*BlockNode
+}
+
+func newEmbedNode(tmpl Expr, with Expr, only bool, blocks map[string]*BlockNode, pos pos) *EmbedNode {
+	return &EmbedNode{newIncludeNode(tmpl, with, only, pos), blocks}
+}
+
+func (t *EmbedNode) String() string {
+	return fmt.Sprintf("Embed(%s with %s %v: %v)", t.tmpl, t.with, t.only, t.blockRefs)
+}
+
+func (t *EmbedNode) Blocks() map[string]*BlockNode {
+	return t.blockRefs
+}

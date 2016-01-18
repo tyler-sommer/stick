@@ -78,7 +78,7 @@ To do
     - [ ] from
     - [ ] set
     - [ ] filter
-    - [ ] embed
+    - [x] embed
     - [ ] use
     - [ ] macro
     - [ ] do
@@ -96,7 +96,7 @@ To do
 - [x] Template loading
 - [ ] Inheritance
     - [x] extends
-    - [ ] embed
+    - [x] embed
     - [ ] use
     - [x] include
 - [ ] Other basic tags
