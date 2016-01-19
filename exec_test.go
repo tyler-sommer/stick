@@ -26,7 +26,8 @@ var tests = []execTest{
 
 func evaluateTest(t *testing.T, test execTest) {
 	w := &bytes.Buffer{}
-	err := execute(test.tmpl, w, test.ctx, &StringLoader{})
+	env := NewEnv(&StringLoader{})
+	err := execute(test.tmpl, w, test.ctx, env)
 	if err != nil {
 		t.Errorf("%s: unexpected error: %s", test.name, err.Error())
 		return

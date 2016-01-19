@@ -14,19 +14,15 @@ type state struct {
 	context map[string]Value
 	blocks  []map[string]*parse.BlockNode
 
-	loader Loader
-	cache  map[string]*parse.Tree
+	env *Env
 }
 
-func newState(out io.Writer, ctx map[string]Value, loader Loader) *state {
-	return &state{out, nil, ctx, make([]map[string]*parse.BlockNode, 0), loader, make(map[string]*parse.Tree)}
+func newState(out io.Writer, ctx map[string]Value, env *Env) *state {
+	return &state{out, nil, ctx, make([]map[string]*parse.BlockNode, 0), env}
 }
 
 func (s *state) load(name string) (*parse.Tree, error) {
-	if v, ok := s.cache[name]; ok {
-		return v, nil
-	}
-	tmpl, err := s.loader.Load(name)
+	tmpl, err := s.env.loader.Load(name)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +30,6 @@ func (s *state) load(name string) (*parse.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.cache[name] = tree
 	return tree, nil
 }
 
@@ -102,7 +97,7 @@ func (s *state) walk(node parse.Node) error {
 		if err != nil {
 			return err
 		}
-		err = execute(tpl, s.out, ctx, s.loader)
+		err = execute(tpl, s.out, ctx, s.env)
 		if err != nil {
 			return err
 		}
@@ -111,7 +106,7 @@ func (s *state) walk(node parse.Node) error {
 		if err != nil {
 			return err
 		}
-		s := newState(s.out, ctx, s.loader)
+		s := newState(s.out, ctx, s.env)
 		tree, err := s.load(tpl)
 		if err != nil {
 			return err
@@ -209,12 +204,28 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 			// TODO: Stop-gap for now, this will need to be much more sophisticated.
 			return CoerceString(left) == CoerceString(right), nil
 		}
+	case *parse.FuncExpr:
+		fnName := exp.Name()
+		if fn, ok := s.env.functions[fnName]; ok {
+			args := make([]Value, 0)
+			for _, e := range exp.Args() {
+				v, err := s.walkExpr(e)
+				if err != nil {
+					return nil, err
+				}
+				args = append(args, v)
+			}
+
+			return fn(s.env, args...), nil
+		} else {
+			return nil, errors.New("Undeclared function \"" + fnName + "\"")
+		}
 	}
 	return
 }
 
-func execute(name string, out io.Writer, ctx map[string]Value, loader Loader) error {
-	s := newState(out, ctx, loader)
+func execute(name string, out io.Writer, ctx map[string]Value, env *Env) error {
+	s := newState(out, ctx, env)
 	tree, err := s.load(name)
 	if err != nil {
 		return err

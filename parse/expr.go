@@ -75,6 +75,14 @@ func (exp *FuncExpr) String() string {
 	return fmt.Sprintf("FuncExpr(%s, %s)", exp.name, exp.args)
 }
 
+func (exp *FuncExpr) Name() string {
+	return exp.name.Name()
+}
+
+func (exp *FuncExpr) Args() []Expr {
+	return exp.args
+}
+
 type BinaryExpr struct {
 	pos
 	left  Expr
