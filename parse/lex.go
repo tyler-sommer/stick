@@ -126,12 +126,10 @@ func (l *lexer) backup() {
 	l.pos--
 }
 
-func (l *lexer) peek() (val string) {
-	val = l.next()
-
+func (l *lexer) peek() string {
+	val := l.next()
 	l.backup()
-
-	return
+	return val
 }
 
 // emit will create a token with a value starting from the last emission

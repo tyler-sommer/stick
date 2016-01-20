@@ -159,32 +159,27 @@ func parseIf(t *Tree, start pos) (Node, error) {
 //
 //   {% else %}
 //   {% endif %}
-func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, e error) {
+func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) {
 	body = newBodyNode(start)
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenEof:
-			e = newUnclosedTagError("if", start)
-			return
-
+			return nil, nil, newUnclosedTagError("if", start)
 		case tokenTagOpen:
 			t.next()
 			tok, err := t.expect(tokenName)
 			if err != nil {
-				e = err
-				return
+				return nil, nil, err
 			}
 			switch tok.value {
 			case "else":
 				_, err := t.expect(tokenTagClose)
 				if err != nil {
-					e = err
-					return
+					return nil, nil, err
 				}
 				els, err = t.parseUntilEndTag("if", start)
 				if err != nil {
-					e = err
-					return
+					return nil, nil, err
 				}
 			case "elseif":
 				t.backup()
@@ -194,19 +189,18 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, e error) {
 				}
 				els = newBodyNode(start, in)
 			case "endif":
-				_, e = t.expect(tokenTagClose)
-				return
+				_, err := t.expect(tokenTagClose)
+				if err != nil {
+					return nil, nil, err
+				}
 			default:
-				e = newUnclosedTagError("if", start)
-				return
+				return nil, nil, newUnclosedTagError("if", start)
 			}
-			return
-
+			return body, els, nil
 		default:
 			n, err := t.parse()
 			if err != nil {
-				e = err
-				return
+				return nil, nil, err
 			}
 			body.append(n)
 		}

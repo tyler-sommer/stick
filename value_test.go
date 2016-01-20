@@ -52,11 +52,11 @@ func TestValue(t *testing.T) {
 }
 
 type getAttrTest struct {
-	name string
-	cont Value
-	attr string
+	name     string
+	cont     Value
+	attr     string
 	expected string
-	args []Value
+	args     []Value
 }
 
 func newGetAttrTest(name string, cont Value, attr, expected string) getAttrTest {
@@ -80,7 +80,7 @@ func (t testStruct) VName() string {
 }
 
 func (t *testStruct) Modify(in string) string {
-	return "modified:"+in
+	return "modified:" + in
 }
 
 type propStruct struct {
@@ -88,15 +88,15 @@ type propStruct struct {
 }
 
 var getAttrTests = []getAttrTest{
-	newGetAttrTest("anon struct property", struct{Name string}{"Tyler"}, "Name", "Tyler"),
+	newGetAttrTest("anon struct property", struct{ Name string }{"Tyler"}, "Name", "Tyler"),
 	newGetAttrTest("struct property", propStruct{"Jackie"}, "Name", "Jackie"),
 	newGetAttrTest("struct method (value, ptr receiver)", testStruct{"John"}, "Name", "John"),
 	newGetAttrTest("struct method (ptr, ptr receiver)", &testStruct{"Adam"}, "Name", "Adam"),
 	newGetAttrTest("struct method (value, value receiver)", testStruct{"Sam"}, "VName", "Sam"),
 	newGetAttrTest("struct method (ptr, value receiver)", &testStruct{"Rex"}, "VName", "Rex"),
 	newGetAttrMethodTest("method with parameters", testStruct{"Ray"}, []Value{"Meow"}, "Modify", "modified:Meow"),
-	newGetAttrTest("map (string key)", map[string]Value{"name":"Amy"}, "name", "Amy"),
-	newGetAttrTest("array", []Value{"World","Hello"}, "1", "Hello"),
+	newGetAttrTest("map (string key)", map[string]Value{"name": "Amy"}, "name", "Amy"),
+	newGetAttrTest("array", []Value{"World", "Hello"}, "1", "Hello"),
 }
 
 func evaluateGetAttrTest(t *testing.T, test getAttrTest) {

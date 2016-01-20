@@ -37,15 +37,15 @@ func (t *Tree) setBlock(name string, body *BlockNode) {
 }
 
 // peek returns the next unread token without advancing the internal cursor.
-func (t *Tree) peek() (tok token) {
-	tok = t.next()
+func (t *Tree) peek() token {
+	tok := t.next()
 	t.backup()
 
-	return
+	return tok
 }
 
 // peek returns the next unread, non-space token without advancing the internal cursor.
-func (t *Tree) peekNonSpace() (tok token) {
+func (t *Tree) peekNonSpace() token {
 	var next token
 	for {
 		next = t.next()
@@ -55,7 +55,7 @@ func (t *Tree) peekNonSpace() (tok token) {
 		}
 	}
 
-	return
+	return next
 }
 
 // backup pushes the last read token back onto the unread stack and reduces the internal cursor by one.
@@ -77,7 +77,8 @@ func (t *Tree) backup3() {
 }
 
 // next returns the next unread token and advances the internal cursor by one.
-func (t *Tree) next() (tok token) {
+func (t *Tree) next() token {
+	var tok token
 	if len(t.unread) > 0 {
 		tok, t.unread = t.unread[len(t.unread)-1], t.unread[:len(t.unread)-1]
 	} else {
@@ -86,7 +87,7 @@ func (t *Tree) next() (tok token) {
 
 	t.read = append(t.read, tok)
 
-	return
+	return tok
 }
 
 // nextNonSpace returns the next non-whitespace token.

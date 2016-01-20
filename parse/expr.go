@@ -121,7 +121,7 @@ type FilterExpr struct {
 	*FuncExpr
 }
 
-func newFilterExpr(name *NameExpr, args[]Expr, pos pos) *FilterExpr {
+func newFilterExpr(name *NameExpr, args []Expr, pos pos) *FilterExpr {
 	return &FilterExpr{newFuncExpr(name, args, pos)}
 }
 

@@ -134,7 +134,7 @@ func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string
 	ctx = make(map[string]Value)
 	v, err := s.walkExpr(node.Tpl())
 	if err != nil {
-		return
+		return "", nil, err
 	}
 	tpl = CoerceString(v)
 	var with Value
@@ -142,7 +142,7 @@ func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string
 		with, err = s.walkExpr(n)
 		// TODO: Assert "with" is a hash?
 		if err != nil {
-			return
+			return "", nil, err
 		}
 	}
 	if !node.Only() {
@@ -157,7 +157,7 @@ func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string
 			}
 		}
 	}
-	return
+	return tpl, ctx, err
 }
 
 // Method walkExpr executes the given expression, returning a Value or error.
@@ -251,13 +251,12 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 			}
 			args[k] = v
 		}
-		v, err := GetAttr(c, CoerceString(k), args...)
+		v, err = GetAttr(c, CoerceString(k), args...)
 		if err != nil {
 			return nil, err
 		}
-		return v, nil
 	}
-	return
+	return v, nil
 }
 
 // execute kicks off execution of the given template.
