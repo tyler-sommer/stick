@@ -278,7 +278,7 @@ func parseFor(t *Tree, start pos) (*ForNode, error) {
 	}
 	t.backup()
 	tok = t.next()
-	var elseBody Node
+	var elseBody Node = newBodyNode(tok.Pos())
 	if tok.value == "else" {
 		_, err = t.expect(tokenTagClose)
 		if err != nil {

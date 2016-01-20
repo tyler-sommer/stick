@@ -61,15 +61,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 					return nil, newParseError(nt)
 				}
 			}
-
-			getattr := newGetAttrExpr(expr, attr, args, nt.Pos())
-
-			ntt := t.peek()
-			if (ntt.tokenType == tokenPunctuation && ntt.value == ".") || ntt.tokenType == tokenArrayOpen {
-				return t.parseOuterExpr(getattr)
-			}
-
-			return getattr, nil
+			return t.parseOuterExpr(newGetAttrExpr(expr, attr, args, nt.Pos()))
 
 		case "|": // Filter application
 			nx, err := t.parseExpr()

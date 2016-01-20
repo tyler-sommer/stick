@@ -147,7 +147,7 @@ var parseTests = []parseTest{
 	newParseTest(
 		"basic for loop",
 		"{% for val in 1..10 %}body{% endfor %}",
-		mkModule(newForNode("", "val", newBinaryExpr(newNumberExpr("1", noPos), OpBinaryRange, newNumberExpr("10", noPos), noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos)),
+		mkModule(newForNode("", "val", newBinaryExpr(newNumberExpr("1", noPos), OpBinaryRange, newNumberExpr("10", noPos), noPos), newBodyNode(noPos, newTextNode("body", noPos)), newBodyNode(noPos), noPos)),
 	),
 	newParseTest(
 		"for loop",
@@ -193,6 +193,11 @@ var parseTests = []parseTest{
 		"unary then getattr",
 		"{% if not loop.last %}{% endif %}",
 		mkModule(newIfNode(newUnaryExpr(OpUnaryNot, newGetAttrExpr(newNameExpr("loop", noPos), newStringExpr("last", noPos), []Expr{}, noPos), noPos), newBodyNode(noPos), newBodyNode(noPos), noPos)),
+	),
+	newParseTest(
+		"binary expr if",
+		"<option{% if script.Type == 'Javascript' %} selected{% endif %}>Javascript</option>",
+		mkModule(newTextNode("<option", noPos), newIfNode(newBinaryExpr(newGetAttrExpr(newNameExpr("script", noPos), newStringExpr("Type", noPos), []Expr{}, noPos), OpBinaryEqual, newStringExpr("Javascript", noPos), noPos), newBodyNode(noPos, newTextNode(" selected", noPos)), newBodyNode(noPos), noPos), newTextNode(">Javascript</option>", noPos)),
 	),
 }
 
