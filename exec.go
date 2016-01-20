@@ -233,6 +233,29 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 		} else {
 			return nil, errors.New("Undeclared function \"" + fnName + "\"")
 		}
+	case *parse.GetAttrExpr:
+		c, err := s.walkExpr(exp.Cont())
+		if err != nil {
+			return nil, err
+		}
+		k, err := s.walkExpr(exp.Attr())
+		if err != nil {
+			return nil, err
+		}
+		exargs := exp.Args()
+		args := make([]Value, len(exargs))
+		for k, e := range exargs {
+			v, err := s.walkExpr(e)
+			if err != nil {
+				return nil, err
+			}
+			args[k] = v
+		}
+		v, err := GetAttr(c, CoerceString(k), args...)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
 	}
 	return
 }

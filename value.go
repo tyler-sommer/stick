@@ -3,6 +3,7 @@ package stick
 import (
 	"fmt"
 	"strconv"
+	"reflect"
 )
 
 // A Value represents some value, scalar or otherwise, able to be passed into
@@ -62,6 +63,79 @@ func CoerceString(v Value) string {
 			// Twig compatibility (aka PHP compatibility)
 			return "1"
 		}
+	case fmt.Stringer:
+		return vc.String()
 	}
 	return ""
+}
+
+// GetAttr attempts to access the given value and return the specified attribute.
+func GetAttr(v Value, attr string, args ...Value) (Value, error) {
+	r := reflect.Indirect(reflect.ValueOf(v))
+	var retval reflect.Value
+	switch r.Kind() {
+	case reflect.Struct:
+		retval = r.FieldByName(attr)
+		if !retval.IsValid() {
+			var err error
+			retval, err = getMethod(v, attr)
+			if err != nil {
+				return nil, err
+			}
+		}
+	case reflect.Map:
+		retval = r.MapIndex(reflect.ValueOf(attr))
+	case reflect.Slice, reflect.Array:
+		index := int(CoerceNumber(attr))
+		if index >= 0 && index < r.Len() {
+			retval = r.Index(index)
+		}
+	default:
+		return nil, fmt.Errorf("getattr: type \"%s\" does not support attribute lookup", r.Type())
+	}
+	if !retval.IsValid() {
+		return nil, fmt.Errorf("getattr: unable to locate attribute \"%s\" on \"%v\"", attr, v)
+	} else if retval.Kind() == reflect.Func {
+		t := retval.Type()
+		if t.NumOut() > 1 {
+			return nil, fmt.Errorf("getattr: multiple return values unsupported, called method \"%s\" on \"%v\"", attr, v)
+		}
+		rargs := make([]reflect.Value, len(args))
+		for k, v := range args {
+			rargs[k] = reflect.ValueOf(v)
+		}
+		if t.NumIn() != len(rargs) {
+			return nil, fmt.Errorf("getattr: method \"%s\" on \"%v\" expects %d parameter(s), %d given.", attr, v, t.NumIn(), len(rargs))
+		}
+		res := retval.Call(rargs)
+		if len(res) == 0 {
+			return nil, nil
+		}
+		retval = res[0]
+	}
+	return retval.Interface(), nil
+}
+
+func getMethod(v Value, name string) (reflect.Value, error) {
+	var retVal reflect.Value
+	value := reflect.ValueOf(v)
+	retVal = value.MethodByName(name) // Match either "value, value receiver" or "ptr, ptr receiver"
+	if retVal.IsValid() {
+		return retVal, nil
+	}
+
+	var ptr reflect.Value
+	if value.Kind() == reflect.Ptr {
+		ptr = value
+		value = ptr.Elem()
+	} else {
+		ptr = reflect.New(reflect.TypeOf(v))
+		temp := ptr.Elem()
+		temp.Set(value)
+	}
+	retVal = ptr.MethodByName(name) // Match "value, ptr receiver" or "ptr, value receiver"
+	if retVal.IsValid() {
+		return retVal, nil
+	}
+	return retVal, fmt.Errorf("stick: unable to locate method \"%s\" on \"%v\"", name, v)
 }

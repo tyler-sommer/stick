@@ -67,9 +67,11 @@ To do
 - [x] Print statements
 - [ ] Comments
 - [x] Expressions
+- [ ] String interpolation
 
 #### Parser
 - [x] Raw output
+- [ ] Comments
 - [ ] Basic tag support
     - [x] if/else if/else/endif
     - [x] extends
@@ -84,14 +86,15 @@ To do
     - [ ] use
     - [ ] macro
     - [ ] do
-- [x] Unary expressions
-- [x] Binary expressions
-- [ ] Ternary "if"
-- [ ] Comments
-- [x] Array and dot access
-- [x] Function calls
-- [x] Inline filter "expr|filter()"
-- [ ] Method calls
+- [ ] Expressions
+    - [x] Unary expressions
+    - [x] Binary expressions
+    - [ ] Ternary "if"
+    - [ ] String interpolation
+    - [x] Array and dot access
+    - [x] Function calls
+    - [x] Inline filter "expr|filter()"
+    - [x] Method calls
 
 #### Executer
 - [x] Basic execution
@@ -101,9 +104,17 @@ To do
     - [x] embed
     - [ ] use
     - [x] include
+- [ ] Expressions
+    - [x] literals
+    - [ ] binary operators
+    - [x] unary operators
+    - [x] get attribute
+    - [x] function call
+    - [ ] filter application
+    - [ ] string interpolation
 - [ ] Other basic tags
 - [ ] Macros
-- [ ] User defined functions
+- [x] User defined functions
 - [ ] User defined filters
 - [ ] Autoescaping
 

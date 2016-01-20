@@ -27,7 +27,8 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 
 	case tokenArrayOpen, tokenPunctuation:
 		switch nt.value {
-		case ".", "[":
+		case ".", "[": // Dot or array access
+			var args = make([]Expr, 0)
 			attr, err := t.parseInnerExpr()
 			if err != nil {
 				return nil, err
@@ -46,15 +47,22 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 					return nil, err
 				}
 			} else {
-				switch attr.(type) {
+				switch exp := attr.(type) {
 				case *NameExpr:
-				// valid
+					// valid, but we want to treat the name as a string
+					attr = newStringExpr(exp.Name(), exp.Pos())
+				case *FuncExpr:
+					// method call
+					for _, v := range exp.Args() {
+						args = append(args, v)
+					}
+					attr = newStringExpr(exp.Name(), exp.Pos())
 				default:
 					return nil, newParseError(nt)
 				}
 			}
 
-			getattr := newGetAttrExpr(expr, attr, nt.Pos())
+			getattr := newGetAttrExpr(expr, attr, args, nt.Pos())
 
 			ntt := t.peek()
 			if (ntt.tokenType == tokenPunctuation && ntt.value == ".") || ntt.tokenType == tokenArrayOpen {
@@ -63,18 +71,18 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 
 			return getattr, nil
 
-		case "|":
+		case "|": // Filter application
 			nx, err := t.parseExpr()
 			if err != nil {
 				return nil, err
 			}
 			switch n := nx.(type) {
 			case *NameExpr:
-				return newFuncExpr(n, []Expr{expr}, nt.Pos()), nil
+				return newFilterExpr(n, []Expr{expr}, nt.Pos()), nil
 
 			case *FuncExpr:
 				n.args = append([]Expr{expr}, n.args...)
-				return n, nil
+				return newFilterExpr(n.name, n.args, n.pos), nil
 
 			default:
 				return nil, newParseError(nt)

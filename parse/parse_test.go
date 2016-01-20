@@ -122,12 +122,17 @@ var parseTests = []parseTest{
 	newParseTest(
 		"dot notation accessor",
 		"{{ something.another.else }}",
-		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newNameExpr("something", noPos), newNameExpr("another", noPos), noPos), newNameExpr("else", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newNameExpr("something", noPos), newStringExpr("another", noPos), []Expr{}, noPos), newStringExpr("else", noPos), []Expr{}, noPos), noPos)),
+	),
+	newParseTest(
+		"explicit method call",
+		"{{ something.doThing('arg1', arg2) }}",
+		mkModule(newPrintNode(newGetAttrExpr(newNameExpr("something", noPos), newStringExpr("doThing", noPos), []Expr{newStringExpr("arg1", noPos), newNameExpr("arg2", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"dot notation array access mix",
 		"{{ something().another['test'].further }}",
-		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newGetAttrExpr(newFuncExpr(newNameExpr("something", noPos), []Expr{}, noPos), newNameExpr("another", noPos), noPos), newStringExpr("test", noPos), noPos), newNameExpr("further", noPos), noPos), noPos)),
+		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newGetAttrExpr(newFuncExpr(newNameExpr("something", noPos), []Expr{}, noPos), newStringExpr("another", noPos), []Expr{}, noPos), newStringExpr("test", noPos), []Expr{}, noPos), newStringExpr("further", noPos), []Expr{}, noPos), noPos)),
 	),
 	newParseTest(
 		"basic filter",

@@ -14,6 +14,14 @@ type execTest struct {
 
 var emptyCtx = map[string]Value{}
 
+type testPerson struct {
+	name string
+}
+
+func (p testPerson) Name(prefix string) string {
+	return prefix + p.name
+}
+
 var tests = []execTest{
 	{"Hello, World", "Hello, World!", emptyCtx, "Hello, World!"},
 	{"Hello, Tyler!", "Hello, {{ name }}!", map[string]Value{"name": "Tyler"}, "Hello, Tyler!"},
@@ -24,6 +32,8 @@ var tests = []execTest{
 	{"Embed", `Well. {% embed 'Hello, {% block name %}World{% endblock %}!' %}{% block name %}Tyler{% endblock %}{% endembed %}`, emptyCtx, `Well. Hello, Tyler!`},
 	{"Constant null", `{% if test == null %}Yes{% else %}no{% endif %}`, map[string]Value{"test": nil}, `Yes`},
 	{"Constant bool", `{% if test == true %}Yes{% else %}no{% endif %}`, map[string]Value{"test": false}, `no`},
+	{"Chained attributes", `{{ entity.attr.Name }}`, map[string]Value{"entity": map[string]Value{"attr": struct{Name string}{"Tyler"}}}, `Tyler`},
+	{"Attribute method call", `{{ entity.Name('lower') }}`, map[string]Value{"entity": testPerson{"Johnny"}}, `lowerJohnny`},
 }
 
 func evaluateTest(t *testing.T, test execTest) {

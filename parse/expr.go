@@ -116,6 +116,16 @@ func (exp *FuncExpr) Args() []Expr {
 	return exp.args
 }
 
+// FilterExpr represents a filter application.
+type FilterExpr struct {
+	*FuncExpr
+}
+
+func newFilterExpr(name *NameExpr, args[]Expr, pos pos) *FilterExpr {
+	return &FilterExpr{newFuncExpr(name, args, pos)}
+}
+
+// BinaryExpr represents a binary operation, such as "x + y"
 type BinaryExpr struct {
 	pos
 	left  Expr
@@ -184,16 +194,33 @@ func (exp *GroupExpr) String() string {
 	return fmt.Sprintf("GroupExpr(%s)", exp.inner)
 }
 
+// GetAttrExpr represents an attempt to retrieve an attribute from a value.
 type GetAttrExpr struct {
 	pos
 	cont Expr
 	attr Expr
+	args []Expr
 }
 
-func newGetAttrExpr(cont Expr, attr Expr, pos pos) *GetAttrExpr {
-	return &GetAttrExpr{pos, cont, attr}
+func newGetAttrExpr(cont Expr, attr Expr, args []Expr, pos pos) *GetAttrExpr {
+	return &GetAttrExpr{pos, cont, attr, args}
 }
 
 func (exp *GetAttrExpr) String() string {
+	if len(exp.args) > 0 {
+		return fmt.Sprintf("GetAttrExpr(%s -> %s %v)", exp.cont, exp.attr, exp.args)
+	}
 	return fmt.Sprintf("GetAttrExpr(%s -> %s)", exp.cont, exp.attr)
+}
+
+func (exp *GetAttrExpr) Cont() Expr {
+	return exp.cont
+}
+
+func (exp *GetAttrExpr) Attr() Expr {
+	return exp.attr
+}
+
+func (exp *GetAttrExpr) Args() []Expr {
+	return exp.args
 }
