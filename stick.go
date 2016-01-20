@@ -11,15 +11,14 @@ type Function func(e *Env, args ...Value) Value
 // A Filter represents a user-defined filter.
 type Filter Function
 
-// Type Env represents the configuration of a Stick environment.
+// Env represents the configuration of a Stick environment.
 type Env struct {
 	loader    Loader
 	functions map[string]Function
 	filters   map[string]Filter
 }
 
-// Interface Extension defines the methods a Stick extension must
-// implement.
+// Extension defines the methods a Stick extension must implement.
 type Extension interface {
 	Functions() map[string]Function
 	Filters() map[string]Filter

@@ -16,6 +16,7 @@ type Tree struct {
 	read   []token // Tokens that have already been read.
 }
 
+// NewTree creates a new Tree, ready for use.
 func NewTree(name, input string) *Tree {
 	return &Tree{
 		name:   name,
@@ -116,7 +117,7 @@ func (t *Tree) nextNonSpace() token {
 	var next token
 	for {
 		next = t.next()
-		if next.tokenType != tokenWhitespace || next.tokenType == tokenEof {
+		if next.tokenType != tokenWhitespace || next.tokenType == tokenEOF {
 			return next
 		}
 	}
@@ -196,9 +197,9 @@ func (t *Tree) parse() (Node, error) {
 	case tokenTagOpen:
 		return t.parseTag()
 
-	case tokenEof:
+	case tokenEOF:
 		// expected end of input
 		return nil, nil
 	}
-	return nil, newParseError(tok)
+	return nil, newError(tok)
 }

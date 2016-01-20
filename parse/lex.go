@@ -10,7 +10,7 @@ import (
 type tokenType int
 
 const (
-	tokenEof tokenType = iota
+	tokenEOF tokenType = iota
 	tokenText
 	tokenName
 	tokenNumber
@@ -54,7 +54,7 @@ var names = map[tokenType]string{
 	tokenOperator:    "OPERATOR",
 	tokenWhitespace:  "WHITESPACE",
 	tokenError:       "ERROR",
-	tokenEof:         "EOF",
+	tokenEOF:         "EOF",
 }
 
 func (typ tokenType) String() string {
@@ -62,7 +62,7 @@ func (typ tokenType) String() string {
 }
 
 const (
-	delimEof          = ""
+	delimEOF          = ""
 	delimOpenTag      = "{%"
 	delimCloseTag     = "%}"
 	delimOpenPrint    = "{{"
@@ -120,7 +120,7 @@ func newLexer(input string) *lexer {
 
 func (l *lexer) next() (val string) {
 	if l.pos >= len(l.input) {
-		val = delimEof
+		val = delimEOF
 
 	} else {
 		val = l.input[l.pos : l.pos+1]
@@ -161,7 +161,7 @@ func (l *lexer) emit(t tokenType) {
 
 	l.tokens <- tok
 	l.start = l.pos
-	if tok.tokenType == tokenEof {
+	if tok.tokenType == tokenEOF {
 		close(l.tokens)
 	}
 }
@@ -189,7 +189,7 @@ func lexData(l *lexer) stateFn {
 			return lexPrintOpen
 		}
 
-		if l.next() == delimEof {
+		if l.next() == delimEOF {
 			break
 		}
 	}
@@ -198,7 +198,7 @@ func lexData(l *lexer) stateFn {
 		l.emit(tokenText)
 	}
 
-	l.emit(tokenEof)
+	l.emit(tokenEOF)
 
 	return nil
 }
@@ -209,7 +209,7 @@ func lexExpression(l *lexer) stateFn {
 		return lexExpression
 	}
 	switch str := l.peek(); {
-	case str == delimEof:
+	case str == delimEOF:
 		return lexData
 
 	case strings.HasPrefix(l.input[l.pos:], delimCloseTag):
@@ -373,7 +373,7 @@ func lexCloseParens(l *lexer) stateFn {
 func lexName(l *lexer) stateFn {
 	for {
 		str := l.next()
-		if str == delimEof {
+		if str == delimEOF {
 			break
 		}
 		if !isName(str) {

@@ -7,7 +7,7 @@ import (
 
 func init() {
 	var ops = make([]string, 0)
-	for op, _ := range binaryOperators {
+	for op := range binaryOperators {
 		// Because there is overlap between operators (like "*" and "**") we have to
 		// ensure that some ordering is forced.
 		if op != "**" && op != "is not" && op != "//" && op != "not in" && op != ">=" && op != "<=" {
@@ -35,6 +35,7 @@ type operator struct {
 	unary      bool
 }
 
+// Built-in operators.
 const (
 	OpUnaryNot      = "not"
 	OpUnaryPositive = "+"

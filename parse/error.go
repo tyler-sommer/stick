@@ -6,20 +6,20 @@ type parseError interface {
 	setTree(t *Tree)
 }
 
-// ParseError represents a generic error during parsing when no additional
+// Error represents a generic error during parsing when no additional
 // context is available other than the current token.
-type ParseError struct {
+type Error struct {
 	*baseError
 	tok token
 }
 
-func (e *ParseError) Error() string {
+func (e *Error) Error() string {
 	return e.sprintf(`unexpected token "%s"`, e.tok)
 }
 
-// newParseError returns a new ParseError.
-func newParseError(tok token) error {
-	return &ParseError{newBaseError(tok.Pos()), tok}
+// newError returns a new ParseError.
+func newError(tok token) error {
+	return &Error{newBaseError(tok.Pos()), tok}
 }
 
 // UnexpectedTokenError is generated when the current token
@@ -66,18 +66,18 @@ func newUnclosedTagError(name string, start pos) error {
 	return &UnclosedTagError{newBaseError(start), name}
 }
 
-// UnexpectedEofError describes an unexpected end of input.
-type UnexpectedEofError struct {
+// UnexpectedEOFError describes an unexpected end of input.
+type UnexpectedEOFError struct {
 	*baseError
 }
 
-func (e *UnexpectedEofError) Error() string {
+func (e *UnexpectedEOFError) Error() string {
 	return e.sprintf(`unexpected end of input`)
 }
 
-// newUnexpectedEofError returns a new UnexpectedEofError
-func newUnexpectedEofError(tok token) error {
-	return &UnexpectedEofError{newBaseError(tok.Pos())}
+// newUnexpectedEOFError returns a new UnexpectedEOFError
+func newUnexpectedEOFError(tok token) error {
+	return &UnexpectedEOFError{newBaseError(tok.Pos())}
 }
 
 // UnexpectedValueError describes an invalid or unexpected value inside a token.

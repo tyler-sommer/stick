@@ -105,7 +105,7 @@ func GetAttr(v Value, attr string, args ...Value) (Value, error) {
 			rargs[k] = reflect.ValueOf(v)
 		}
 		if t.NumIn() != len(rargs) {
-			return nil, fmt.Errorf("getattr: method \"%s\" on \"%v\" expects %d parameter(s), %d given.", attr, v, t.NumIn(), len(rargs))
+			return nil, fmt.Errorf("getattr: method \"%s\" on \"%v\" expects %d parameter(s), %d given", attr, v, t.NumIn(), len(rargs))
 		}
 		res := retval.Call(rargs)
 		if len(res) == 0 {

@@ -3,10 +3,11 @@ package stick
 import (
 	"errors"
 	"fmt"
-	"github.com/tyler-sommer/stick/parse"
 	"io"
 	"math"
 	"strconv"
+
+	"github.com/tyler-sommer/stick/parse"
 )
 
 // Type state represents the internal state of a template execution.
@@ -303,19 +304,19 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 	case *parse.FuncExpr:
 		fnName := exp.Name()
 		if fn, ok := s.env.functions[fnName]; ok {
-			args := make([]Value, 0)
-			for _, e := range exp.Args() {
+			eargs := exp.Args()
+			args := make([]Value, len(eargs))
+			for i, e := range eargs {
 				v, err := s.walkExpr(e)
 				if err != nil {
 					return nil, err
 				}
-				args = append(args, v)
+				args[i] = v
 			}
 
 			return fn(s.env, args...), nil
-		} else {
-			return nil, errors.New("Undeclared function \"" + fnName + "\"")
 		}
+		return nil, errors.New("Undeclared function \"" + fnName + "\"")
 	case *parse.GetAttrExpr:
 		c, err := s.walkExpr(exp.Cont())
 		if err != nil {

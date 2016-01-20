@@ -137,12 +137,12 @@ var parseTests = []parseTest{
 	newParseTest(
 		"basic filter",
 		"{{ something|default('another') }}",
-		mkModule(newPrintNode(newFuncExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos), newStringExpr("another", noPos)}, noPos), noPos)),
+		mkModule(newPrintNode(newFilterExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos), newStringExpr("another", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"filter with no args",
 		"{{ something|default }}",
-		mkModule(newPrintNode(newFuncExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos)}, noPos), noPos)),
+		mkModule(newPrintNode(newFilterExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"basic for loop",

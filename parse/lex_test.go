@@ -15,7 +15,7 @@ func mkTok(t tokenType, val string) token {
 }
 
 var (
-	tEof            = mkTok(tokenEof, delimEof)
+	tEOF            = mkTok(tokenEOF, delimEOF)
 	tSpace          = mkTok(tokenWhitespace, " ")
 	tNewLine        = mkTok(tokenWhitespace, "\n")
 	tTagOpen        = mkTok(tokenTagOpen, delimOpenTag)
@@ -31,7 +31,7 @@ var (
 )
 
 var lexTests = []lexTest{
-	{"empty", "", []token{tEof}},
+	{"empty", "", []token{tEOF}},
 
 	{"number", "{{ 5 }}", []token{
 		tPrintOpen,
@@ -39,7 +39,7 @@ var lexTests = []lexTest{
 		mkTok(tokenNumber, "5"),
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"operator", "{{\n5 == 4 ? 'Yes' : 'No'\n}}", []token{
@@ -64,7 +64,7 @@ var lexTests = []lexTest{
 		tStringClose,
 		tNewLine,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"power and multiply", "{{ 1 ** 10 * 5 }}", []token{
@@ -81,7 +81,7 @@ var lexTests = []lexTest{
 		mkTok(tokenNumber, "5"),
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"div and floordiv", "{{ 10 // 4 / 2 }}", []token{
@@ -98,7 +98,7 @@ var lexTests = []lexTest{
 		mkTok(tokenNumber, "2"),
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"is and is not", "{{ 1 is not 10 and 5 is 5 }}", []token{
@@ -119,7 +119,7 @@ var lexTests = []lexTest{
 		mkTok(tokenNumber, "5"),
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"word operators", "{{ name not in data }}", []token{
@@ -132,7 +132,7 @@ var lexTests = []lexTest{
 		mkTok(tokenName, "data"),
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"unary not operator", "{{ not 100 }}", []token{
@@ -143,7 +143,7 @@ var lexTests = []lexTest{
 		mkTok(tokenNumber, "100"),
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"unary negation operator", "{{ -100 }}", []token{
@@ -153,12 +153,12 @@ var lexTests = []lexTest{
 		mkTok(tokenNumber, "100"),
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"text", "<html><head></head></html>", []token{
 		mkTok(tokenText, "<html><head></head></html>"),
-		tEof,
+		tEOF,
 	}},
 
 	{"simple block", "{% block test %}Some text{% endblock %}", []token{
@@ -175,7 +175,7 @@ var lexTests = []lexTest{
 		mkTok(tokenName, "endblock"),
 		tSpace,
 		tTagClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"print string", "{{ \"this is a test\" }}", []token{
@@ -186,7 +186,7 @@ var lexTests = []lexTest{
 		tDblStringClose,
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"unclosed string", "{{ \"this is a test }}", []token{
@@ -207,7 +207,7 @@ var lexTests = []lexTest{
 		mkTok(tokenNumber, "5"),
 		tSpace,
 		tPrintClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"unclosed tag (block)", "{% block test %}", []token{
@@ -218,7 +218,7 @@ var lexTests = []lexTest{
 		mkTok(tokenName, "test"),
 		tSpace,
 		tTagClose,
-		tEof,
+		tEOF,
 	}},
 
 	{"name with underscore", "{% block additional_javascripts %}", []token{
@@ -229,7 +229,7 @@ var lexTests = []lexTest{
 		mkTok(tokenName, "additional_javascripts"),
 		tSpace,
 		tTagClose,
-		tEof,
+		tEOF,
 	}},
 }
 
@@ -239,7 +239,7 @@ func collect(t *lexTest) (tokens []token) {
 	for {
 		tok := lex.nextToken()
 		tokens = append(tokens, tok)
-		if tok.tokenType == tokenEof || tok.tokenType == tokenError {
+		if tok.tokenType == tokenEOF || tok.tokenType == tokenError {
 			break
 		}
 	}

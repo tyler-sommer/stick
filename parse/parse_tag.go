@@ -27,14 +27,14 @@ func (t *Tree) parseTag() (Node, error) {
 	case "embed":
 		return parseEmbed(t, name.Pos())
 	default:
-		return nil, newParseError(name)
+		return nil, newError(name)
 	}
 }
 
 // parseUntilEndTag parses until it reaches the specified tag's "end", returning a specific error otherwise.
 func (t *Tree) parseUntilEndTag(name string, start pos) (*BodyNode, error) {
 	tok := t.peek()
-	if tok.tokenType == tokenEof {
+	if tok.tokenType == tokenEOF {
 		return nil, newUnclosedTagError(name, start)
 	}
 
@@ -63,8 +63,8 @@ func (t *Tree) parseUntilTag(start pos, names ...string) (*BodyNode, error) {
 	n := newBodyNode(start)
 	for {
 		switch tok := t.peek(); tok.tokenType {
-		case tokenEof:
-			return n, newUnexpectedEofError(tok)
+		case tokenEOF:
+			return n, newUnexpectedEOFError(tok)
 
 		case tokenTagOpen:
 			t.next()
@@ -163,7 +163,7 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) 
 	body = newBodyNode(start)
 	for {
 		switch tok := t.peek(); tok.tokenType {
-		case tokenEof:
+		case tokenEOF:
 			return nil, nil, newUnclosedTagError("if", start)
 		case tokenTagOpen:
 			t.next()
@@ -218,33 +218,33 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) 
 //   {% else %}
 //   {% endfor %}
 func parseFor(t *Tree, start pos) (*ForNode, error) {
-	var kName, vName string
+	var kn, vn string
 	nam, err := t.parseInnerExpr()
 	if err != nil {
 		return nil, err
 	}
 	if nam, ok := nam.(*NameExpr); ok {
-		vName = nam.Name()
+		vn = nam.Name()
 	} else {
 		return nil, errors.New("parse error: a parse error occured, expected name")
 	}
 	nxt := t.peekNonSpace()
 	if nxt.tokenType == tokenPunctuation && nxt.value == "," {
 		t.next()
-		kName = vName
+		kn = vn
 		nam, err = t.parseInnerExpr()
 		if err != nil {
 			return nil, err
 		}
 		if nam, ok := nam.(*NameExpr); ok {
-			vName = nam.Name()
+			vn = nam.Name()
 		} else {
 			return nil, errors.New("parse error: a parse error occured, expected name")
 		}
 	}
 	tok := t.nextNonSpace()
 	if tok.tokenType != tokenName && tok.value != "in" {
-		return nil, newParseError(tok)
+		return nil, newError(tok)
 	}
 	expr, err := t.parseExpr()
 	if err != nil {
@@ -293,7 +293,7 @@ func parseFor(t *Tree, start pos) (*ForNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newForNode(kName, vName, expr, body, elseBody, start), nil
+	return newForNode(kn, vn, expr, body, elseBody, start), nil
 }
 
 // parseInclude parses an include statement.
@@ -314,7 +314,7 @@ func parseEmbed(t *Tree, start pos) (Node, error) {
 	t.pushBlockStack()
 	for {
 		tok := t.nextNonSpace()
-		if tok.tokenType == tokenEof {
+		if tok.tokenType == tokenEOF {
 			return nil, newUnclosedTagError("embed", start)
 		} else if tok.tokenType == tokenTagOpen {
 			tok, err := t.expect(tokenName)
@@ -334,7 +334,7 @@ func parseEmbed(t *Tree, start pos) (Node, error) {
 					return nil, err
 				}
 				if _, ok := n.(*BlockNode); !ok {
-					return nil, newParseError(tok)
+					return nil, newError(tok)
 				}
 			} else {
 				return nil, newUnexpectedValueError(tok, "endembed or block")
@@ -359,8 +359,8 @@ func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
 	}
 	only = false
 	switch tok := t.peekNonSpace(); tok.tokenType {
-	case tokenEof:
-		err = newUnexpectedEofError(tok)
+	case tokenEOF:
+		err = newUnexpectedEOFError(tok)
 		return
 	case tokenName:
 		if tok.value == "only" { // {% include <expr> only %}
@@ -372,7 +372,7 @@ func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
 			only = true
 			return expr, with, only, nil
 		} else if tok.value != "with" {
-			err = newParseError(tok)
+			err = newError(tok)
 			return
 		}
 		t.next()
@@ -383,16 +383,16 @@ func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
 	case tokenTagClose:
 	// no op
 	default:
-		err = newParseError(tok)
+		err = newError(tok)
 		return
 	}
 	switch tok := t.nextNonSpace(); tok.tokenType {
-	case tokenEof:
-		err = newUnexpectedEofError(tok)
+	case tokenEOF:
+		err = newUnexpectedEOFError(tok)
 		return
 	case tokenName:
 		if tok.value != "only" {
-			err = newParseError(tok)
+			err = newError(tok)
 			return
 		}
 		_, err = t.expect(tokenTagClose)
@@ -403,7 +403,7 @@ func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
 	case tokenTagClose:
 	// no op
 	default:
-		err = newParseError(tok)
+		err = newError(tok)
 		return
 	}
 	return

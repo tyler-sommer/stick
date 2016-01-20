@@ -25,11 +25,12 @@ func (e *UnableToLoadTemplateErr) Error() string {
 // StringLoader is intended to be used to load Stick templates directly from a string.
 type StringLoader struct{}
 
+// Load on a StringLoader simply returns the name that is passed in.
 func (l *StringLoader) Load(name string) (string, error) {
 	return name, nil
 }
 
-// Type FilesystemLoader attempts to load templates relative to a root directory.
+// A FilesystemLoader loads templates from a filesystem.
 type FilesystemLoader struct {
 	rootDir string
 }
@@ -39,6 +40,8 @@ func NewFilesystemLoader(rootDir string) *FilesystemLoader {
 	return &FilesystemLoader{rootDir}
 }
 
+// Load on a FileSystemLoader attempts to load the given file, relative to the
+// configured root directory.
 func (l *FilesystemLoader) Load(name string) (string, error) {
 	sep := string(os.PathSeparator)
 	path := l.rootDir + sep + strings.TrimLeft(name, sep)

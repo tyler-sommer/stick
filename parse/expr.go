@@ -17,14 +17,17 @@ func newNameExpr(name string, pos pos) *NameExpr {
 	return &NameExpr{pos, name}
 }
 
+// Name returns the expression's name.
 func (exp *NameExpr) Name() string {
 	return exp.name
 }
 
+// String returns a string representation of the NameExpr.
 func (exp *NameExpr) String() string {
 	return fmt.Sprintf("NameExpr(%s)", exp.name)
 }
 
+// NullExpr represents a null literal.
 type NullExpr struct {
 	pos
 }
@@ -33,10 +36,12 @@ func newNullExpr(pos pos) *NullExpr {
 	return &NullExpr{pos}
 }
 
+// String returnsa string representation of the NullExpr.
 func (exp *NullExpr) String() string {
 	return "NULL"
 }
 
+// BoolExpr represents a boolean literal.
 type BoolExpr struct {
 	pos
 	value bool
@@ -46,10 +51,12 @@ func newBoolExpr(value bool, pos pos) *BoolExpr {
 	return &BoolExpr{pos, value}
 }
 
+// Value returns the boolean value stored in the expression.
 func (exp *BoolExpr) Value() bool {
 	return exp.value
 }
 
+// String returns a string representation of the BoolExpr.
 func (exp *BoolExpr) String() string {
 	if exp.value {
 		return "TRUE"
@@ -67,10 +74,12 @@ func newNumberExpr(val string, pos pos) *NumberExpr {
 	return &NumberExpr{pos, val}
 }
 
+// Value returns the value stored in the NumberExpr.
 func (exp *NumberExpr) Value() string {
 	return exp.value
 }
 
+// String returns a string representation of the NumberExpr.
 func (exp *NumberExpr) String() string {
 	return fmt.Sprintf("NumberExpr(%s)", exp.value)
 }
@@ -85,10 +94,12 @@ func newStringExpr(text string, pos pos) *StringExpr {
 	return &StringExpr{pos, text}
 }
 
+// Value returns the stored string value.
 func (exp *StringExpr) Value() string {
 	return exp.text
 }
 
+// String returns a string representation of the StringExpr.
 func (exp *StringExpr) String() string {
 	return fmt.Sprintf("StringExpr(%s)", exp.text)
 }
@@ -104,14 +115,18 @@ func newFuncExpr(name *NameExpr, args []Expr, pos pos) *FuncExpr {
 	return &FuncExpr{pos, name, args}
 }
 
+// String returns a string representation of a FuncExpr.
 func (exp *FuncExpr) String() string {
 	return fmt.Sprintf("FuncExpr(%s, %s)", exp.name, exp.args)
 }
 
+// Name returns the name of the function to be called.
 func (exp *FuncExpr) Name() string {
 	return exp.name.Name()
 }
 
+// Args returns any arguments that should be evaluated and passed
+// into the function.
 func (exp *FuncExpr) Args() []Expr {
 	return exp.args
 }
@@ -119,6 +134,11 @@ func (exp *FuncExpr) Args() []Expr {
 // FilterExpr represents a filter application.
 type FilterExpr struct {
 	*FuncExpr
+}
+
+// String returns a string representation of the FilterExpr.
+func (exp *FilterExpr) String() string {
+	return fmt.Sprintf("FilterExpr(%s, %s)", exp.name, exp.args)
 }
 
 func newFilterExpr(name *NameExpr, args []Expr, pos pos) *FilterExpr {
@@ -137,18 +157,22 @@ func newBinaryExpr(left Expr, op string, right Expr, pos pos) *BinaryExpr {
 	return &BinaryExpr{pos, left, op, right}
 }
 
+// Left returns the left operand expression.
 func (exp *BinaryExpr) Left() Expr {
 	return exp.left
 }
 
+// Right returns the right operand expression.
 func (exp *BinaryExpr) Right() Expr {
 	return exp.right
 }
 
+// Op returns the operation to be performed.
 func (exp *BinaryExpr) Op() string {
 	return exp.op
 }
 
+// String returns a string representation of the BinaryExpr.
 func (exp *BinaryExpr) String() string {
 	return fmt.Sprintf("BinaryExpr(%s %s %s)", exp.left, exp.op, exp.right)
 }
@@ -164,14 +188,17 @@ func newUnaryExpr(op string, expr Expr, pos pos) *UnaryExpr {
 	return &UnaryExpr{pos, op, expr}
 }
 
+// Expr returns the expression to be evaluated and operated on.
 func (exp *UnaryExpr) Expr() Expr {
 	return exp.expr
 }
 
+// Op returns the operation to be performed.
 func (exp *UnaryExpr) Op() string {
 	return exp.op
 }
 
+// String returns a string representation of a UnaryExpr.
 func (exp *UnaryExpr) String() string {
 	return fmt.Sprintf("UnaryExpr(%s %s)", exp.op, exp.expr)
 }
@@ -186,10 +213,12 @@ func newGroupExpr(inner Expr, pos pos) *GroupExpr {
 	return &GroupExpr{pos, inner}
 }
 
+// Inner returns the inner expression of a GroupExpr.
 func (exp *GroupExpr) Inner() Expr {
 	return exp.inner
 }
 
+// String returns a string representation of a GroupExpr.
 func (exp *GroupExpr) String() string {
 	return fmt.Sprintf("GroupExpr(%s)", exp.inner)
 }
@@ -206,6 +235,7 @@ func newGetAttrExpr(cont Expr, attr Expr, args []Expr, pos pos) *GetAttrExpr {
 	return &GetAttrExpr{pos, cont, attr, args}
 }
 
+// String returns a string representation of a GetAttrExpr.
 func (exp *GetAttrExpr) String() string {
 	if len(exp.args) > 0 {
 		return fmt.Sprintf("GetAttrExpr(%s -> %s %v)", exp.cont, exp.attr, exp.args)
@@ -213,14 +243,17 @@ func (exp *GetAttrExpr) String() string {
 	return fmt.Sprintf("GetAttrExpr(%s -> %s)", exp.cont, exp.attr)
 }
 
+// Cont returns the container expression to be evaluated.
 func (exp *GetAttrExpr) Cont() Expr {
 	return exp.cont
 }
 
+// Attr returns the expression to be used as the attribute name.
 func (exp *GetAttrExpr) Attr() Expr {
 	return exp.attr
 }
 
+// Args returns any arguments that should be used during attribute fetching.
 func (exp *GetAttrExpr) Args() []Expr {
 	return exp.args
 }
