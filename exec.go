@@ -8,6 +8,7 @@ import (
 	"strconv"
 )
 
+// Type state represents the internal state of a template execution.
 type state struct {
 	out     io.Writer
 	node    parse.Node
@@ -17,10 +18,12 @@ type state struct {
 	env *Env
 }
 
+// Function newState creates a new template execution state, ready for use.
 func newState(out io.Writer, ctx map[string]Value, env *Env) *state {
 	return &state{out, nil, ctx, make([]map[string]*parse.BlockNode, 0), env}
 }
 
+// Method load attempts to load and parse the given template.
 func (s *state) load(name string) (*parse.Tree, error) {
 	tmpl, err := s.env.loader.Load(name)
 	if err != nil {
@@ -33,6 +36,8 @@ func (s *state) load(name string) (*parse.Tree, error) {
 	return tree, nil
 }
 
+// Method getBlock iterates through each set of blocks, returning the first
+// block it encounters.
 func (s *state) getBlock(name string) *parse.BlockNode {
 	for _, blocks := range s.blocks {
 		if block, ok := blocks[name]; ok {
@@ -43,6 +48,7 @@ func (s *state) getBlock(name string) *parse.BlockNode {
 	return nil
 }
 
+// Method walk is the main entry-point into template execution.
 func (s *state) walk(node parse.Node) error {
 	s.node = node
 	switch node := node.(type) {
@@ -106,6 +112,7 @@ func (s *state) walk(node parse.Node) error {
 		if err != nil {
 			return err
 		}
+		// TODO: We duplicate most of the "execute" function here.
 		s := newState(s.out, ctx, s.env)
 		tree, err := s.load(tpl)
 		if err != nil {
@@ -122,6 +129,7 @@ func (s *state) walk(node parse.Node) error {
 	return nil
 }
 
+// Method walkInclude determines the necessary parameters for including or embedding a template.
 func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string]Value, err error) {
 	ctx = make(map[string]Value)
 	v, err := s.walkExpr(node.Tpl())
@@ -132,7 +140,7 @@ func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string
 	var with Value
 	if n := node.With(); n != nil {
 		with, err = s.walkExpr(n)
-		// TODO: Assert with is a hash?
+		// TODO: Assert "with" is a hash?
 		if err != nil {
 			return
 		}
@@ -152,8 +160,13 @@ func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string
 	return
 }
 
+// Method walkExpr executes the given expression, returning a Value or error.
 func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 	switch exp := exp.(type) {
+	case *parse.NullExpr:
+		return nil, nil
+	case *parse.BoolExpr:
+		return exp.Value(), nil
 	case *parse.NameExpr:
 		if val, ok := s.context[exp.Name()]; ok {
 			v = val
@@ -224,6 +237,7 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 	return
 }
 
+// execute kicks off execution of the given template.
 func execute(name string, out io.Writer, ctx map[string]Value, env *Env) error {
 	s := newState(out, ctx, env)
 	tree, err := s.load(name)

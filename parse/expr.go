@@ -2,6 +2,7 @@ package parse
 
 import "fmt"
 
+// Expr represents a special type of Node that represents an expression.
 type Expr interface {
 	Node
 }
@@ -22,6 +23,38 @@ func (exp *NameExpr) Name() string {
 
 func (exp *NameExpr) String() string {
 	return fmt.Sprintf("NameExpr(%s)", exp.name)
+}
+
+type NullExpr struct {
+	pos
+}
+
+func newNullExpr(pos pos) *NullExpr {
+	return &NullExpr{pos}
+}
+
+func (exp *NullExpr) String() string {
+	return "NULL"
+}
+
+type BoolExpr struct {
+	pos
+	value bool
+}
+
+func newBoolExpr(value bool, pos pos) *BoolExpr {
+	return &BoolExpr{pos, value}
+}
+
+func (exp *BoolExpr) Value() bool {
+	return exp.value
+}
+
+func (exp *BoolExpr) String() string {
+	if exp.value {
+		return "TRUE"
+	}
+	return "FALSE"
 }
 
 // NumberExpr represents a number literal.
@@ -110,6 +143,7 @@ func (exp *BinaryExpr) String() string {
 	return fmt.Sprintf("BinaryExpr(%s %s %s)", exp.left, exp.op, exp.right)
 }
 
+// UnaryExpr represents a unary operation, such as "not x"
 type UnaryExpr struct {
 	pos
 	op   string
@@ -132,6 +166,7 @@ func (exp *UnaryExpr) String() string {
 	return fmt.Sprintf("UnaryExpr(%s %s)", exp.op, exp.expr)
 }
 
+// GroupExpr represents an arbitrary wrapper around an inner expression.
 type GroupExpr struct {
 	pos
 	inner Expr

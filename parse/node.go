@@ -2,12 +2,14 @@ package parse
 
 import "fmt"
 
-// A node is an item in the AST
+// Node is an item in the AST
 type Node interface {
 	Pos() pos
 	String() string
 }
 
+// Type pos is an internal type used to represent the
+// position of a token or node.
 type pos struct {
 	Line   int
 	Offset int
@@ -25,7 +27,7 @@ func (p pos) String() string {
 	return fmt.Sprintf("%d:%d", p.Line, p.Offset)
 }
 
-// ModuleNode represents a set of nodes.
+// ModuleNode represents a root node in the AST.
 type ModuleNode struct {
 	*BodyNode
 	parent *ExtendsNode
@@ -43,6 +45,7 @@ func (l *ModuleNode) String() string {
 	return fmt.Sprintf("Module%s", l.nodes)
 }
 
+// BodyNode represents a list of nodes.
 type BodyNode struct {
 	pos
 	nodes []Node

@@ -174,6 +174,16 @@ var parseTests = []parseTest{
 		"{% embed '::_modal.html.twig' %}{% block title %}Hello{% endblock %}{% endembed  %}",
 		mkModule(newEmbedNode(newStringExpr("::_modal.html.twig", noPos), nil, false, map[string]*BlockNode{"title": newBlockNode("title", newBodyNode(noPos, newTextNode("Hello", noPos)), noPos)}, noPos)),
 	),
+	newParseTest(
+		"null",
+		"{{ null }}{{ NONE }}{{ NULL }}{{ none }}",
+		mkModule(newPrintNode(newNullExpr(noPos), noPos), newPrintNode(newNullExpr(noPos), noPos), newPrintNode(newNullExpr(noPos), noPos), newPrintNode(newNullExpr(noPos), noPos)),
+	),
+	newParseTest(
+		"boolean",
+		"{{ true }}{{ TRUE }}{{ false }}{{ FALSE }}",
+		mkModule(newPrintNode(newBoolExpr(true, noPos), noPos), newPrintNode(newBoolExpr(true, noPos), noPos), newPrintNode(newBoolExpr(false, noPos), noPos), newPrintNode(newBoolExpr(false, noPos), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

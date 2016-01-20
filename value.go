@@ -9,6 +9,8 @@ import (
 // and used by a Stick template.
 type Value interface{}
 
+// CoerceBool coerces the given value into a boolean. Boolean false is returned
+// if the value cannot be coerced.
 func CoerceBool(v Value) bool {
 	switch vc := v.(type) {
 	case bool:
@@ -25,6 +27,8 @@ func CoerceBool(v Value) bool {
 	return false
 }
 
+// CoerceNumber coerces the given value into a number. Zero (0) is returned
+// if the value cannot be coerced.
 func CoerceNumber(v Value) float64 {
 	switch vc := v.(type) {
 	case string:
@@ -45,6 +49,8 @@ func CoerceNumber(v Value) float64 {
 	return 0
 }
 
+// CoerceString coerces the given value into a string. An empty string is returned
+// if the value cannot be coerced.
 func CoerceString(v Value) string {
 	switch vc := v.(type) {
 	case string:

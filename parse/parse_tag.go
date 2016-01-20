@@ -3,6 +3,7 @@ package parse
 import "errors"
 
 // A tagParser can parse the body of a tag, returning the resulting Node or an error.
+// TODO: This will be used to implement user-defined tags.
 type tagParser func(t *Tree, start pos) (Node, error)
 
 // parseTag parses the opening of a tag "{%", then delegates to a more specific parser function

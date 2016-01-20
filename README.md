@@ -15,7 +15,7 @@ logic and markup. Twig is also extremely extensible, and by default will
 autoescape content based on content type.
 
 
-Stick is an attempt to bring these great features to Go projects.
+**Stick brings these great features to Go projects.**
 
 
 ### Current status
@@ -108,6 +108,8 @@ To do
 - [ ] Autoescaping
 
 ##### Further
+- [ ] Improve error reporting
+- [ ] Improve test coverage (especially error cases)
 - [ ] Whitespace control
 - [ ] Custom operators and tags
 - [ ] Sandbox

@@ -10,11 +10,16 @@ func (t *Tree) parseExpr() (Expr, error) {
 	return t.parseOuterExpr(expr)
 }
 
+// parseOuterExpr attempts to parse an expression outside of an inner
+// expression.
+// An outer expression is defined as a modification to an inner expression.
+// Examples include attribute accessing, filter application, or binary operations.
 func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 	switch nt := t.nextNonSpace(); nt.tokenType {
 	case tokenParensOpen:
 		switch name := expr.(type) {
 		case *NameExpr:
+			// TODO: This duplicates some code in parseInnerExpr, are both necessary?
 			return t.parseFunc(name)
 		default:
 			return nil, newParseError(nt)
@@ -31,7 +36,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			if nt.value == "[" {
 				switch attr.(type) {
 				case *NameExpr, *StringExpr, *NumberExpr:
-				// valid
+					// valid
 				default:
 					return nil, newParseError(nt)
 				}
@@ -117,6 +122,8 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 	}
 }
 
+// parseInnerExpr attempts to parse an inner expression.
+// An inner expression is defined as a cohesive expression, such as a literal.
 func (t *Tree) parseInnerExpr() (Expr, error) {
 	switch tok := t.nextNonSpace(); tok.tokenType {
 	case tokenEof:
@@ -159,9 +166,18 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		return newNumberExpr(val, tok.Pos()), nil
 
 	case tokenName:
+		switch tok.value {
+		case "null", "NULL", "none", "NONE":
+			return newNullExpr(tok.Pos()), nil
+		case "true", "TRUE":
+			return newBoolExpr(true, tok.Pos()), nil
+		case "false", "FALSE":
+			return newBoolExpr(false, tok.Pos()), nil
+		}
 		name := newNameExpr(tok.value, tok.Pos())
 		nt := t.nextNonSpace()
 		if nt.tokenType == tokenParensOpen {
+			// TODO: This duplicates some code in parseOuterExpr, are both necessary?
 			return t.parseFunc(name)
 		}
 		t.backup()

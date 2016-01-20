@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-// Loader defines a type that can load stick templates using the given name.
+// Loader defines a type that can load Stick templates using the given name.
 type Loader interface {
+	// Load attempts to load the specified template, returning its content or an error.
 	Load(name string) (string, error)
 }
 
@@ -28,10 +29,12 @@ func (l *StringLoader) Load(name string) (string, error) {
 	return name, nil
 }
 
+// Type FilesystemLoader attempts to load templates relative to a root directory.
 type FilesystemLoader struct {
 	rootDir string
 }
 
+// NewFilesystemLoader creates a new FilesystemLoader with the specified root directory.
 func NewFilesystemLoader(rootDir string) *FilesystemLoader {
 	return &FilesystemLoader{rootDir}
 }
