@@ -220,6 +220,17 @@ var lexTests = []lexTest{
 		tTagClose,
 		tEof,
 	}},
+
+	{"name with underscore", "{% block additional_javascripts %}", []token{
+		tTagOpen,
+		tSpace,
+		mkTok(tokenName, "block"),
+		tSpace,
+		mkTok(tokenName, "additional_javascripts"),
+		tSpace,
+		tTagClose,
+		tEof,
+	}},
 }
 
 func collect(t *lexTest) (tokens []token) {

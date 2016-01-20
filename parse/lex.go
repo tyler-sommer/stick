@@ -96,6 +96,7 @@ type lexer struct {
 	last   token // The last emitted token
 }
 
+// nextToken returns the next token emitted by the lexer.
 func (l *lexer) nextToken() token {
 	for v, ok := <-l.tokens; ok; {
 		l.last = v
@@ -105,6 +106,14 @@ func (l *lexer) nextToken() token {
 	return l.last
 }
 
+// tokenize kicks things off.
+func (l *lexer) tokenize() {
+	for l.state = lexData; l.state != nil; {
+		l.state = l.state(l)
+	}
+}
+
+// newLexer creates a lexer, ready to begin tokenizing.
 func newLexer(input string) *lexer {
 	return &lexer{0, 0, 1, 0, input, make(chan token), nil, token{}}
 }
@@ -162,13 +171,6 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	l.tokens <- tok
 
 	return nil
-}
-
-// tokenize kicks things off.
-func (l *lexer) tokenize() {
-	for l.state = lexData; l.state != nil; {
-		l.state = l.state(l)
-	}
 }
 
 func lexData(l *lexer) stateFn {
@@ -374,7 +376,7 @@ func lexName(l *lexer) stateFn {
 		if str == delimEof {
 			break
 		}
-		if !isAlphaNumeric(str) {
+		if !isName(str) {
 			l.backup()
 			break
 		}
@@ -420,16 +422,6 @@ func isSpace(str string) bool {
 func isName(str string) bool {
 	for _, s := range str {
 		if string(s) != "_" && !unicode.IsLetter(s) && !unicode.IsDigit(s) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func isAlphaNumeric(str string) bool {
-	for _, s := range str {
-		if !unicode.IsLetter(s) && !unicode.IsDigit(s) {
 			return false
 		}
 	}
