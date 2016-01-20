@@ -2,6 +2,7 @@ Stick
 =====
 
 [![Build Status](https://travis-ci.org/tyler-sommer/stick.svg?branch=master)](https://travis-ci.org/tyler-sommer/stick)
+[![GoDoc](https://godoc.org/github.com/tyler-sommer/stick?status.svg)](https://godoc.org/github.com/tyler-sommer/stick)
 
 A Go language port of the [Twig](http://twig.sensiolabs.org/) templating engine. 
 
