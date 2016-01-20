@@ -36,11 +36,11 @@ func mkModule(nodes ...Node) *ModuleNode {
 
 var parseTests = []parseTest{
 	// Errors
-	newErrorTest("unclosed block", "{% block test %}", "parse error: unclosed tag \"block\" starting on line 1, offset 3"),
-	newErrorTest("unclosed if", "{% if test %}", "parse error: unclosed tag \"if\" starting on line 1, offset 3"),
-	newErrorTest("unexpected end (function call)", "{{ func('arg1'", "parse error: unexpected end of input on line 1, offset 14"),
-	newErrorTest("unclosed parenthesis", "{{ func(arg1 }}", "parse error: expected one of [PUNCTUATION, PARENS_CLOSE], got \"PRINT_CLOSE\" on line 1, offset 13"),
-	newErrorTest("unexpected punctuation", "{{ func(arg1? arg2) }}", "parse error: unexpected \"?\", expected \",\" on line 1, offset 12"),
+	newErrorTest("unclosed block", "{% block test %}", `unclosed tag "block" starting on line 1, column 3`),
+	newErrorTest("unclosed if", "{% if test %}", `unclosed tag "if" starting on line 1, column 3`),
+	newErrorTest("unexpected end (function call)", "{{ func('arg1'", `unexpected end of input on line 1, column 14`),
+	newErrorTest("unclosed parenthesis", "{{ func(arg1 }}", `expected one of [PUNCTUATION, PARENS_CLOSE], got "PRINT_CLOSE" on line 1, column 13`),
+	newErrorTest("unexpected punctuation", "{{ func(arg1? arg2) }}", `unexpected "?", expected "," on line 1, column 12`),
 
 	// Valid
 	newParseTest("text", "some text", mkModule(newTextNode("some text", noPos))),

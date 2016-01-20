@@ -1,105 +1,111 @@
 package parse
 
-import (
-	"fmt"
-)
+// parseError is an internal interface, used to gather additional
+// information about how an error occurred.
+type parseError interface {
+	setTree(t *Tree)
+}
 
 // ParseError represents a generic error during parsing when no additional
 // context is available other than the current token.
 type ParseError struct {
+	*baseError
 	tok token
 }
 
 func (e *ParseError) Error() string {
-	return fmt.Sprintf("parse error: unexpected token \"%s\" on line %d, offset %d", e.tok, e.tok.Line, e.tok.Offset)
+	return e.sprintf(`unexpected token "%s"`, e.tok)
 }
 
 // newParseError returns a new ParseError.
 func newParseError(tok token) error {
-	return &ParseError{tok}
+	return &ParseError{newBaseError(tok.Pos()), tok}
 }
 
 // UnexpectedTokenError is generated when the current token
 // is not of the expected type.
 type UnexpectedTokenError struct {
+	*baseError
 	actual   token
 	expected []tokenType
 }
 
 func (e *UnexpectedTokenError) Error() string {
-	var s = "["
+	if len(e.expected) == 1 {
+		return e.sprintf(`expected "%s", got "%s"`, e.expected[0], e.actual.tokenType)
+	}
+
+	s := "["
 	for i, e := range e.expected {
 		if i > 0 {
 			s = s + ", "
 		}
-
 		s = s + e.String()
 	}
-
 	s = s + "]"
-
-	return fmt.Sprintf("parse error: expected one of %s, got \"%s\" on line %d, offset %d", s, e.actual.tokenType, e.actual.Line, e.actual.Offset)
+	return e.sprintf(`expected one of %s, got "%s"`, s, e.actual.tokenType)
 }
 
 // newUnexpectedTokenError returns a new UnexpectedTokenError
 func newUnexpectedTokenError(actual token, expected ...tokenType) error {
-	return &UnexpectedTokenError{actual, expected}
+	return &UnexpectedTokenError{newBaseError(actual.Pos()), actual, expected}
 }
 
 // UnclosedTagError is generated when a tag is not properly closed.
 type UnclosedTagError struct {
-	name  string
-	start pos
+	*baseError
+	name string
 }
 
 func (e *UnclosedTagError) Error() string {
-	return fmt.Sprintf("parse error: unclosed tag \"%s\" starting on line %d, offset %d", e.name, e.start.Line, e.start.Offset)
+	return e.sprintf(`unclosed tag "%s" starting`, e.name)
 }
 
 // newUnclosedTagError returns a new UnclosedTagError.
 func newUnclosedTagError(name string, start pos) error {
-	return &UnclosedTagError{name, start}
+	return &UnclosedTagError{newBaseError(start), name}
 }
 
 // UnexpectedEofError describes an unexpected end of input.
 type UnexpectedEofError struct {
-	tok token
+	*baseError
 }
 
 func (e *UnexpectedEofError) Error() string {
-	return fmt.Sprintf("parse error: unexpected end of input on line %d, offset %d", e.tok.Line, e.tok.Offset)
+	return e.sprintf(`unexpected end of input`)
 }
 
 // newUnexpectedEofError returns a new UnexpectedEofError
 func newUnexpectedEofError(tok token) error {
-	return &UnexpectedEofError{tok}
+	return &UnexpectedEofError{newBaseError(tok.Pos())}
 }
 
 // UnexpectedValueError describes an invalid or unexpected value inside a token.
 type UnexpectedValueError struct {
+	*baseError
 	tok token  // The actual token
 	val string // The expected value
 }
 
 func (e *UnexpectedValueError) Error() string {
-	return fmt.Sprintf("parse error: unexpected \"%s\", expected \"%s\" on line %d, offset %d", e.tok.value, e.val, e.tok.Line, e.tok.Offset)
+	return e.sprintf(`unexpected "%s", expected "%s"`, e.tok.value, e.val)
 }
 
 // newUnexpectedValueError returns a new UnexpectedPunctuationError
 func newUnexpectedValueError(tok token, expected string) error {
-	return &UnexpectedValueError{tok, expected}
+	return &UnexpectedValueError{newBaseError(tok.Pos()), tok, expected}
 }
 
 // MultipleExtendsError describes an attempt to extend from multiple parent templates.
 type MultipleExtendsError struct {
-	start pos
+	*baseError
 }
 
 func (e *MultipleExtendsError) Error() string {
-	return fmt.Sprintf("parse error: a template may have only one \"extends\" statement, near line %d, offset %d", e.start.Line, e.start.Offset)
+	return e.sprintf(`a template may have only one "extends" statement`)
 }
 
 // newMultipleExtendsError returns a new MultipleExtendsError
 func newMultipleExtendsError(start pos) error {
-	return &MultipleExtendsError{start}
+	return &MultipleExtendsError{newBaseError(start)}
 }

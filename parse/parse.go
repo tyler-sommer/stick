@@ -52,6 +52,13 @@ func (t *Tree) setBlock(name string, body *BlockNode) {
 	t.blocks[len(t.blocks)-1][name] = body
 }
 
+func (t *Tree) errorf(err error) error {
+	if err, ok := err.(parseError); ok {
+		err.setTree(t)
+	}
+	return err
+}
+
 // peek returns the next unread token without advancing the internal cursor.
 func (t *Tree) peek() token {
 	tok := t.next()
@@ -156,7 +163,7 @@ func (t *Tree) Parse() error {
 	for {
 		n, err := t.parse()
 		if err != nil {
-			return err
+			return t.errorf(err)
 		}
 		if n == nil {
 			// expected end of input
