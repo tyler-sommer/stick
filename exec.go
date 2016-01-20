@@ -5,31 +5,75 @@ import (
 	"fmt"
 	"github.com/tyler-sommer/stick/parse"
 	"io"
+	"math"
 	"strconv"
 )
 
 // Type state represents the internal state of a template execution.
 type state struct {
-	out     io.Writer
-	node    parse.Node
-	context map[string]Value
-	blocks  []map[string]*parse.BlockNode
+	out    io.Writer
+	node   parse.Node
+	blocks []map[string]*parse.BlockNode
 
-	env *Env
+	env   *Env
+	scope *scopeStack
+}
+
+type scopeStack struct {
+	scopes []map[string]Value
+}
+
+func (s *scopeStack) push() {
+	s.scopes = append(s.scopes, make(map[string]Value))
+}
+
+func (s *scopeStack) pop() {
+	s.scopes = s.scopes[0 : len(s.scopes)-1]
+}
+
+func (s *scopeStack) all() map[string]Value {
+	res := make(map[string]Value)
+	for _, scope := range s.scopes {
+		for k, v := range scope {
+			res[k] = v
+		}
+	}
+	return res
+}
+
+func (s *scopeStack) get(name string) (Value, bool) {
+	for i := len(s.scopes); i > 0; i-- {
+		scope := s.scopes[i-1]
+		if v, ok := scope[name]; ok {
+			return v, true
+		}
+	}
+	return nil, false
+}
+
+func (s *scopeStack) set(name string, val Value) {
+	for _, scope := range s.scopes {
+		if _, ok := scope[name]; ok {
+			scope[name] = val
+			return
+		}
+	}
+	s.scopes[len(s.scopes)-1][name] = val
 }
 
 // Function newState creates a new template execution state, ready for use.
 func newState(out io.Writer, ctx map[string]Value, env *Env) *state {
-	return &state{out, nil, ctx, make([]map[string]*parse.BlockNode, 0), env}
+	return &state{out, nil, make([]map[string]*parse.BlockNode, 0), env, &scopeStack{[]map[string]Value{ctx}}}
 }
 
 // Method load attempts to load and parse the given template.
 func (s *state) load(name string) (*parse.Tree, error) {
-	tmpl, err := s.env.loader.Load(name)
+	cnt, err := s.env.loader.Load(name)
 	if err != nil {
 		return nil, err
 	}
-	tree, err := parse.Parse(tmpl)
+	tree := parse.NewTree(name, cnt)
+	err = tree.Parse()
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +167,42 @@ func (s *state) walk(node parse.Node) error {
 		if err != nil {
 			return err
 		}
+	case *parse.ForNode:
+		return s.walkForNode(node)
 	default:
 		return errors.New("Unknown node " + node.String())
+	}
+	return nil
+}
+
+func (s *state) walkForNode(node *parse.ForNode) error {
+	res, err := s.walkExpr(node.Expr())
+	if err != nil {
+		return err
+	}
+	kn := node.Key()
+	vn := node.Val()
+	ct, err := iterate(res, func(k Value, v Value, l loop) error {
+		s.scope.push()
+		defer s.scope.pop()
+
+		if kn != "" {
+			s.scope.set(kn, k)
+		}
+		s.scope.set(vn, v)
+		s.scope.set("loop", l)
+
+		err := s.walk(node.Body())
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if ct == 0 {
+		return s.walk(node.Else())
 	}
 	return nil
 }
@@ -146,9 +224,7 @@ func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string
 		}
 	}
 	if !node.Only() {
-		for k, v := range s.context {
-			ctx[k] = v
-		}
+		ctx = s.scope.all()
 	}
 	if with != nil {
 		if with, ok := with.(map[string]Value); ok {
@@ -168,7 +244,7 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 	case *parse.BoolExpr:
 		return exp.Value(), nil
 	case *parse.NameExpr:
-		if val, ok := s.context[exp.Name()]; ok {
+		if val, ok := s.scope.get(exp.Name()); ok {
 			v = val
 		} else {
 			e = errors.New("Undefined variable \"" + exp.Name() + "\"")
@@ -216,6 +292,13 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 		case parse.OpBinaryEqual:
 			// TODO: Stop-gap for now, this will need to be much more sophisticated.
 			return CoerceString(left) == CoerceString(right), nil
+		case parse.OpBinaryRange:
+			l, r := CoerceNumber(left), CoerceNumber(right)
+			res := make([]float64, uint(math.Ceil(r-l))+1)
+			for i, k := 0, l; k <= r; i, k = i+1, k+1 {
+				res[i] = k
+			}
+			return res, nil
 		}
 	case *parse.FuncExpr:
 		fnName := exp.Name()

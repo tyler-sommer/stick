@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -15,7 +16,6 @@ const noError = ""
 
 // Position testing isnt implemented
 var noPos = pos{0, 0}
-var nilBody = func() *BodyNode { return nil }()
 
 func newParseTest(name, input string, expected *ModuleNode) parseTest {
 	return parseTest{name, input, expected, noError}
@@ -54,7 +54,7 @@ var parseTests = []parseTest{
 	newParseTest(
 		"if",
 		"{% if something %}Do Something{% endif %}",
-		mkModule(newIfNode(newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("Do Something", noPos)), nilBody, noPos)),
+		mkModule(newIfNode(newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("Do Something", noPos)), newBodyNode(noPos), noPos)),
 	),
 	newParseTest(
 		"if else",
@@ -146,13 +146,13 @@ var parseTests = []parseTest{
 	),
 	newParseTest(
 		"basic for loop",
-		"{% for val in something %}body{% endfor %}",
-		mkModule(newForNode(nil, newNameExpr("val", noPos), newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos)),
+		"{% for val in 1..10 %}body{% endfor %}",
+		mkModule(newForNode("", "val", newBinaryExpr(newNumberExpr("1", noPos), OpBinaryRange, newNumberExpr("10", noPos), noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos)),
 	),
 	newParseTest(
 		"for loop",
 		"{% for k, val in something if val %}body{% else %}No results.{% endfor %}",
-		mkModule(newForNode(newNameExpr("k", noPos), newNameExpr("val", noPos), newNameExpr("something", noPos), newIfNode(newNameExpr("val", noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos), newBodyNode(noPos, newTextNode("No results.", noPos)), noPos)),
+		mkModule(newForNode("k", "val", newNameExpr("something", noPos), newIfNode(newNameExpr("val", noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos), newBodyNode(noPos, newTextNode("No results.", noPos)), noPos)),
 	),
 	newParseTest(
 		"include",
@@ -189,6 +189,11 @@ var parseTests = []parseTest{
 		"{{ true }}{{ TRUE }}{{ false }}{{ FALSE }}",
 		mkModule(newPrintNode(newBoolExpr(true, noPos), noPos), newPrintNode(newBoolExpr(true, noPos), noPos), newPrintNode(newBoolExpr(false, noPos), noPos), newPrintNode(newBoolExpr(false, noPos), noPos)),
 	),
+	newParseTest(
+		"unary then getattr",
+		"{% if not loop.last %}{% endif %}",
+		mkModule(newIfNode(newUnaryExpr(OpUnaryNot, newGetAttrExpr(newNameExpr("loop", noPos), newStringExpr("last", noPos), []Expr{}, noPos), noPos), newBodyNode(noPos), newBodyNode(noPos), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {
@@ -201,7 +206,7 @@ func nodeEqual(a, b Node) bool {
 
 func evaluateTest(t *testing.T, test parseTest) {
 	tree, err := Parse(test.input)
-	if test.err != noError && err != nil && test.err != err.Error() {
+	if test.err != noError && err != nil && !strings.Contains(err.Error(), test.err) {
 		t.Errorf("%s: got error\n\t%+v\nexpected error\n\t%v", test.name, err, test.err)
 	} else if !nodeEqual(tree.root, test.expected) {
 		t.Errorf("%s: got\n\t%+v\nexpected\n\t%v", test.name, tree.root, test.expected)

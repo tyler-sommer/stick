@@ -187,7 +187,7 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) 
 				if err != nil {
 					return nil, nil, err
 				}
-				els = newBodyNode(start, in)
+				els = newBodyNode(tok.Pos(), in)
 			case "endif":
 				_, err := t.expect(tokenTagClose)
 				if err != nil {
@@ -195,6 +195,9 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) 
 				}
 			default:
 				return nil, nil, newUnclosedTagError("if", start)
+			}
+			if els == nil {
+				els = newBodyNode(start)
 			}
 			return body, els, nil
 		default:
@@ -215,28 +218,29 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) 
 //   {% else %}
 //   {% endfor %}
 func parseFor(t *Tree, start pos) (*ForNode, error) {
-	var kName, vName *NameExpr
-	name, err := t.parseInnerExpr()
+	var kName, vName string
+	nam, err := t.parseInnerExpr()
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := name.(*NameExpr); !ok {
+	if nam, ok := nam.(*NameExpr); ok {
+		vName = nam.Name()
+	} else {
 		return nil, errors.New("parse error: a parse error occured, expected name")
 	}
 	nxt := t.peekNonSpace()
 	if nxt.tokenType == tokenPunctuation && nxt.value == "," {
 		t.next()
-		kName = name.(*NameExpr)
-		name, err = t.parseInnerExpr()
+		kName = vName
+		nam, err = t.parseInnerExpr()
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := name.(*NameExpr); !ok {
+		if nam, ok := nam.(*NameExpr); ok {
+			vName = nam.Name()
+		} else {
 			return nil, errors.New("parse error: a parse error occured, expected name")
 		}
-		vName = name.(*NameExpr)
-	} else {
-		vName = name.(*NameExpr)
 	}
 	tok := t.nextNonSpace()
 	if tok.tokenType != tokenName && tok.value != "in" {

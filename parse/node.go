@@ -175,19 +175,39 @@ func (t *ExtendsNode) String() string {
 // ForNode represents a for loop construct.
 type ForNode struct {
 	pos
-	key  *NameExpr
-	val  *NameExpr
+	key  string
+	val  string
 	expr Expr
 	body Node
 	els  Node
 }
 
-func newForNode(k, v *NameExpr, expr, body, els Node, p pos) *ForNode {
+func newForNode(k, v string, expr Expr, body, els Node, p pos) *ForNode {
 	return &ForNode{p, k, v, expr, body, els}
 }
 
 func (t *ForNode) String() string {
 	return fmt.Sprintf("For(%s, %s in %s: %s else %s)", t.key, t.val, t.expr, t.body, t.els)
+}
+
+func (t *ForNode) Key() string {
+	return t.key
+}
+
+func (t *ForNode) Val() string {
+	return t.val
+}
+
+func (t *ForNode) Expr() Expr {
+	return t.expr
+}
+
+func (t *ForNode) Body() Node {
+	return t.body
+}
+
+func (t *ForNode) Else() Node {
+	return t.els
 }
 
 // IncludeNode is an include statement.

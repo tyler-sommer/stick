@@ -142,7 +142,7 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		if !ok {
 			return nil, newParseError(tok)
 		}
-		expr, err := t.parseInnerExpr()
+		expr, err := t.parseExpr()
 		if err != nil {
 			return nil, err
 		}

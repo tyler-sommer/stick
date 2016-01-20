@@ -139,3 +139,50 @@ func getMethod(v Value, name string) (reflect.Value, error) {
 	}
 	return retVal, fmt.Errorf("stick: unable to locate method \"%s\" on \"%v\"", name, v)
 }
+
+type iterator func(k Value, v Value, l loop) error
+
+type loop struct {
+	Last   bool
+	Index  int
+	Index0 int
+}
+
+func iterate(val Value, it iterator) (int, error) {
+	r := reflect.Indirect(reflect.ValueOf(val))
+	switch r.Kind() {
+	case reflect.Slice, reflect.Array:
+		ln := r.Len()
+		l := loop{ln == 1, 1, 0}
+		for i := 0; i < ln; i++ {
+			v := r.Index(i)
+			err := it(i, v.Interface(), l)
+			if err != nil {
+				return 0, err
+			}
+
+			l.Index++
+			l.Index0++
+			l.Last = ln == l.Index
+		}
+		return ln, nil
+	case reflect.Map:
+		keys := r.MapKeys()
+		ln := r.Len()
+		l := loop{ln == 1, 1, 0}
+		for _, k := range keys {
+			v := r.MapIndex(k)
+			err := it(k.Interface(), v.Interface(), l)
+			if err != nil {
+				return 0, err
+			}
+
+			l.Index++
+			l.Index0++
+			l.Last = ln == l.Index
+		}
+		return ln, nil
+	default:
+		return 0, fmt.Errorf(`stick: unable to iterate over %s "%v"`, r.Kind(), val)
+	}
+}

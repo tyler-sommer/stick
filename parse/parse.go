@@ -4,12 +4,28 @@ package parse
 
 // Tree represents the state of a parser.
 type Tree struct {
+	name  string // The name of this template.
+	input string // The original template body.
+
+	lex *lexer
+
 	root   *ModuleNode
-	blocks []map[string]*BlockNode
-	input  string
-	lex    *lexer
-	unread []token
-	read   []token
+	blocks []map[string]*BlockNode // Contains each block available to this template.
+
+	unread []token // Any tokens received by the lexer but not yet read.
+	read   []token // Tokens that have already been read.
+}
+
+func NewTree(name, input string) *Tree {
+	return &Tree{
+		name:   name,
+		input:  input,
+		lex:    newLexer(input),
+		root:   newModuleNode(),
+		blocks: []map[string]*BlockNode{make(map[string]*BlockNode)},
+		unread: make([]token, 0),
+		read:   make([]token, 0),
+	}
 }
 
 // Root returns the root module node.
@@ -49,13 +65,11 @@ func (t *Tree) peekNonSpace() token {
 	var next token
 	for {
 		next = t.next()
-		if next.tokenType != tokenWhitespace || next.tokenType == tokenEof {
+		if next.tokenType != tokenWhitespace {
 			t.backup()
 			return next
 		}
 	}
-
-	return next
 }
 
 // backup pushes the last read token back onto the unread stack and reduces the internal cursor by one.
@@ -132,21 +146,21 @@ func (t *Tree) expectValue(typ tokenType, val string) (token, error) {
 
 // Parse parses the given input.
 func Parse(input string) (*Tree, error) {
-	lex := newLexer(input)
+	t := NewTree("", input)
+	return t, t.Parse()
+}
 
-	go lex.tokenize()
-
-	t := &Tree{newModuleNode(), make([]map[string]*BlockNode, 0), input, lex, make([]token, 0), make([]token, 0)}
-	t.pushBlockStack()
-
+// Parse begins parsing, returning an error, if any.
+func (t *Tree) Parse() error {
+	go t.lex.tokenize()
 	for {
 		n, err := t.parse()
 		if err != nil {
-			return t, err
+			return err
 		}
 		if n == nil {
 			// expected end of input
-			return t, nil
+			return nil
 		}
 		t.root.append(n)
 	}
