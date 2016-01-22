@@ -1,5 +1,7 @@
 package parse
 
+import "fmt"
+
 // parseExpr parses an expression.
 func (t *Tree) parseExpr() (Expr, error) {
 	expr, err := t.parseInnerExpr()
@@ -91,9 +93,18 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			return nil, newError(nt)
 		}
 
-		right, err := t.parseInnerExpr()
-		if err != nil {
-			return nil, err
+		var right Node
+		var err error
+		if op.op == OpBinaryIs || op.op == OpBinaryIsNot {
+			right, err = t.parseIsRightOperand(nil)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			right, err = t.parseInnerExpr()
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		ntt := t.nextNonSpace()
@@ -119,6 +130,38 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 	default:
 		t.backup()
 		return expr, nil
+	}
+}
+
+// parseIsRightOperand handles "is" and "is not" tests, which can
+// themselves be two words, such as "divisible by":
+//	{% if 10 is divisible by(3) %}
+func (t *Tree) parseIsRightOperand(prev *NameExpr) (*TestExpr, error) {
+	right, err := t.parseInnerExpr()
+	if err != nil {
+		return nil, err
+	}
+	if prev == nil {
+		if r, ok := right.(*NameExpr); ok {
+			if nxt := t.peekNonSpace(); nxt.tokenType == tokenName {
+				return t.parseIsRightOperand(r)
+			}
+		}
+	}
+	switch r := right.(type) {
+	case *NameExpr:
+		if prev != nil {
+			r.name = prev.name + " " + r.name
+		}
+		return newTestExpr(r, []Expr{}, r.Pos()), nil
+
+	case *FuncExpr:
+		if prev != nil {
+			r.name.name = prev.name + " " + r.name.name
+		}
+		return &TestExpr{r}, nil
+	default:
+		return nil, fmt.Errorf(`Expected name or function, got "%v"`, right)
 	}
 }
 

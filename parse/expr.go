@@ -145,6 +145,20 @@ func newFilterExpr(name *NameExpr, args []Expr, pos pos) *FilterExpr {
 	return &FilterExpr{newFuncExpr(name, args, pos)}
 }
 
+// TestExpr represents a boolean test expression.
+type TestExpr struct {
+	*FuncExpr
+}
+
+// String returns a string representation of the TestExpr.
+func (exp *TestExpr) String() string {
+	return fmt.Sprintf("TestExpr(%s, %s)", exp.name, exp.args)
+}
+
+func newTestExpr(name *NameExpr, args []Expr, pos pos) *TestExpr {
+	return &TestExpr{newFuncExpr(name, args, pos)}
+}
+
 // BinaryExpr represents a binary operation, such as "x + y"
 type BinaryExpr struct {
 	pos

@@ -199,6 +199,11 @@ var parseTests = []parseTest{
 		"<option{% if script.Type == 'Javascript' %} selected{% endif %}>Javascript</option>",
 		mkModule(newTextNode("<option", noPos), newIfNode(newBinaryExpr(newGetAttrExpr(newNameExpr("script", noPos), newStringExpr("Type", noPos), []Expr{}, noPos), OpBinaryEqual, newStringExpr("Javascript", noPos), noPos), newBodyNode(noPos, newTextNode(" selected", noPos)), newBodyNode(noPos), noPos), newTextNode(">Javascript</option>", noPos)),
 	),
+	newParseTest(
+		"test parsing",
+		"{{ animal is mammal }}{{ 10 is not divisible by(3) }}",
+		mkModule(newPrintNode(newBinaryExpr(newNameExpr("animal", noPos), OpBinaryIs, newTestExpr(newNameExpr("mammal", noPos), []Expr{}, noPos), noPos), noPos), newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryIsNot, newTestExpr(newNameExpr("divisible by", noPos), []Expr{newNumberExpr("3", noPos)}, noPos), noPos), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

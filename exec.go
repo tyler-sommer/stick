@@ -10,6 +10,8 @@ import (
 
 	"regexp"
 
+	"fmt"
+
 	"github.com/tyler-sommer/stick/parse"
 )
 
@@ -72,7 +74,7 @@ func newState(out io.Writer, ctx map[string]Value, env *Env) *state {
 
 // Method load attempts to load and parse the given template.
 func (s *state) load(name string) (*parse.Tree, error) {
-	cnt, err := s.env.loader.Load(name)
+	cnt, err := s.env.Loader.Load(name)
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +98,25 @@ func (s *state) getBlock(name string) *parse.BlockNode {
 	return nil
 }
 
+// Enter is called when the given Node is entered.
+func (s *state) enter(node parse.Node) {
+	s.node = node
+	for _, v := range s.env.Visitors {
+		v.Enter(node)
+	}
+}
+
+// Leave is called just before the state exits the given Node.
+func (s *state) leave(node parse.Node) {
+	for _, v := range s.env.Visitors {
+		v.Leave(node)
+	}
+}
+
 // Method walk is the main entry-point into template execution.
 func (s *state) walk(node parse.Node) error {
-	s.node = node
+	s.enter(node)
+	defer s.leave(node)
 	switch node := node.(type) {
 	case *parse.ModuleNode:
 		if p := node.Parent(); p != nil {
@@ -316,10 +334,15 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 			}
 			return !res, nil
 		case parse.OpBinaryIs:
-			// TODO: Need to implement user defined tests to support this.
-			return nil, errors.New("is operator not implemented")
+			if fn, ok := right.(func(v Value) bool); ok {
+				return fn(left), nil
+			}
+			return nil, errors.New("right operand was of unexpected type")
 		case parse.OpBinaryIsNot:
-			return nil, errors.New("is not operator not implemented")
+			if fn, ok := right.(func(v Value) bool); ok {
+				return !fn(left), nil
+			}
+			return nil, errors.New("right operand was of unexpected type")
 		case parse.OpBinaryMatches:
 			reg, err := regexp.Compile(CoerceString(right))
 			if err != nil {
@@ -358,7 +381,7 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 		}
 	case *parse.FuncExpr:
 		fnName := exp.Name()
-		if fn, ok := s.env.functions[fnName]; ok {
+		if fn, ok := s.env.Functions[fnName]; ok {
 			eargs := exp.Args()
 			args := make([]Value, len(eargs))
 			for i, e := range eargs {
@@ -394,7 +417,24 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 		if err != nil {
 			return nil, err
 		}
+	case *parse.TestExpr:
+		if tfn, ok := s.env.Tests[exp.Name()]; ok {
+			eargs := exp.Args()
+			args := make([]Value, len(eargs))
+			for i, e := range eargs {
+				v, err := s.walkExpr(e)
+				if err != nil {
+					return nil, err
+				}
+				args[i] = v
+			}
+			return func(v Value) bool {
+				return tfn(s.env, v, args...)
+			}, nil
+		}
+		return nil, fmt.Errorf(`unknown test "%v"`, exp.Name())
 	}
+
 	return v, nil
 }
 

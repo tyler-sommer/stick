@@ -3,25 +3,45 @@ package stick
 
 import (
 	"io"
+
+	"github.com/tyler-sommer/stick/parse"
 )
 
 // A Function represents a user-defined function.
-type Function func(e *Env, args ...Value) Value
+// Functions can be called anywhere expressions are allowed.
+//	{% if form_valid(form) %}
+// Functions may take any number of arguments.
+type Func func(e *Env, args ...Value) Value
 
-// A Filter represents a user-defined filter.
-type Filter Function
+// A Filter is a user-defined filter.
+// Filters receive a value and modify it in some way.
+//	{{ post|raw }}
+// Filters also accept parameters.
+//	{{ balance|number_format(2) }}
+type Filter func(e *Env, val Value, args ...Value) Value
+
+// A Test represents a user-defined test.
+// Tests are used to make some comparisons more expressive, for example:
+//	{% if users is empty %}
+// Tests also accept arguments.
+//	{% if loop.index is divisible by(3) %}
+type Test func(e *Env, val Value, args ...Value) bool
+
+// A NodeVisitor can be used to modify node contents and structure during rendering.
+type NodeVisitor interface {
+	// Enter is called before the node is executed.
+	Enter(parse.Node)
+	// Exit is called after the node is executed.
+	Leave(parse.Node)
+}
 
 // Env represents the configuration of a Stick environment.
 type Env struct {
-	loader    Loader
-	functions map[string]Function
-	filters   map[string]Filter
-}
-
-// Extension defines the methods a Stick extension must implement.
-type Extension interface {
-	Functions() map[string]Function
-	Filters() map[string]Filter
+	Loader    Loader            // Template loader.
+	Functions map[string]Func   // User-defined functions.
+	Filters   map[string]Filter // User-defined filters.
+	Tests     map[string]Test   // User-defined tests.
+	Visitors  []NodeVisitor     // Node visitors.
 }
 
 // NewEnv creates a new Env and returns it, ready to use.
@@ -30,29 +50,7 @@ func NewEnv(loader Loader) *Env {
 		loader = &StringLoader{}
 	}
 
-	return &Env{loader, make(map[string]Function), make(map[string]Filter)}
-}
-
-// RegisterExtension registers the given extension, adding any defined functions
-// or filters to the Env.
-func (env *Env) RegisterExtension(ext Extension) {
-	for name, fn := range ext.Functions() {
-		env.SetFunction(name, fn)
-	}
-
-	for name, fn := range ext.Filters() {
-		env.SetFilter(name, fn)
-	}
-}
-
-// SetFunction registers a user-defined function with the Env.
-func (env *Env) SetFunction(name string, fn Function) {
-	env.functions[name] = fn
-}
-
-// SetFilter registers a user-defined filter with the Env.
-func (env *Env) SetFilter(name string, ft Filter) {
-	env.filters[name] = ft
+	return &Env{loader, make(map[string]Func), make(map[string]Filter), make(map[string]Test), make([]NodeVisitor, 0)}
 }
 
 // Execute parses and executes the given template.

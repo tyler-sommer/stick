@@ -107,7 +107,7 @@ To do
     - [x] include
 - [ ] Expressions
     - [x] literals
-    - [ ] binary operators
+    - [x] binary operators
     - [x] unary operators
     - [x] get attribute
     - [x] function call
