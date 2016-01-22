@@ -2,10 +2,13 @@ package stick
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"strconv"
+
+	"strings"
+
+	"regexp"
 
 	"github.com/tyler-sommer/stick/parse"
 )
@@ -125,7 +128,7 @@ func (s *state) walk(node parse.Node) error {
 		if err != nil {
 			return err
 		}
-		io.WriteString(s.out, fmt.Sprintf("%v", v))
+		io.WriteString(s.out, CoerceString(v))
 	case *parse.BlockNode:
 		name := node.Name()
 		if block := s.getBlock(name); block != nil {
@@ -183,7 +186,7 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 	}
 	kn := node.Key()
 	vn := node.Val()
-	ct, err := iterate(res, func(k Value, v Value, l loop) error {
+	ct, err := iterate(res, func(k Value, v Value, l loop) (bool, error) {
 		s.scope.push()
 		defer s.scope.pop()
 
@@ -195,9 +198,9 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 
 		err := s.walk(node.Body())
 		if err != nil {
-			return err
+			return true, err
 		}
-		return nil
+		return false, nil
 	})
 	if err != nil {
 		return err
@@ -288,11 +291,53 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 			return CoerceNumber(left) + CoerceNumber(right), nil
 		case parse.OpBinarySubtract:
 			return CoerceNumber(left) - CoerceNumber(right), nil
+		case parse.OpBinaryMultiply:
+			return CoerceNumber(left) * CoerceNumber(right), nil
+		case parse.OpBinaryDivide:
+			return CoerceNumber(left) / CoerceNumber(right), nil
+		case parse.OpBinaryFloorDiv:
+			return math.Floor(CoerceNumber(left) / CoerceNumber(right)), nil
+		case parse.OpBinaryModulo:
+			return float64(int(CoerceNumber(left)) % int(CoerceNumber(right))), nil
+		case parse.OpBinaryPower:
+			return math.Pow(CoerceNumber(left), CoerceNumber(right)), nil
 		case parse.OpBinaryConcat:
 			return CoerceString(left) + CoerceString(right), nil
+		case parse.OpBinaryEndsWith:
+			return strings.HasSuffix(CoerceString(left), CoerceString(right)), nil
+		case parse.OpBinaryStartsWith:
+			return strings.HasPrefix(CoerceString(left), CoerceString(right)), nil
+		case parse.OpBinaryIn:
+			return contains(right, left)
+		case parse.OpBinaryNotIn:
+			res, err := contains(right, left)
+			if err != nil {
+				return false, err
+			}
+			return !res, nil
+		case parse.OpBinaryIs:
+			// TODO: Need to implement user defined tests to support this.
+			return nil, errors.New("is operator not implemented")
+		case parse.OpBinaryIsNot:
+			return nil, errors.New("is not operator not implemented")
+		case parse.OpBinaryMatches:
+			reg, err := regexp.Compile(CoerceString(right))
+			if err != nil {
+				return nil, err
+			}
+			return reg.MatchString(CoerceString(left)), nil
 		case parse.OpBinaryEqual:
-			// TODO: Stop-gap for now, this will need to be much more sophisticated.
-			return CoerceString(left) == CoerceString(right), nil
+			return equal(left, right), nil
+		case parse.OpBinaryNotEqual:
+			return !equal(left, right), nil
+		case parse.OpBinaryGreaterEqual:
+			return CoerceNumber(left) >= CoerceNumber(right), nil
+		case parse.OpBinaryGreaterThan:
+			return CoerceNumber(left) > CoerceNumber(right), nil
+		case parse.OpBinaryLessEqual:
+			return CoerceNumber(left) <= CoerceNumber(right), nil
+		case parse.OpBinaryLessThan:
+			return CoerceNumber(left) < CoerceNumber(right), nil
 		case parse.OpBinaryRange:
 			l, r := CoerceNumber(left), CoerceNumber(right)
 			res := make([]float64, uint(math.Ceil(r-l))+1)
@@ -300,6 +345,16 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 				res[i] = k
 			}
 			return res, nil
+		case parse.OpBinaryBitwiseAnd:
+			return int(CoerceNumber(left)) & int(CoerceNumber(right)), nil
+		case parse.OpBinaryBitwiseOr:
+			return int(CoerceNumber(left)) | int(CoerceNumber(right)), nil
+		case parse.OpBinaryBitwiseXor:
+			return int(CoerceNumber(left)) ^ int(CoerceNumber(right)), nil
+		case parse.OpBinaryAnd:
+			return CoerceBool(left) && CoerceBool(right), nil
+		case parse.OpBinaryOr:
+			return CoerceBool(left) && CoerceBool(right), nil
 		}
 	case *parse.FuncExpr:
 		fnName := exp.Name()

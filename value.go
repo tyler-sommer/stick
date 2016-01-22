@@ -140,7 +140,7 @@ func getMethod(v Value, name string) (reflect.Value, error) {
 	return retVal, fmt.Errorf("stick: unable to locate method \"%s\" on \"%v\"", name, v)
 }
 
-type iterator func(k Value, v Value, l loop) error
+type iterator func(k Value, v Value, l loop) (brk bool, err error)
 
 type loop struct {
 	Last   bool
@@ -156,9 +156,11 @@ func iterate(val Value, it iterator) (int, error) {
 		l := loop{ln == 1, 1, 0}
 		for i := 0; i < ln; i++ {
 			v := r.Index(i)
-			err := it(i, v.Interface(), l)
+			brk, err := it(i, v.Interface(), l)
 			if err != nil {
 				return 0, err
+			} else if brk {
+				return ln, nil
 			}
 
 			l.Index++
@@ -172,9 +174,11 @@ func iterate(val Value, it iterator) (int, error) {
 		l := loop{ln == 1, 1, 0}
 		for _, k := range keys {
 			v := r.MapIndex(k)
-			err := it(k.Interface(), v.Interface(), l)
+			brk, err := it(k.Interface(), v.Interface(), l)
 			if err != nil {
 				return 0, err
+			} else if brk {
+				return ln, nil
 			}
 
 			l.Index++
@@ -185,4 +189,24 @@ func iterate(val Value, it iterator) (int, error) {
 	default:
 		return 0, fmt.Errorf(`stick: unable to iterate over %s "%v"`, r.Kind(), val)
 	}
+}
+
+func equal(left Value, right Value) bool {
+	// TODO: Stop-gap for now, this will need to be much more sophisticated.
+	return CoerceString(left) == CoerceString(right)
+}
+
+func contains(haystack Value, needle Value) (bool, error) {
+	res := false
+	_, err := iterate(haystack, func(k Value, v Value, l loop) (bool, error) {
+		if equal(v, needle) {
+			res = true
+			return true, nil // break
+		}
+		return false, nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return res, nil
 }

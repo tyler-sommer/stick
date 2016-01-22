@@ -43,6 +43,13 @@ var tests = []execTest{
 		map[string]Value{"data": map[string]float64{"Group A": 5.12, "Group B": 5.09}},
 		optionExpect(`Record 1: Group A: 5.12 - Record 2: Group B: 5.09`, `Record 1: Group B: 5.09 - Record 2: Group A: 5.12`),
 	},
+	{
+		"Some operators",
+		`{{ 4.5 * 10 }} - {{ 3 + true }} - {{ 3 + 4 == 7.0 }} - {{ 10 % 2 == 0 }} - {{ 10 ** 2 > 99.9 and 10 ** 2 <= 100 }}`,
+		emptyCtx,
+		expect(`45 - 4 - 1 - 1 - 1`),
+	},
+	{"In and not in", `{{ 5 in set and 4 not in set }}`, map[string]Value{"set": []int{5, 10}}, expect(`1`)},
 }
 
 type expectedChecker func(actual string) (string, bool)
