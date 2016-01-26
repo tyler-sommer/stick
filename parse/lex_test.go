@@ -15,23 +15,36 @@ func mkTok(t tokenType, val string) token {
 }
 
 var (
-	tEOF            = mkTok(tokenEOF, delimEOF)
-	tSpace          = mkTok(tokenWhitespace, " ")
-	tNewLine        = mkTok(tokenWhitespace, "\n")
-	tTagOpen        = mkTok(tokenTagOpen, delimOpenTag)
-	tTagClose       = mkTok(tokenTagClose, delimCloseTag)
-	tPrintOpen      = mkTok(tokenPrintOpen, delimOpenPrint)
-	tPrintClose     = mkTok(tokenPrintClose, delimClosePrint)
-	tDblStringOpen  = mkTok(tokenStringOpen, "\"")
-	tDblStringClose = mkTok(tokenStringClose, "\"")
-	tStringOpen     = mkTok(tokenStringOpen, "'")
-	tStringClose    = mkTok(tokenStringClose, "'")
-	tParensOpen     = mkTok(tokenParensOpen, "(")
-	tParensClose    = mkTok(tokenParensClose, ")")
+	tEOF              = mkTok(tokenEOF, delimEOF)
+	tSpace            = mkTok(tokenWhitespace, " ")
+	tNewLine          = mkTok(tokenWhitespace, "\n")
+	tTagOpen          = mkTok(tokenTagOpen, delimOpenTag)
+	tTagClose         = mkTok(tokenTagClose, delimCloseTag)
+	tPrintOpen        = mkTok(tokenPrintOpen, delimOpenPrint)
+	tPrintClose       = mkTok(tokenPrintClose, delimClosePrint)
+	tDblStringOpen    = mkTok(tokenStringOpen, "\"")
+	tDblStringClose   = mkTok(tokenStringClose, "\"")
+	tStringOpen       = mkTok(tokenStringOpen, "'")
+	tStringClose      = mkTok(tokenStringClose, "'")
+	tInterpolateOpen  = mkTok(tokenInterpolateOpen, delimOpenInterpolate)
+	tInterpolateClose = mkTok(tokenInterpolateClose, delimCloseInterpolate)
+	tParensOpen       = mkTok(tokenParensOpen, "(")
+	tParensClose      = mkTok(tokenParensClose, ")")
 )
 
 var lexTests = []lexTest{
 	{"empty", "", []token{tEOF}},
+
+	{"comment", "Some text{# Hello there #}", []token{
+		mkTok(tokenText, "Some text"),
+		mkTok(tokenComment, " Hello there "),
+		tEOF,
+	}},
+
+	{"unclosed comment", "{# Hello there", []token{
+		mkTok(tokenComment, " Hello there"),
+		mkTok(tokenError, "Unclosed comment"),
+	}},
 
 	{"number", "{{ 5 }}", []token{
 		tPrintOpen,
@@ -229,6 +242,37 @@ var lexTests = []lexTest{
 		mkTok(tokenName, "additional_javascripts"),
 		tSpace,
 		tTagClose,
+		tEOF,
+	}},
+
+	{"string interpolation", `{{ "Hello, #{name}" }}`, []token{
+		tPrintOpen,
+		tSpace,
+		tDblStringOpen,
+		mkTok(tokenText, "Hello, "),
+		tInterpolateOpen,
+		mkTok(tokenName, "name"),
+		tInterpolateClose,
+		tDblStringClose,
+		tSpace,
+		tPrintClose,
+		tEOF,
+	}},
+
+	{"string interpolation", `{{ "Item #: #{item.id}<br>" }}`, []token{
+		tPrintOpen,
+		tSpace,
+		tDblStringOpen,
+		mkTok(tokenText, "Item #: "),
+		tInterpolateOpen,
+		mkTok(tokenName, "item"),
+		mkTok(tokenPunctuation, "."),
+		mkTok(tokenName, "id"),
+		tInterpolateClose,
+		mkTok(tokenText, "<br>"),
+		tDblStringClose,
+		tSpace,
+		tPrintClose,
 		tEOF,
 	}},
 }

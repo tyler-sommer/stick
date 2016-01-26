@@ -47,6 +47,22 @@ var parseTests = []parseTest{
 	newParseTest("hello", "Hello {{ name }}", mkModule(newTextNode("Hello ", noPos), newPrintNode(newNameExpr("name", noPos), noPos))),
 	newParseTest("string expr", "Hello {{ 'Tyler' }}", mkModule(newTextNode("Hello ", noPos), newPrintNode(newStringExpr("Tyler", noPos), noPos))),
 	newParseTest(
+		"string interpolation",
+		`{{ "Hello, #{greeting} #{name|titlecase}." }}`,
+		mkModule(newPrintNode(
+			newBinaryExpr(
+				newBinaryExpr(
+					newBinaryExpr(
+						newBinaryExpr(newStringExpr("Hello, ", noPos), OpBinaryConcat, newNameExpr("greeting", noPos), noPos),
+						OpBinaryConcat,
+						newStringExpr(" ", noPos), noPos),
+					OpBinaryConcat,
+					newFilterExpr(newNameExpr("titlecase", noPos), []Expr{newNameExpr("name", noPos)}, noPos), noPos),
+				OpBinaryConcat,
+				newStringExpr(".", noPos), noPos),
+			noPos)),
+	),
+	newParseTest(
 		"simple tag",
 		"{% block something %}Body{% endblock %}",
 		mkModule(newBlockNode("something", newBodyNode(noPos, newTextNode("Body", noPos)), noPos)),
@@ -203,6 +219,11 @@ var parseTests = []parseTest{
 		"test parsing",
 		"{{ animal is mammal }}{{ 10 is not divisible by(3) }}",
 		mkModule(newPrintNode(newBinaryExpr(newNameExpr("animal", noPos), OpBinaryIs, newTestExpr(newNameExpr("mammal", noPos), []Expr{}, noPos), noPos), noPos), newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryIsNot, newTestExpr(newNameExpr("divisible by", noPos), []Expr{newNumberExpr("3", noPos)}, noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"comment",
+		"But{# This is a test #} not this.",
+		mkModule(newTextNode("But", noPos), newTextNode(" not this.", noPos)),
 	),
 }
 

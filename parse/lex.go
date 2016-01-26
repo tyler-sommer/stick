@@ -12,6 +12,7 @@ type tokenType int
 const (
 	tokenEOF tokenType = iota
 	tokenText
+	tokenComment
 	tokenName
 	tokenNumber
 	tokenTagOpen
@@ -27,6 +28,8 @@ const (
 	tokenHashClose
 	tokenStringOpen
 	tokenStringClose
+	tokenInterpolateOpen
+	tokenInterpolateClose
 	tokenPunctuation
 	tokenOperator
 	tokenWhitespace
@@ -34,27 +37,30 @@ const (
 )
 
 var names = map[tokenType]string{
-	tokenText:        "TEXT",
-	tokenName:        "NAME",
-	tokenNumber:      "NUMBER",
-	tokenTagOpen:     "TAG_OPEN",
-	tokenTagName:     "TAG_NAME",
-	tokenTagClose:    "TAG_CLOSE",
-	tokenPrintOpen:   "PRINT_OPEN",
-	tokenPrintClose:  "PRINT_CLOSE",
-	tokenParensOpen:  "PARENS_OPEN",
-	tokenParensClose: "PARENS_CLOSE",
-	tokenArrayOpen:   "ARRAY_OPEN",
-	tokenArrayClose:  "ARRAY_CLOSE",
-	tokenHashOpen:    "HASH_OPEN",
-	tokenHashClose:   "HASH_CLOSE",
-	tokenStringOpen:  "STRING_OPEN",
-	tokenStringClose: "STRING_CLOSE",
-	tokenPunctuation: "PUNCTUATION",
-	tokenOperator:    "OPERATOR",
-	tokenWhitespace:  "WHITESPACE",
-	tokenError:       "ERROR",
-	tokenEOF:         "EOF",
+	tokenText:             "TEXT",
+	tokenComment:          "COMMENT",
+	tokenName:             "NAME",
+	tokenNumber:           "NUMBER",
+	tokenTagOpen:          "TAG_OPEN",
+	tokenTagName:          "TAG_NAME",
+	tokenTagClose:         "TAG_CLOSE",
+	tokenPrintOpen:        "PRINT_OPEN",
+	tokenPrintClose:       "PRINT_CLOSE",
+	tokenParensOpen:       "PARENS_OPEN",
+	tokenParensClose:      "PARENS_CLOSE",
+	tokenArrayOpen:        "ARRAY_OPEN",
+	tokenArrayClose:       "ARRAY_CLOSE",
+	tokenHashOpen:         "HASH_OPEN",
+	tokenHashClose:        "HASH_CLOSE",
+	tokenStringOpen:       "STRING_OPEN",
+	tokenStringClose:      "STRING_CLOSE",
+	tokenInterpolateOpen:  "INTERPOLATE_OPEN",
+	tokenInterpolateClose: "INTERPOLATE_CLOSE",
+	tokenPunctuation:      "PUNCTUATION",
+	tokenOperator:         "OPERATOR",
+	tokenWhitespace:       "WHITESPACE",
+	tokenError:            "ERROR",
+	tokenEOF:              "EOF",
 }
 
 func (typ tokenType) String() string {
@@ -62,13 +68,15 @@ func (typ tokenType) String() string {
 }
 
 const (
-	delimEOF          = ""
-	delimOpenTag      = "{%"
-	delimCloseTag     = "%}"
-	delimOpenPrint    = "{{"
-	delimClosePrint   = "}}"
-	delimOpenComment  = "{#"
-	delimCloseComment = "#}"
+	delimEOF              = ""
+	delimOpenTag          = "{%"
+	delimCloseTag         = "%}"
+	delimOpenPrint        = "{{"
+	delimClosePrint       = "}}"
+	delimOpenComment      = "{#"
+	delimCloseComment     = "#}"
+	delimOpenInterpolate  = "#{"
+	delimCloseInterpolate = "}"
 )
 
 type token struct {
@@ -84,6 +92,15 @@ func (tok token) String() string {
 // stateFn may emit zero or more tokens.
 type stateFn func(*lexer) stateFn
 
+// mode defines the lexer's current operating mode.
+type mode int
+
+const (
+	modeClosed mode = iota
+	modeNormal
+	modeInterpolate
+)
+
 // lexer contains the current state of a lexer.
 type lexer struct {
 	start  int // The position of the last emission
@@ -93,7 +110,9 @@ type lexer struct {
 	input  string
 	tokens chan token
 	state  stateFn
+	mode   mode
 	last   token // The last emitted token
+	parens int   // Number of open parenthesis
 }
 
 // nextToken returns the next token emitted by the lexer.
@@ -115,7 +134,7 @@ func (l *lexer) tokenize() {
 
 // newLexer creates a lexer, ready to begin tokenizing.
 func newLexer(input string) *lexer {
-	return &lexer{0, 0, 1, 0, input, make(chan token), nil, token{}}
+	return &lexer{0, 0, 1, 0, input, make(chan token), nil, modeNormal, token{}, 0}
 }
 
 func (l *lexer) next() (val string) {
@@ -163,6 +182,7 @@ func (l *lexer) emit(t tokenType) {
 	l.start = l.pos
 	if tok.tokenType == tokenEOF {
 		close(l.tokens)
+		l.mode = modeClosed
 	}
 }
 
@@ -176,6 +196,12 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 func lexData(l *lexer) stateFn {
 	for {
 		switch {
+		case strings.HasPrefix(l.input[l.pos:], delimOpenComment):
+			if l.pos > l.start {
+				l.emit(tokenText)
+			}
+			return lexCommentOpen
+
 		case strings.HasPrefix(l.input[l.pos:], delimOpenTag):
 			if l.pos > l.start {
 				l.emit(tokenText)
@@ -325,8 +351,37 @@ func lexString(l *lexer) stateFn {
 		return l.errorf("unclosed string")
 	}
 
-	l.pos += closePos
-	l.emit(tokenText)
+	if open == `"` && strings.Contains(l.input[l.pos:closePos], delimOpenInterpolate) {
+		input := l.input
+		l.input = input[0 : l.pos+closePos]
+		for {
+			p := strings.Index(l.input[l.pos:], delimOpenInterpolate)
+			if p < 0 {
+				break
+			}
+			l.pos += p
+			l.emit(tokenText)
+			l.pos += len(delimOpenInterpolate)
+			l.emit(tokenInterpolateOpen)
+			l.mode = modeInterpolate
+			for ins := lexExpression; ins != nil; {
+				ins = ins(l)
+			}
+			if l.mode == modeClosed {
+				return nil
+			}
+			l.mode = modeNormal
+			l.emit(tokenInterpolateClose)
+		}
+		if l.pos < len(l.input) {
+			l.pos = len(l.input)
+			l.emit(tokenText)
+		}
+		l.input = input
+	} else {
+		l.pos += closePos
+		l.emit(tokenText)
+	}
 
 	l.next()
 	l.emit(tokenStringClose)
@@ -348,7 +403,7 @@ func lexOpenParens(l *lexer) stateFn {
 	default:
 		return l.errorf("Unknown parenthesis")
 	}
-
+	l.parens++
 	return lexExpression
 }
 
@@ -361,12 +416,15 @@ func lexCloseParens(l *lexer) stateFn {
 		l.emit(tokenArrayClose)
 
 	case str == "}":
+		if l.parens == 0 && l.mode == modeInterpolate {
+			return nil
+		}
 		l.emit(tokenHashClose)
 
 	default:
 		return l.errorf("Unknown parenthesis")
 	}
-
+	l.parens--
 	return lexExpression
 }
 
@@ -385,6 +443,24 @@ func lexName(l *lexer) stateFn {
 	l.emit(tokenName)
 
 	return lexExpression
+}
+
+func lexCommentOpen(l *lexer) stateFn {
+	l.pos += len(delimOpenComment)
+	l.start = l.pos
+	til := strings.Index(l.input[l.pos:], delimCloseComment)
+	if til < 0 {
+		til = len(l.input[l.start:])
+	}
+	l.pos += til
+	l.emit(tokenComment)
+	if !strings.HasPrefix(l.input[l.pos:], delimCloseComment) {
+		return l.errorf("Unclosed comment")
+	}
+	l.pos += len(delimCloseComment)
+	l.start = l.pos
+
+	return lexData
 }
 
 func lexTagOpen(l *lexer) stateFn {

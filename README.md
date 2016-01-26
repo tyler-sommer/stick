@@ -66,13 +66,13 @@ To do
 - [x] Text
 - [x] Tags
 - [x] Print statements
-- [ ] Comments
+- [x] Comments
 - [x] Expressions
-- [ ] String interpolation
+- [x] String interpolation
 
 #### Parser
 - [x] Raw output
-- [ ] Comments
+- [x] Comments
 - [ ] Basic tag support
     - [x] if/else if/else/endif
     - [x] extends
@@ -91,7 +91,7 @@ To do
     - [x] Unary expressions
     - [x] Binary expressions
     - [ ] Ternary "if"
-    - [ ] String interpolation
+    - [x] String interpolation
     - [x] Array and dot access
     - [x] Function calls
     - [x] Inline filter "expr|filter()"

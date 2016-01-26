@@ -227,6 +227,41 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		return name, nil
 
 	case tokenStringOpen:
+		exprs := make([]Expr, 0)
+		for {
+			nxt, err := t.expect(tokenText, tokenInterpolateOpen, tokenStringClose)
+			if err != nil {
+				return nil, err
+			}
+			switch nxt.tokenType {
+			case tokenText:
+				exprs = append(exprs, newStringExpr(nxt.value, nxt.Pos()))
+			case tokenInterpolateOpen:
+				exp, err := t.parseExpr()
+				if err != nil {
+					return nil, err
+				}
+				_, err = t.expect(tokenInterpolateClose)
+				if err != nil {
+					return nil, err
+				}
+				exprs = append(exprs, exp)
+			case tokenStringClose:
+				ln := len(exprs)
+				if ln > 1 {
+					var res *BinaryExpr
+					for i := 1; i < ln; i++ {
+						if res == nil {
+							res = newBinaryExpr(exprs[i-1], OpBinaryConcat, exprs[i], exprs[i-1].Pos())
+							continue
+						}
+						res = newBinaryExpr(res, OpBinaryConcat, exprs[i], res.Pos())
+					}
+					return res, nil
+				}
+				return exprs[0], nil
+			}
+		}
 		txt, err := t.expect(tokenText)
 		if err != nil {
 			return nil, err
