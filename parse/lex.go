@@ -351,7 +351,7 @@ func lexString(l *lexer) stateFn {
 		return l.errorf("unclosed string")
 	}
 
-	if open == `"` && strings.Contains(l.input[l.pos:closePos], delimOpenInterpolate) {
+	if open == `"` && strings.Contains(l.input[l.pos:l.pos+closePos], delimOpenInterpolate) {
 		input := l.input
 		l.input = input[0 : l.pos+closePos]
 		for {
