@@ -120,7 +120,7 @@ func (s *state) walk(node parse.Node) error {
 	switch node := node.(type) {
 	case *parse.ModuleNode:
 		if p := node.Parent(); p != nil {
-			tplName, err := s.walkExpr(p.TemplateRef())
+			tplName, err := s.evalExpr(p.TemplateRef())
 			if err != nil {
 				return err
 			}
@@ -142,7 +142,7 @@ func (s *state) walk(node parse.Node) error {
 	case *parse.TextNode:
 		io.WriteString(s.out, node.Text())
 	case *parse.PrintNode:
-		v, err := s.walkExpr(node.Expr())
+		v, err := s.evalExpr(node.Expr())
 		if err != nil {
 			return err
 		}
@@ -155,7 +155,7 @@ func (s *state) walk(node parse.Node) error {
 		// TODO: It seems this should never occur.
 		return errors.New("Unable to locate block " + name)
 	case *parse.IfNode:
-		v, err := s.walkExpr(node.Cond())
+		v, err := s.evalExpr(node.Cond())
 		if err != nil {
 			return err
 		}
@@ -198,7 +198,7 @@ func (s *state) walk(node parse.Node) error {
 }
 
 func (s *state) walkForNode(node *parse.ForNode) error {
-	res, err := s.walkExpr(node.Expr())
+	res, err := s.evalExpr(node.Expr())
 	if err != nil {
 		return err
 	}
@@ -232,14 +232,14 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 // Method walkInclude determines the necessary parameters for including or embedding a template.
 func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string]Value, err error) {
 	ctx = make(map[string]Value)
-	v, err := s.walkExpr(node.Tpl())
+	v, err := s.evalExpr(node.Tpl())
 	if err != nil {
 		return "", nil, err
 	}
 	tpl = CoerceString(v)
 	var with Value
 	if n := node.With(); n != nil {
-		with, err = s.walkExpr(n)
+		with, err = s.evalExpr(n)
 		// TODO: Assert "with" is a hash?
 		if err != nil {
 			return "", nil, err
@@ -258,8 +258,8 @@ func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string
 	return tpl, ctx, err
 }
 
-// Method walkExpr executes the given expression, returning a Value or error.
-func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
+// Method evalExpr evaluates the given expression, returning a Value or error.
+func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	switch exp := exp.(type) {
 	case *parse.NullExpr:
 		return nil, nil
@@ -280,9 +280,9 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 	case *parse.StringExpr:
 		return exp.Value(), nil
 	case *parse.GroupExpr:
-		return s.walkExpr(exp.Inner())
+		return s.evalExpr(exp.Inner())
 	case *parse.UnaryExpr:
-		in, err := s.walkExpr(exp.Expr())
+		in, err := s.evalExpr(exp.Expr())
 		if err != nil {
 			return nil, err
 		}
@@ -296,11 +296,11 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 			return -CoerceNumber(in), nil
 		}
 	case *parse.BinaryExpr:
-		left, err := s.walkExpr(exp.Left())
+		left, err := s.evalExpr(exp.Left())
 		if err != nil {
 			return nil, err
 		}
-		right, err := s.walkExpr(exp.Right())
+		right, err := s.evalExpr(exp.Right())
 		if err != nil {
 			return nil, err
 		}
@@ -380,34 +380,22 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 			return CoerceBool(left) && CoerceBool(right), nil
 		}
 	case *parse.FuncExpr:
-		fnName := exp.Name()
-		if fn, ok := s.env.Functions[fnName]; ok {
-			eargs := exp.Args()
-			args := make([]Value, len(eargs))
-			for i, e := range eargs {
-				v, err := s.walkExpr(e)
-				if err != nil {
-					return nil, err
-				}
-				args[i] = v
-			}
-
-			return fn(s.env, args...), nil
-		}
-		return nil, errors.New("Undeclared function \"" + fnName + "\"")
+		return s.evalFunction(exp)
+	case *parse.FilterExpr:
+		return s.evalFilter(exp)
 	case *parse.GetAttrExpr:
-		c, err := s.walkExpr(exp.Cont())
+		c, err := s.evalExpr(exp.Cont())
 		if err != nil {
 			return nil, err
 		}
-		k, err := s.walkExpr(exp.Attr())
+		k, err := s.evalExpr(exp.Attr())
 		if err != nil {
 			return nil, err
 		}
 		exargs := exp.Args()
 		args := make([]Value, len(exargs))
 		for k, e := range exargs {
-			v, err := s.walkExpr(e)
+			v, err := s.evalExpr(e)
 			if err != nil {
 				return nil, err
 			}
@@ -422,7 +410,7 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 			eargs := exp.Args()
 			args := make([]Value, len(eargs))
 			for i, e := range eargs {
-				v, err := s.walkExpr(e)
+				v, err := s.evalExpr(e)
 				if err != nil {
 					return nil, err
 				}
@@ -436,6 +424,43 @@ func (s *state) walkExpr(exp parse.Expr) (v Value, e error) {
 	}
 
 	return v, nil
+}
+
+func (s *state) evalFunction(exp *parse.FuncExpr) (v Value, e error) {
+	fnName := exp.Name()
+	if fn, ok := s.env.Functions[fnName]; ok {
+		eargs := exp.Args()
+		args := make([]Value, len(eargs))
+		for i, e := range eargs {
+			v, err := s.evalExpr(e)
+			if err != nil {
+				return nil, err
+			}
+			args[i] = v
+		}
+		return fn(s.env, args...), nil
+	}
+	return nil, errors.New("Undeclared function \"" + fnName + "\"")
+}
+
+func (s *state) evalFilter(exp *parse.FilterExpr) (v Value, e error) {
+	ftName := exp.Name()
+	if fn, ok := s.env.Filters[ftName]; ok {
+		eargs := exp.Args()
+		if len(eargs) == 0 {
+			return nil, errors.New("Filter call must receive at least one argument")
+		}
+		args := make([]Value, len(eargs))
+		for i, e := range eargs {
+			v, err := s.evalExpr(e)
+			if err != nil {
+				return nil, err
+			}
+			args[i] = v
+		}
+		return fn(s.env, args[0], args[1:]...), nil
+	}
+	return nil, errors.New("Undeclared filter \"" + ftName + "\"")
 }
 
 // execute kicks off execution of the given template.

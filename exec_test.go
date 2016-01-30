@@ -50,6 +50,8 @@ var tests = []execTest{
 		expect(`45 - 4 - 1 - 1 - 1`),
 	},
 	{"In and not in", `{{ 5 in set and 4 not in set }}`, map[string]Value{"set": []int{5, 10}}, expect(`1`)},
+	{"Function call", `{{ multiply(num, 5) }}`, map[string]Value{"num": 10}, expect(`50`)},
+	{"Filter call", `Welcome, {{ name|default('User') }}`, map[string]Value{"name": nil}, expect(`Welcome, User`)},
 }
 
 type expectedChecker func(actual string) (string, bool)
@@ -71,9 +73,8 @@ func optionExpect(expected ...string) expectedChecker {
 	}
 }
 
-func evaluateTest(t *testing.T, test execTest) {
+func evaluateTest(t *testing.T, env *Env, test execTest) {
 	w := &bytes.Buffer{}
-	env := NewEnv(&StringLoader{})
 	err := execute(test.tmpl, w, test.ctx, env)
 	if err != nil {
 		t.Errorf("%s: unexpected error: %s", test.name, err.Error())
@@ -86,7 +87,26 @@ func evaluateTest(t *testing.T, test execTest) {
 }
 
 func TestExec(t *testing.T) {
+	env := NewEnv(&StringLoader{})
+	env.Functions["multiply"] = func(env *Env, args ...Value) Value {
+		if len(args) != 2 {
+			return 0
+		}
+		return CoerceNumber(args[0]) * CoerceNumber(args[1])
+	}
+	env.Filters["default"] = func(env *Env, val Value, args ...Value) Value {
+		var d Value
+		if len(args) == 0 {
+			d = nil
+		} else {
+			d = args[0]
+		}
+		if CoerceString(val) == "" {
+			return d
+		}
+		return val
+	}
 	for _, test := range tests {
-		evaluateTest(t, test)
+		evaluateTest(t, env, test)
 	}
 }

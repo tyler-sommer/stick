@@ -105,14 +105,13 @@ To do
     - [x] embed
     - [ ] use
     - [x] include
-- [ ] Expressions
+- [x] Expressions
     - [x] literals
     - [x] binary operators
     - [x] unary operators
     - [x] get attribute
     - [x] function call
-    - [ ] filter application
-    - [ ] string interpolation
+    - [x] filter application
 - [ ] Other basic tags
 - [ ] Macros
 - [x] User defined functions

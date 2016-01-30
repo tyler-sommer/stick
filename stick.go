@@ -7,7 +7,7 @@ import (
 	"github.com/tyler-sommer/stick/parse"
 )
 
-// A Function represents a user-defined function.
+// A Func represents a user-defined function.
 // Functions can be called anywhere expressions are allowed.
 //	{% if form_valid(form) %}
 // Functions may take any number of arguments.

@@ -262,15 +262,6 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 				return exprs[0], nil
 			}
 		}
-		txt, err := t.expect(tokenText)
-		if err != nil {
-			return nil, err
-		}
-		_, err = t.expectValue(tokenStringClose, tok.value)
-		if err != nil {
-			return nil, err
-		}
-		return newStringExpr(txt.value, txt.Pos()), nil
 
 	default:
 		return nil, newError(tok)
