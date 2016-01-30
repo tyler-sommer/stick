@@ -52,6 +52,18 @@ var tests = []execTest{
 	{"In and not in", `{{ 5 in set and 4 not in set }}`, map[string]Value{"set": []int{5, 10}}, expect(`1`)},
 	{"Function call", `{{ multiply(num, 5) }}`, map[string]Value{"num": 10}, expect(`50`)},
 	{"Filter call", `Welcome, {{ name|default('User') }}`, map[string]Value{"name": nil}, expect(`Welcome, User`)},
+	{
+		"Basic use statement",
+		`{% extends '{% block message %}{% endblock %}' %}{% use '{% block message %}Hello{% endblock %}' %}`,
+		emptyCtx,
+		expect("Hello"),
+	},
+	{
+		"Extended use statement",
+		`{% extends '{% block message %}{% endblock %}' %}{% use '{% block message %}Hello{% endblock %}' with message as base_message %}{% block message %}{{ block('base_message') }}, World!{% endblock %}`,
+		emptyCtx,
+		expect("Hello, World!"),
+	},
 }
 
 type expectedChecker func(actual string) (string, bool)

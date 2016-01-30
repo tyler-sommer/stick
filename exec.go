@@ -12,6 +12,8 @@ import (
 
 	"fmt"
 
+	"bytes"
+
 	"github.com/tyler-sommer/stick/parse"
 )
 
@@ -129,6 +131,10 @@ func (s *state) walk(node parse.Node) error {
 				return err
 			}
 			s.blocks = append(s.blocks, tree.Blocks())
+			err = s.walkChild(node.BodyNode)
+			if err != nil {
+				return err
+			}
 			return s.walk(tree.Root())
 		}
 		return s.walk(node.BodyNode)
@@ -165,7 +171,7 @@ func (s *state) walk(node parse.Node) error {
 			s.walk(node.Else())
 		}
 	case *parse.IncludeNode:
-		tpl, ctx, err := s.walkInclude(node)
+		tpl, ctx, err := s.walkIncludeNode(node)
 		if err != nil {
 			return err
 		}
@@ -174,25 +180,45 @@ func (s *state) walk(node parse.Node) error {
 			return err
 		}
 	case *parse.EmbedNode:
-		tpl, ctx, err := s.walkInclude(node.IncludeNode)
+		tpl, ctx, err := s.walkIncludeNode(node.IncludeNode)
 		if err != nil {
 			return err
 		}
 		// TODO: We duplicate most of the "execute" function here.
-		s := newState(s.out, ctx, s.env)
+		si := newState(s.out, ctx, s.env)
 		tree, err := s.load(tpl)
 		if err != nil {
 			return err
 		}
-		s.blocks = append(s.blocks, node.Blocks(), tree.Blocks())
-		err = s.walk(tree.Root())
+		si.blocks = append(s.blocks, node.Blocks(), tree.Blocks())
+		err = si.walk(tree.Root())
 		if err != nil {
 			return err
 		}
+	case *parse.UseNode:
+		return s.walkUseNode(node)
 	case *parse.ForNode:
 		return s.walkForNode(node)
 	default:
 		return errors.New("Unknown node " + node.String())
+	}
+	return nil
+}
+
+// walkChild only executes a subset of nodes, intended to be used on child templates.
+func (s *state) walkChild(node parse.Node) error {
+	s.enter(node)
+	defer s.leave(node)
+	switch node := node.(type) {
+	case *parse.BodyNode:
+		for _, c := range node.Children() {
+			err := s.walkChild(c)
+			if err != nil {
+				return err
+			}
+		}
+	case *parse.UseNode:
+		return s.walkUseNode(node)
 	}
 	return nil
 }
@@ -230,7 +256,7 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 }
 
 // Method walkInclude determines the necessary parameters for including or embedding a template.
-func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string]Value, err error) {
+func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[string]Value, err error) {
 	ctx = make(map[string]Value)
 	v, err := s.evalExpr(node.Tpl())
 	if err != nil {
@@ -256,6 +282,30 @@ func (s *state) walkInclude(node *parse.IncludeNode) (tpl string, ctx map[string
 		}
 	}
 	return tpl, ctx, err
+}
+
+func (s *state) walkUseNode(node *parse.UseNode) error {
+	v, err := s.evalExpr(node.Tpl())
+	if err != nil {
+		return err
+	}
+	tpl := CoerceString(v)
+	tree, err := s.load(tpl)
+	if err != nil {
+		return err
+	}
+	blocks := tree.Blocks()
+	for orig, alias := range node.Aliases() {
+		v, ok := blocks[orig]
+		if !ok {
+			return errors.New("Unable to locate block with name \"" + orig + "\"")
+		}
+		blocks[alias] = v
+	}
+	l := len(s.blocks)
+	lb := s.blocks[l-1]
+	s.blocks = append(append(s.blocks[:l-1], blocks), lb)
+	return nil
 }
 
 // Method evalExpr evaluates the given expression, returning a Value or error.
@@ -428,6 +478,30 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 
 func (s *state) evalFunction(exp *parse.FuncExpr) (v Value, e error) {
 	fnName := exp.Name()
+	switch fnName {
+	case "block":
+		eargs := exp.Args()
+		if len(eargs) != 1 {
+			return nil, errors.New("block expects one parameter")
+		}
+		val, err := s.evalExpr(eargs[0])
+		if err != nil {
+			return nil, err
+		}
+		name := CoerceString(val)
+		if blk := s.getBlock(name); blk != nil {
+			pout := s.out
+			buf := &bytes.Buffer{}
+			s.out = buf
+			err = s.walk(blk.Body())
+			if err != nil {
+				return nil, err
+			}
+			s.out = pout
+			return buf.String(), nil
+		}
+		return nil, errors.New("Unable to locate block \"" + name + "\"")
+	}
 	if fn, ok := s.env.Functions[fnName]; ok {
 		eargs := exp.Args()
 		args := make([]Value, len(eargs))

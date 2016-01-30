@@ -225,6 +225,21 @@ var parseTests = []parseTest{
 		"But{# This is a test #} not this.",
 		mkModule(newTextNode("But", noPos), newTextNode(" not this.", noPos)),
 	),
+	newParseTest(
+		"use statement",
+		"{% use '::blocks.html.twig' %}",
+		mkModule(newUseNode(newStringExpr("::blocks.html.twig", noPos), map[string]string{}, noPos)),
+	),
+	newParseTest(
+		"use statement with one alias",
+		"{% use '::blocks.html.twig' with form_input as base_input %}",
+		mkModule(newUseNode(newStringExpr("::blocks.html.twig", noPos), map[string]string{"form_input": "base_input"}, noPos)),
+	),
+	newParseTest(
+		"use statement with muiltiple aliases",
+		"{% use '::blocks.html.twig' with form_input as base_input, form_radio as base_radio %}",
+		mkModule(newUseNode(newStringExpr("::blocks.html.twig", noPos), map[string]string{"form_input": "base_input", "form_radio": "base_radio"}, noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

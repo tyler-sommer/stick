@@ -16,7 +16,6 @@ const (
 	tokenName
 	tokenNumber
 	tokenTagOpen
-	tokenTagName
 	tokenTagClose
 	tokenPrintOpen
 	tokenPrintClose
@@ -42,7 +41,6 @@ var names = map[tokenType]string{
 	tokenName:             "NAME",
 	tokenNumber:           "NUMBER",
 	tokenTagOpen:          "TAG_OPEN",
-	tokenTagName:          "TAG_NAME",
 	tokenTagClose:         "TAG_CLOSE",
 	tokenPrintOpen:        "PRINT_OPEN",
 	tokenPrintClose:       "PRINT_CLOSE",

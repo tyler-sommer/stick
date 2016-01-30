@@ -1,6 +1,10 @@
 package parse
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+	"strings"
+)
 
 // Node is an item in the AST
 type Node interface {
@@ -288,4 +292,46 @@ func (t *EmbedNode) String() string {
 // Blocks returns all blocks to be used when embedding the template.
 func (t *EmbedNode) Blocks() map[string]*BlockNode {
 	return t.blockRefs
+}
+
+// A UseNode represents the inclusion of blocks from another template.
+// It is also possible to specify aliases for the imported blocks to avoid naming conflicts.
+//	{% use '::blocks.html.twig' with main as base_main, left as base_left %}
+type UseNode struct {
+	pos
+	tmpl    Expr
+	aliases map[string]string
+}
+
+func newUseNode(tmpl Expr, aliases map[string]string, pos pos) *UseNode {
+	return &UseNode{pos, tmpl, aliases}
+}
+
+// String returns a string representation of a UseNode.
+func (t *UseNode) String() string {
+	if l := len(t.aliases); l > 0 {
+		keys := make([]string, l)
+		i := 0
+		for orig := range t.aliases {
+			keys[i] = orig
+			i++
+		}
+		sort.Strings(keys)
+		res := make([]string, l)
+		for i, orig := range keys {
+			res[i] = orig + ": " + t.aliases[orig]
+		}
+		return fmt.Sprintf("Use(%s with %s)", t.tmpl, strings.Join(res, ", "))
+	}
+	return fmt.Sprintf("Use(%s)", t.tmpl)
+}
+
+// Tpl returns an expression containing the template name.
+func (t *UseNode) Tpl() Expr {
+	return t.tmpl
+}
+
+// Aliases returns a map of the specified block aliases.
+func (t *UseNode) Aliases() map[string]string {
+	return t.aliases
 }

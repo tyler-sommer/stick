@@ -26,6 +26,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseInclude(t, name.Pos())
 	case "embed":
 		return parseEmbed(t, name.Pos())
+	case "use":
+		return parseUse(t, name.Pos())
 	default:
 		return nil, newError(name)
 	}
@@ -407,4 +409,46 @@ func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
 		return
 	}
 	return
+}
+
+func parseUse(t *Tree, start pos) (Node, error) {
+	tmpl, err := t.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	tok, err := t.expect(tokenName, tokenTagClose)
+	if err != nil {
+		return nil, err
+	}
+	aliases := make(map[string]string)
+	if tok.tokenType == tokenName {
+		if tok.value != "with" {
+			return nil, newUnexpectedValueError(tok, "with")
+		}
+		for {
+			orig, err := t.expect(tokenName)
+			if err != nil {
+				return nil, err
+			}
+			tok, err = t.expectValue(tokenName, "as")
+			if err != nil {
+				return nil, err
+			}
+			alias, err := t.expect(tokenName)
+			if err != nil {
+				return nil, err
+			}
+			aliases[orig.value] = alias.value
+			tok, err = t.expect(tokenTagClose, tokenPunctuation)
+			if err != nil {
+				return nil, err
+			}
+			if tok.tokenType == tokenTagClose {
+				break
+			} else if tok.value != "," {
+				return nil, newUnexpectedValueError(tok, ",")
+			}
+		}
+	}
+	return newUseNode(tmpl, aliases, start), nil
 }

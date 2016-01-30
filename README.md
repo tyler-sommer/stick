@@ -84,7 +84,7 @@ To do
     - [ ] set
     - [ ] filter
     - [x] embed
-    - [ ] use
+    - [x] use
     - [ ] macro
     - [ ] do
 - [ ] Expressions
@@ -100,10 +100,10 @@ To do
 #### Executer
 - [x] Basic execution
 - [x] Template loading
-- [ ] Inheritance
+- [x] Inheritance
     - [x] extends
     - [x] embed
-    - [ ] use
+    - [x] use
     - [x] include
 - [x] Expressions
     - [x] literals
