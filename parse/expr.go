@@ -17,6 +17,11 @@ func newNameExpr(name string, pos pos) *NameExpr {
 	return &NameExpr{pos, name}
 }
 
+// All returns all the child Nodes in a NameExpr.
+func (exp *NameExpr) All() []Node {
+	return []Node{}
+}
+
 // Name returns the expression's name.
 func (exp *NameExpr) Name() string {
 	return exp.name
@@ -30,6 +35,11 @@ func (exp *NameExpr) String() string {
 // NullExpr represents a null literal.
 type NullExpr struct {
 	pos
+}
+
+// All returns all the child Nodes in a NullExpr.
+func (exp *NullExpr) All() []Node {
+	return []Node{}
 }
 
 func newNullExpr(pos pos) *NullExpr {
@@ -49,6 +59,11 @@ type BoolExpr struct {
 
 func newBoolExpr(value bool, pos pos) *BoolExpr {
 	return &BoolExpr{pos, value}
+}
+
+// All returns all the child Nodes in a UseNode.
+func (exp *BoolExpr) All() []Node {
+	return []Node{}
 }
 
 // Value returns the boolean value stored in the expression.
@@ -74,6 +89,11 @@ func newNumberExpr(val string, pos pos) *NumberExpr {
 	return &NumberExpr{pos, val}
 }
 
+// All returns all the child Nodes in a NumberExpr.
+func (exp *NumberExpr) All() []Node {
+	return []Node{}
+}
+
 // Value returns the value stored in the NumberExpr.
 func (exp *NumberExpr) Value() string {
 	return exp.value
@@ -94,6 +114,11 @@ func newStringExpr(text string, pos pos) *StringExpr {
 	return &StringExpr{pos, text}
 }
 
+// All returns all the child Nodes in a StringExpr.
+func (exp *StringExpr) All() []Node {
+	return []Node{}
+}
+
 // Value returns the stored string value.
 func (exp *StringExpr) Value() string {
 	return exp.text
@@ -109,6 +134,15 @@ type FuncExpr struct {
 	pos
 	name *NameExpr
 	args []Expr
+}
+
+// All returns all the child Nodes in a FuncExpr.
+func (exp *FuncExpr) All() []Node {
+	res := []Node{exp.name}
+	for _, n := range exp.args {
+		res = append(res, n)
+	}
+	return res
 }
 
 func newFuncExpr(name *NameExpr, args []Expr, pos pos) *FuncExpr {
@@ -171,6 +205,11 @@ func newBinaryExpr(left Expr, op string, right Expr, pos pos) *BinaryExpr {
 	return &BinaryExpr{pos, left, op, right}
 }
 
+// All returns all the child Nodes in a BinaryExpr.
+func (exp *BinaryExpr) All() []Node {
+	return []Node{exp.left, exp.right}
+}
+
 // Left returns the left operand expression.
 func (exp *BinaryExpr) Left() Expr {
 	return exp.left
@@ -202,6 +241,11 @@ func newUnaryExpr(op string, expr Expr, pos pos) *UnaryExpr {
 	return &UnaryExpr{pos, op, expr}
 }
 
+// All returns all the child Nodes in a UnaryExpr.
+func (exp *UnaryExpr) All() []Node {
+	return []Node{exp.expr}
+}
+
 // Expr returns the expression to be evaluated and operated on.
 func (exp *UnaryExpr) Expr() Expr {
 	return exp.expr
@@ -227,6 +271,11 @@ func newGroupExpr(inner Expr, pos pos) *GroupExpr {
 	return &GroupExpr{pos, inner}
 }
 
+// All returns all the child Nodes in a GroupExpr.
+func (exp *GroupExpr) All() []Node {
+	return []Node{exp.inner}
+}
+
 // Inner returns the inner expression of a GroupExpr.
 func (exp *GroupExpr) Inner() Expr {
 	return exp.inner
@@ -247,6 +296,15 @@ type GetAttrExpr struct {
 
 func newGetAttrExpr(cont Expr, attr Expr, args []Expr, pos pos) *GetAttrExpr {
 	return &GetAttrExpr{pos, cont, attr, args}
+}
+
+// All returns all the child Nodes in a GetAttrExpr.
+func (exp *GetAttrExpr) All() []Node {
+	res := []Node{exp.cont, exp.attr}
+	for _, v := range exp.args {
+		res = append(res, v)
+	}
+	return res
 }
 
 // String returns a string representation of a GetAttrExpr.

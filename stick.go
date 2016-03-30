@@ -27,21 +27,13 @@ type Filter func(e *Env, val Value, args ...Value) Value
 //	{% if loop.index is divisible by(3) %}
 type Test func(e *Env, val Value, args ...Value) bool
 
-// A NodeVisitor can be used to modify node contents and structure during rendering.
-type NodeVisitor interface {
-	// Enter is called before the node is executed.
-	Enter(parse.Node)
-	// Exit is called after the node is executed.
-	Leave(parse.Node)
-}
-
-// Env represents the configuration of a Stick environment.
+// Env represents a configured Stick environment.
 type Env struct {
-	Loader    Loader            // Template loader.
-	Functions map[string]Func   // User-defined functions.
-	Filters   map[string]Filter // User-defined filters.
-	Tests     map[string]Test   // User-defined tests.
-	Visitors  []NodeVisitor     // Node visitors.
+	Loader    Loader              // Template loader.
+	Functions map[string]Func     // User-defined functions.
+	Filters   map[string]Filter   // User-defined filters.
+	Tests     map[string]Test     // User-defined tests.
+	Visitors  []parse.NodeVisitor // User-defined node visitors.
 }
 
 // NewEnv creates a new Env and returns it, ready to use.
@@ -49,8 +41,7 @@ func NewEnv(loader Loader) *Env {
 	if loader == nil {
 		loader = &StringLoader{}
 	}
-
-	return &Env{loader, make(map[string]Func), make(map[string]Filter), make(map[string]Test), make([]NodeVisitor, 0)}
+	return &Env{loader, make(map[string]Func), make(map[string]Filter), make(map[string]Test), make([]parse.NodeVisitor, 0)}
 }
 
 // Execute parses and executes the given template.

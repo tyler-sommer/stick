@@ -80,7 +80,10 @@ func (s *state) load(name string) (*parse.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	tree := parse.NewTree(name, cnt)
+	tree := parse.NewTree(cnt)
+	for _, v := range s.env.Visitors {
+		tree.Visitors = append(tree.Visitors, v)
+	}
 	err = tree.Parse()
 	if err != nil {
 		return nil, err
@@ -100,25 +103,8 @@ func (s *state) getBlock(name string) *parse.BlockNode {
 	return nil
 }
 
-// Enter is called when the given Node is entered.
-func (s *state) enter(node parse.Node) {
-	s.node = node
-	for _, v := range s.env.Visitors {
-		v.Enter(node)
-	}
-}
-
-// Leave is called just before the state exits the given Node.
-func (s *state) leave(node parse.Node) {
-	for _, v := range s.env.Visitors {
-		v.Leave(node)
-	}
-}
-
 // Method walk is the main entry-point into template execution.
 func (s *state) walk(node parse.Node) error {
-	s.enter(node)
-	defer s.leave(node)
 	switch node := node.(type) {
 	case *parse.ModuleNode:
 		if p := node.Parent(); p != nil {
@@ -139,7 +125,7 @@ func (s *state) walk(node parse.Node) error {
 		}
 		return s.walk(node.BodyNode)
 	case *parse.BodyNode:
-		for _, c := range node.Children() {
+		for _, c := range node.All() {
 			err := s.walk(c)
 			if err != nil {
 				return err
@@ -207,11 +193,9 @@ func (s *state) walk(node parse.Node) error {
 
 // walkChild only executes a subset of nodes, intended to be used on child templates.
 func (s *state) walkChild(node parse.Node) error {
-	s.enter(node)
-	defer s.leave(node)
 	switch node := node.(type) {
 	case *parse.BodyNode:
-		for _, c := range node.Children() {
+		for _, c := range node.All() {
 			err := s.walkChild(c)
 			if err != nil {
 				return err
@@ -539,6 +523,9 @@ func (s *state) evalFilter(exp *parse.FilterExpr) (v Value, e error) {
 
 // execute kicks off execution of the given template.
 func execute(name string, out io.Writer, ctx map[string]Value, env *Env) error {
+	if ctx == nil {
+		ctx = make(map[string]Value)
+	}
 	s := newState(out, ctx, env)
 	tree, err := s.load(name)
 	if err != nil {

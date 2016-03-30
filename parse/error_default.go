@@ -12,7 +12,8 @@ type baseError struct {
 }
 
 func (e *baseError) setTree(t *Tree) {
-	e.name = t.name
+	// TODO
+	// e.name = t.name
 }
 
 func newBaseError(p pos) *baseError {

@@ -2,11 +2,16 @@
 // into AST for further processing.
 package parse
 
+// A NodeVisitor can be used to modify node contents and structure.
+type NodeVisitor interface {
+	// Enter is called before the node is executed.
+	Enter(Node)
+	// Exit is called after the node is executed.
+	Leave(Node)
+}
+
 // Tree represents the state of a parser.
 type Tree struct {
-	name  string // The name of this template.
-	input string // The original template body.
-
 	lex *lexer
 
 	root   *ModuleNode
@@ -14,18 +19,19 @@ type Tree struct {
 
 	unread []token // Any tokens received by the lexer but not yet read.
 	read   []token // Tokens that have already been read.
+
+	Visitors []NodeVisitor
 }
 
-// NewTree creates a new Tree, ready for use.
-func NewTree(name, input string) *Tree {
+// NewTree creates a new parser Tree, ready for use.
+func NewTree(input string) *Tree {
 	return &Tree{
-		name:   name,
-		input:  input,
-		lex:    newLexer(input),
-		root:   newModuleNode(),
-		blocks: []map[string]*BlockNode{make(map[string]*BlockNode)},
-		unread: make([]token, 0),
-		read:   make([]token, 0),
+		lex:      newLexer(input),
+		root:     newModuleNode(),
+		blocks:   []map[string]*BlockNode{make(map[string]*BlockNode)},
+		unread:   make([]token, 0),
+		read:     make([]token, 0),
+		Visitors: make([]NodeVisitor, 0),
 	}
 }
 
@@ -152,9 +158,34 @@ func (t *Tree) expectValue(typ tokenType, val string) (token, error) {
 	return tok, nil
 }
 
+// Enter is called when the given Node is entered.
+func (t *Tree) enter(n Node) {
+	for _, v := range t.Visitors {
+		v.Enter(n)
+	}
+}
+
+// Leave is called just before the state exits the given Node.
+func (t *Tree) leave(n Node) {
+	for _, v := range t.Visitors {
+		v.Leave(n)
+	}
+}
+
+func (t *Tree) traverse(n Node) {
+	if n == nil {
+		return
+	}
+	t.enter(n)
+	for _, c := range n.All() {
+		t.traverse(c)
+	}
+	t.leave(n)
+}
+
 // Parse parses the given input.
 func Parse(input string) (*Tree, error) {
-	t := NewTree("", input)
+	t := NewTree(input)
 	return t, t.Parse()
 }
 
@@ -167,11 +198,12 @@ func (t *Tree) Parse() error {
 			return t.errorf(err)
 		}
 		if n == nil {
-			// expected end of input
-			return nil
+			break
 		}
 		t.root.append(n)
 	}
+	t.traverse(t.root)
+	return nil
 }
 
 // parse parses generic input, such as text markup, print or tag statement opening tokens.

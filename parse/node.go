@@ -10,6 +10,7 @@ import (
 type Node interface {
 	Pos() pos
 	String() string
+	All() []Node
 }
 
 // Type pos is an internal type used to represent the
@@ -72,8 +73,8 @@ func (l *BodyNode) String() string {
 	return fmt.Sprintf("Body%s", l.nodes)
 }
 
-// Children returns all the child Nodes in a BodyNode.
-func (l *BodyNode) Children() []Node {
+// All returns all the child Nodes in a BodyNode.
+func (l *BodyNode) All() []Node {
 	return l.nodes
 }
 
@@ -97,6 +98,11 @@ func (t *TextNode) Text() string {
 	return t.data
 }
 
+// All returns all the child Nodes in a TextNode.
+func (t *TextNode) All() []Node {
+	return []Node{}
+}
+
 // PrintNode represents a print statement
 type PrintNode struct {
 	pos
@@ -115,6 +121,11 @@ func (t *PrintNode) Expr() Expr {
 // String returns a string representation of a PrintNode.
 func (t *PrintNode) String() string {
 	return fmt.Sprintf("Print(%s)", t.exp)
+}
+
+// All returns all the child Nodes in a PrintNode.
+func (t *PrintNode) All() []Node {
+	return []Node{t.exp}
 }
 
 // BlockNode represents a block statement
@@ -141,6 +152,11 @@ func (t *BlockNode) Body() Node {
 // String returns a string representation of a BlockNode.
 func (t *BlockNode) String() string {
 	return fmt.Sprintf("Block(%s: %s)", t.name, t.body)
+}
+
+// All returns all the child Nodes in a BlockNode.
+func (t *BlockNode) All() []Node {
+	return []Node{t.body}
 }
 
 // IfNode represents an if statement
@@ -175,6 +191,11 @@ func (t *IfNode) String() string {
 	return fmt.Sprintf("If(%s: %s Else: %s)", t.cond, t.body, t.els)
 }
 
+// All returns all the child Nodes in a IfNode.
+func (t *IfNode) All() []Node {
+	return []Node{t.cond, t.body, t.els}
+}
+
 // ExtendsNode represents an extends statement
 type ExtendsNode struct {
 	pos
@@ -195,6 +216,11 @@ func (t *ExtendsNode) String() string {
 	return fmt.Sprintf("Extends(%s)", t.tplRef)
 }
 
+// All returns all the child Nodes in a ExtendsNode.
+func (t *ExtendsNode) All() []Node {
+	return []Node{t.tplRef}
+}
+
 // ForNode represents a for loop construct.
 type ForNode struct {
 	pos
@@ -212,6 +238,11 @@ func newForNode(k, v string, expr Expr, body, els Node, p pos) *ForNode {
 // String returns a string representation of a ForNode.
 func (t *ForNode) String() string {
 	return fmt.Sprintf("For(%s, %s in %s: %s else %s)", t.key, t.val, t.expr, t.body, t.els)
+}
+
+// All returns all the child Nodes in a ForNode.
+func (t *ForNode) All() []Node {
+	return []Node{t.expr, t.body, t.els}
 }
 
 // Key returns the name of the key variable during iteration. Key will be an empty
@@ -257,6 +288,11 @@ func (t *IncludeNode) String() string {
 	return fmt.Sprintf("Include(%s with %s %v)", t.tmpl, t.with, t.only)
 }
 
+// All returns all the child Nodes in a IncludeNode.
+func (t *IncludeNode) All() []Node {
+	return []Node{t.tmpl, t.with}
+}
+
 // Tpl returns an expression containing a template name.
 func (t *IncludeNode) Tpl() Expr {
 	return t.tmpl
@@ -287,6 +323,15 @@ func newEmbedNode(tmpl Expr, with Expr, only bool, blocks map[string]*BlockNode,
 // String returns a string representation of an EmbedNode.
 func (t *EmbedNode) String() string {
 	return fmt.Sprintf("Embed(%s with %s %v: %v)", t.tmpl, t.with, t.only, t.blockRefs)
+}
+
+// All returns all the child Nodes in a EmbedNode.
+func (t *EmbedNode) All() []Node {
+	r := t.IncludeNode.All()
+	for _, blk := range t.blockRefs {
+		r = append(r, blk)
+	}
+	return r
 }
 
 // Blocks returns all blocks to be used when embedding the template.
@@ -324,6 +369,11 @@ func (t *UseNode) String() string {
 		return fmt.Sprintf("Use(%s with %s)", t.tmpl, strings.Join(res, ", "))
 	}
 	return fmt.Sprintf("Use(%s)", t.tmpl)
+}
+
+// All returns all the child Nodes in a UseNode.
+func (t *UseNode) All() []Node {
+	return []Node{t.tmpl}
 }
 
 // Tpl returns an expression containing the template name.
