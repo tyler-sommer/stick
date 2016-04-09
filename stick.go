@@ -1,4 +1,3 @@
-// Package stick is a go-language port of the Twig templating engine.
 package stick
 
 import (

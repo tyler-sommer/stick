@@ -23,8 +23,11 @@ autoescape content based on content type.
 
 ##### In development
 
-Stick is made up of three main parts: a lexer, a parser, and an executer. Stick's lexer and parser are 
-nearly complete. Basic template execution is implemented as well.
+Stick is currently fairly usable except for a few important missing features: macros,
+autoescaping, whitespace control, and proper error handling, unfortunately.
+
+Stick is made up of three main parts: a lexer, a parser, and a template executer. Stick's lexer
+is complete. Parsing and template execution is under development, but core functionality is complete.
 
 See the [to do list](#to-do) for additional information.
 
@@ -57,6 +60,8 @@ func main() {
 	env.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"})
 }
 ```
+
+See [godoc for more information](https://godoc.org/github.com/tyler-sommer/stick).
 
 
 To do
@@ -115,13 +120,13 @@ To do
 - [ ] Other basic tags
 - [ ] Macros
 - [x] User defined functions
-- [ ] User defined filters
+- [x] User defined filters
 - [ ] Autoescaping
+- [ ] Whitespace control
 
 ##### Further
 - [ ] Improve error reporting
 - [ ] Improve test coverage (especially error cases)
-- [ ] Whitespace control
 - [ ] Custom operators and tags
 - [ ] Sandbox
 - [ ] Generate native Go code from a given parser tree
