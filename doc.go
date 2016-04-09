@@ -36,7 +36,7 @@ Stick makes no restriction on what is stored in a stick.Value, but some built-in
 operators will try to coerce a value into a boolean, string, or number depending
 on the operation.
 
-BUG(tyler-sommer): Missing documentation on operators, tests, functions, filters, and much more.
+BUG(ts): Missing documentation on operators, tests, functions, filters, and much more.
 
 For additional information on Twig, check http://twig.sensiolabs.org/
 */
