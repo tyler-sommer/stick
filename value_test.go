@@ -4,28 +4,45 @@ import (
 	"testing"
 )
 
+type testType struct {}
+
+func (t testType) String() string {
+	return "some string"
+}
+
+func (t testType) Boolean() bool {
+	return true
+}
+
+func (t testType) Number() float64 {
+	return 42
+}
+
 var stringTests = map[Value]string{
-	"string": "string",
-	true:     "1",
-	false:    "",
-	3:        "3",
-	3.14:     "3.14",
+	testType{}: "some string",
+	"string":   "string",
+	true:       "1",
+	false:      "",
+	3:          "3",
+	3.14:       "3.14",
 }
 
 var boolTests = map[Value]bool{
-	true:   true,
-	false:  false,
-	1:      true,
-	0:      false,
-	"true": true,
-	"":     false,
+	testType{}: true,
+	true:       true,
+	false:      false,
+	1:          true,
+	0:          false,
+	"true":     true,
+	"":         false,
 }
 
 var numberTests = map[Value]float64{
-	3:     3.0,
-	"3":   3.0,
-	true:  1,
-	false: 0,
+	testType{}: 42,
+	3:          3.0,
+	"3":        3.0,
+	true:       1,
+	false:      0,
 }
 
 func TestValue(t *testing.T) {

@@ -10,12 +10,34 @@ import (
 // and used by a Stick template.
 type Value interface{}
 
+// Stringer is implemented by any value that has a String method.
+// The String method should return a string representation of the value.
+type Stringer interface {
+	fmt.Stringer
+}
+
+// Number is implemented by any value that has a Number method.
+// The Number method should return a float64 representation of the
+// value.
+type Number interface {
+	Number() float64
+}
+
+// Boolean is implemented by any value that has a Boolean method.
+// The Boolean method should return a boolean representation of the
+// valie.
+type Boolean interface {
+	Boolean() bool
+}
+
 // CoerceBool coerces the given value into a boolean. Boolean false is returned
 // if the value cannot be coerced.
 func CoerceBool(v Value) bool {
 	switch vc := v.(type) {
 	case bool:
 		return vc
+	case Boolean:
+		return vc.Boolean()
 	case uint:
 		return vc > 0
 	case int:
@@ -24,24 +46,40 @@ func CoerceBool(v Value) bool {
 		return vc > 0
 	case string:
 		return len(vc) > 0
+	case Stringer:
+		return len(vc.String()) > 0
+	case Number:
+		return vc.Number() > 0
 	}
 	return false
+}
+
+func stringToFloat(s string) float64 {
+	fv, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0
+	}
+	return fv
 }
 
 // CoerceNumber coerces the given value into a number. Zero (0) is returned
 // if the value cannot be coerced.
 func CoerceNumber(v Value) float64 {
 	switch vc := v.(type) {
-	case string:
-		fv, err := strconv.ParseFloat(vc, 64)
-		if err != nil {
-			return 0
-		}
-		return fv
+	case Number:
+		return vc.Number()
 	case float64:
 		return vc
 	case int:
 		return float64(vc)
+	case Stringer:
+		return stringToFloat(vc.String())
+	case string:
+		return stringToFloat(vc)
+	case Boolean:
+		if vc.Boolean() {
+			return 1
+		}
 	case bool:
 		if vc {
 			return 1
@@ -56,15 +94,21 @@ func CoerceString(v Value) string {
 	switch vc := v.(type) {
 	case string:
 		return vc
+	case Stringer:
+		return vc.String()
 	case float64, int, uint:
 		return fmt.Sprintf("%v", vc)
+	case Number:
+		return fmt.Sprintf("%v", vc.Number())
+	case Boolean:
+		if vc.Boolean() == true {
+			return "1" // Twig compatibility (aka PHP compatibility)
+		}
 	case bool:
 		if vc == true {
-			// Twig compatibility (aka PHP compatibility)
-			return "1"
+			return "1" // Twig compatibility (aka PHP compatibility)
 		}
-	case fmt.Stringer:
-		return vc.String()
+
 	}
 	return ""
 }
