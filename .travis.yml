@@ -10,8 +10,8 @@ os:
   - linux
   - osx
 env:
-  - GOARCH=386
-  - GOARCH=amd64
+  - GIMME_ARCH=386
+  - GIMME_ARCH=amd64
 
 matrix:
   fast_finish: true
