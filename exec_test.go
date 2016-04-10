@@ -19,8 +19,9 @@ type testPerson struct {
 	name string
 }
 
-func (p testPerson) Name(prefix string) string {
-	return prefix + p.name
+func (p *testPerson) Name(prefix string) string {
+	p.name = prefix + p.name
+	return p.name
 }
 
 var tests = []execTest{
@@ -34,7 +35,7 @@ var tests = []execTest{
 	{"Constant null", `{% if test == null %}Yes{% else %}no{% endif %}`, map[string]Value{"test": nil}, expect(`Yes`)},
 	{"Constant bool", `{% if test == true %}Yes{% else %}no{% endif %}`, map[string]Value{"test": false}, expect(`no`)},
 	{"Chained attributes", `{{ entity.attr.Name }}`, map[string]Value{"entity": map[string]Value{"attr": struct{ Name string }{"Tyler"}}}, expect(`Tyler`)},
-	{"Attribute method call", `{{ entity.Name('lower') }}`, map[string]Value{"entity": testPerson{"Johnny"}}, expect(`lowerJohnny`)},
+	{"Attribute method call", `{{ entity.Name('lower') }}`, map[string]Value{"entity": &testPerson{"Johnny"}}, expect(`lowerJohnny`)},
 	{"For loop", `{% for i in 1..3 %}{{ i }}{% endfor %}`, emptyCtx, expect(`123`)},
 	{"For else", `{% for i in emptySet %}{{ i }}{% else %}No results.{% endfor %}`, map[string]Value{"emptySet": []int{}}, expect(`No results.`)},
 	{
@@ -63,6 +64,18 @@ var tests = []execTest{
 		`{% extends '{% block message %}{% endblock %}' %}{% use '{% block message %}Hello{% endblock %}' with message as base_message %}{% block message %}{{ block('base_message') }}, World!{% endblock %}`,
 		emptyCtx,
 		expect("Hello, World!"),
+	},
+	{
+		"Set statement",
+		`{% set val = 'a value' %}{{ val }}`,
+		emptyCtx,
+		expect("a value"),
+	},
+	{
+		"Do statement",
+		`{% do p.Name('Mister ') %}{{ p.Name('') }}`,
+		map[string]Value{"p": &testPerson{"Meeseeks"}},
+		expect("Mister Meeseeks"),
 	},
 }
 

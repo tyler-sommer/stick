@@ -28,6 +28,10 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseEmbed(t, name.Pos())
 	case "use":
 		return parseUse(t, name.Pos())
+	case "set":
+		return parseSet(t, name.Pos())
+	case "do":
+		return parseDo(t, name.Pos())
 	default:
 		return nil, newError(name)
 	}
@@ -451,4 +455,42 @@ func parseUse(t *Tree, start pos) (Node, error) {
 		}
 	}
 	return newUseNode(tmpl, aliases, start), nil
+}
+
+// parseSet parses a set statement.
+//
+//   {% set <var> = <expr> %}
+func parseSet(t *Tree, start pos) (Node, error) {
+	tok, err := t.expect(tokenName)
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.expectValue(tokenPunctuation, "=")
+	if err != nil {
+		return nil, err
+	}
+	expr, err := t.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.expect(tokenTagClose)
+	if err != nil {
+		return nil, err
+	}
+	return newSetNode(tok.value, expr, start), nil
+}
+
+// parseDo parses a do statement.
+//
+//   {% do <expr> %}
+func parseDo(t *Tree, start pos) (Node, error) {
+	expr, err := t.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.expect(tokenTagClose)
+	if err != nil {
+		return nil, err
+	}
+	return newDoNode(expr, start), nil
 }

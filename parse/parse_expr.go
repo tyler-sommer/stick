@@ -96,7 +96,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 		var right Node
 		var err error
 		if op.op == OpBinaryIs || op.op == OpBinaryIsNot {
-			right, err = t.parseIsRightOperand(nil)
+			right, err = t.parseRightTestOperand(nil)
 			if err != nil {
 				return nil, err
 			}
@@ -136,7 +136,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 // parseIsRightOperand handles "is" and "is not" tests, which can
 // themselves be two words, such as "divisible by":
 //	{% if 10 is divisible by(3) %}
-func (t *Tree) parseIsRightOperand(prev *NameExpr) (*TestExpr, error) {
+func (t *Tree) parseRightTestOperand(prev *NameExpr) (*TestExpr, error) {
 	right, err := t.parseInnerExpr()
 	if err != nil {
 		return nil, err
@@ -144,7 +144,7 @@ func (t *Tree) parseIsRightOperand(prev *NameExpr) (*TestExpr, error) {
 	if prev == nil {
 		if r, ok := right.(*NameExpr); ok {
 			if nxt := t.peekNonSpace(); nxt.tokenType == tokenName {
-				return t.parseIsRightOperand(r)
+				return t.parseRightTestOperand(r)
 			}
 		}
 	}

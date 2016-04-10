@@ -515,7 +515,7 @@ func isNumeric(str string) bool {
 
 func isPunctuation(str string) bool {
 	for _, s := range str {
-		if !strings.ContainsAny(string(s), ",|?:.") {
+		if !strings.ContainsAny(string(s), ",|?:.=") {
 			return false
 		}
 	}

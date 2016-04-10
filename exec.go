@@ -185,6 +185,10 @@ func (s *state) walk(node parse.Node) error {
 		return s.walkUseNode(node)
 	case *parse.ForNode:
 		return s.walkForNode(node)
+	case *parse.SetNode:
+		return s.walkSetNode(node)
+	case *parse.DoNode:
+		return s.walkDoNode(node)
 	default:
 		return errors.New("Unknown node " + node.String())
 	}
@@ -289,6 +293,23 @@ func (s *state) walkUseNode(node *parse.UseNode) error {
 	l := len(s.blocks)
 	lb := s.blocks[l-1]
 	s.blocks = append(append(s.blocks[:l-1], blocks), lb)
+	return nil
+}
+
+func (s *state) walkSetNode(node *parse.SetNode) error {
+	v, err := s.evalExpr(node.Expr())
+	if err != nil {
+		return err
+	}
+	s.scope.set(node.VarName(), v)
+	return nil
+}
+
+func (s *state) walkDoNode(node *parse.DoNode) error {
+	_, err := s.evalExpr(node.Expr())
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

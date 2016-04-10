@@ -385,3 +385,59 @@ func (t *UseNode) Tpl() Expr {
 func (t *UseNode) Aliases() map[string]string {
 	return t.aliases
 }
+
+// SetNode is a set operation on the given varName.
+type SetNode struct {
+	pos
+	varName string
+	expr    Expr
+}
+
+func newSetNode(varName string, expr Expr, pos pos) *SetNode {
+	return &SetNode{pos, varName, expr}
+}
+
+// VarName returns the name of the variable to set.
+func (t *SetNode) VarName() string {
+	return t.varName
+}
+
+// Expr returns the right-hand expression in the set statement.
+func (t *SetNode) Expr() Expr {
+	return t.expr
+}
+
+// String returns a string representation of an SetNode.
+func (t *SetNode) String() string {
+	return fmt.Sprintf("Set(%s = %v)", t.varName, t.expr)
+}
+
+// All returns all the child Nodes in a SetNode.
+func (t *SetNode) All() []Node {
+	return []Node{t.expr}
+}
+
+// DoNode simply executes the expression it contains.
+type DoNode struct {
+	pos
+	expr Expr
+}
+
+func newDoNode(expr Expr, pos pos) *DoNode {
+	return &DoNode{pos, expr}
+}
+
+// Expr returns the expression in the do statement.
+func (t *DoNode) Expr() Expr {
+	return t.expr
+}
+
+// String returns a string representation of an DoNode.
+func (t *DoNode) String() string {
+	return fmt.Sprintf("Do(%v)", t.expr)
+}
+
+// All returns all the child Nodes in a DoNode.
+func (t *DoNode) All() []Node {
+	return []Node{t.expr}
+}

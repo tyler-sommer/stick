@@ -240,6 +240,16 @@ var parseTests = []parseTest{
 		"{% use '::blocks.html.twig' with form_input as base_input, form_radio as base_radio %}",
 		mkModule(newUseNode(newStringExpr("::blocks.html.twig", noPos), map[string]string{"form_input": "base_input", "form_radio": "base_radio"}, noPos)),
 	),
+	newParseTest(
+		"set statement",
+		"{% set varn = 'test' %}",
+		mkModule(newSetNode("varn", newStringExpr("test", noPos), noPos)),
+	),
+	newParseTest(
+		"do statement",
+		"{% do somefunc() %}",
+		mkModule(newDoNode(newFuncExpr(newNameExpr("somefunc", noPos), []Expr{}, noPos), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

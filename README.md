@@ -26,7 +26,7 @@ autoescape content based on content type.
 Stick is currently fairly usable except for a few important missing features: macros,
 autoescaping, whitespace control, and proper error handling, unfortunately.
 
-Stick is made up of three main parts: a lexer, a parser, and a template executer. Stick's lexer
+Stick is made up of three main parts: a lexer, a parser, and a template executor. Stick's lexer
 is complete. Parsing and template execution is under development, but core functionality is complete.
 
 See the [to do list](#to-do) for additional information.
@@ -86,12 +86,12 @@ To do
     - [x] include
     - [ ] import
     - [ ] from
-    - [ ] set
+    - [x] set
     - [ ] filter
     - [x] embed
     - [x] use
     - [ ] macro
-    - [ ] do
+    - [x] do
 - [ ] Expressions
     - [x] Unary expressions
     - [x] Binary expressions
@@ -102,7 +102,7 @@ To do
     - [x] Inline filter "expr|filter()"
     - [x] Method calls
 
-#### Executer
+#### Template Execution
 - [x] Basic execution
 - [x] Template loading
 - [x] Inheritance
