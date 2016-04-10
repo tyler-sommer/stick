@@ -12,12 +12,12 @@ Obligatory "Hello, World!" example:
 
 	env := stick.NewEnv(nil); // A nil loader means stick will simply execute
 	                          // the string passed into env.Execute.
+
 	// Templates receive a map of string to any value.
 	p := map[string]stick.Value{"name": "World"}
-	err := env.Execute("Hello, {{ name }}!", os.Stdout, )
-	if err != nil { panic(err) }
 
-In the previous example, notice that we passed in os.Stdout. Any io.Writer can be used.
+	// Substitute os.Stdout with any io.Writer.
+	env.Execute("Hello, {{ name }}!", os.Stdout, p)
 
 Another example, using a FilesystemLoader and responding to an HTTP request:
 
@@ -76,7 +76,7 @@ number, or boolean, respectively.
 	b := stick.CoerceBool(anything)
 
 
-Functions, filters, and tests
+User defined helpers
 
 It is possible to define custom Filters, Functions, and boolean Tests available to
 your Stick templates. Each user-defined type is simply a function with a specific
