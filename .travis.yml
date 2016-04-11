@@ -6,11 +6,12 @@ go:
   - 1.6
   - tip
 
+os:
+  - linux
+  - osx
+
 env:
-  - GIMME_OS=linux GIMME_ARCH=386
   - GIMME_OS=linux GIMME_ARCH=amd64
-  - GIMME_OS=darwin GIMME_ARCH=amd64
-  - GIMME_OS=freebsd GIMME_ARCH=amd64
 
 matrix:
   fast_finish: true
