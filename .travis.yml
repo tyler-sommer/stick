@@ -11,7 +11,7 @@ os:
   - osx
 
 env:
-  - GIMME_OS=linux GIMME_ARCH=amd64
+  - GIMME_ARCH=amd64
 
 matrix:
   fast_finish: true
