@@ -316,8 +316,6 @@ func (s *state) walkDoNode(node *parse.DoNode) error {
 }
 
 func (s *state) walkFilterNode(node *parse.FilterNode) error {
-	// Create a new io.Writer as a buffer
-	// Execute body of template... scope issues?
 	prevBuf := s.out
 	defer func() {
 		s.out = prevBuf
