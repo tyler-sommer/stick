@@ -95,6 +95,12 @@ var tests = []execTest{
 		emptyCtx,
 		expect("HI!"),
 	},
+	{
+		"Ternary if",
+		`{{ false ? (true ? "Hello" : "World") : "Words" }}`,
+		emptyCtx,
+		expect("Words"),
+	},
 }
 
 type expectedChecker func(actual string) (string, bool)

@@ -92,10 +92,10 @@ To do
     - [x] embed
     - [x] use
     - [x] do
-- [ ] Expressions
+- [x] Expressions
     - [x] Unary expressions
     - [x] Binary expressions
-    - [ ] Ternary "if"
+    - [x] Ternary "if"
     - [x] String interpolation
     - [x] Array and dot access
     - [x] Function calls

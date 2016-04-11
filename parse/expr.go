@@ -329,3 +329,40 @@ func (exp *GetAttrExpr) Attr() Expr {
 func (exp *GetAttrExpr) Args() []Expr {
 	return exp.args
 }
+
+// TernaryIfExpr represents an attempt to retrieve an attribute from a value.
+type TernaryIfExpr struct {
+	pos
+	cond Expr
+	tx   Expr
+	fx   Expr
+}
+
+func newTernaryIfExpr(cond, tx, fx Expr, pos pos) *TernaryIfExpr {
+	return &TernaryIfExpr{pos, cond, tx, fx}
+}
+
+// All returns all the child Nodes in a TernaryIfExpr.
+func (exp *TernaryIfExpr) All() []Node {
+	return []Node{exp.cond, exp.tx, exp.fx}
+}
+
+// String returns a string representation of a TernaryIfExpr.
+func (exp *TernaryIfExpr) String() string {
+	return fmt.Sprintf("%s ? %s : %v", exp.cond, exp.tx, exp.fx)
+}
+
+// Cond returns the conditional expression to be evaluated.
+func (exp *TernaryIfExpr) Cond() Expr {
+	return exp.cond
+}
+
+// TrueExpr returns the expression to be evaluated when cond is true.
+func (exp *TernaryIfExpr) TrueExpr() Expr {
+	return exp.tx
+}
+
+// FalseExpr returns the expression to be evaluated when cond is false.
+func (exp *TernaryIfExpr) FalseExpr() Expr {
+	return exp.fx
+}

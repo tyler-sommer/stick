@@ -40,7 +40,7 @@ var parseTests = []parseTest{
 	newErrorTest("unclosed if", "{% if test %}", `unclosed tag "if" starting on line 1, column 3`),
 	newErrorTest("unexpected end (function call)", "{{ func('arg1'", `unexpected end of input on line 1, column 14`),
 	newErrorTest("unclosed parenthesis", "{{ func(arg1 }}", `expected one of [PUNCTUATION, PARENS_CLOSE], got "PRINT_CLOSE" on line 1, column 13`),
-	newErrorTest("unexpected punctuation", "{{ func(arg1? arg2) }}", `unexpected "?", expected "," on line 1, column 12`),
+	newErrorTest("unexpected punctuation", "{{ func(arg1? arg2) }}", `expected "PUNCTUATION", got "PARENS_CLOSE"`),
 
 	// Valid
 	newParseTest("text", "some text", mkModule(newTextNode("some text", noPos))),
@@ -274,6 +274,11 @@ var parseTests = []parseTest{
 		"from statement",
 		"{% from '::macros.html.twig' import input as field, textarea %}",
 		mkModule(newFromNode(newStringExpr("::macros.html.twig", noPos), map[string]string{"input": "field", "textarea": "textarea"}, noPos)),
+	),
+	newParseTest(
+		"ternary if expression",
+		"{{ test ? 'Hello' : 'World' }}",
+		mkModule(newPrintNode(newTernaryIfExpr(newNameExpr("test", noPos), newStringExpr("Hello", noPos), newStringExpr("World", noPos), noPos), noPos)),
 	),
 }
 

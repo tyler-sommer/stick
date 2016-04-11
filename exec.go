@@ -589,6 +589,15 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			}, nil
 		}
 		return nil, fmt.Errorf(`unknown test "%v"`, exp.Name())
+	case *parse.TernaryIfExpr:
+		cond, err := s.evalExpr(exp.Cond())
+		if err != nil {
+			return nil, err
+		}
+		if CoerceBool(cond) == true {
+			return s.evalExpr(exp.TrueExpr())
+		}
+		return s.evalExpr(exp.FalseExpr())
 	}
 
 	return v, nil

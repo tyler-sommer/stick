@@ -82,6 +82,21 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				return nil, newError(nt)
 			}
 
+		case "?": // Ternary if
+			tx, err := t.parseExpr()
+			if err != nil {
+				return nil, err
+			}
+			_, err = t.expectValue(tokenPunctuation, ":")
+			if err != nil {
+				return nil, err
+			}
+			fx, err := t.parseExpr()
+			if err != nil {
+				return nil, err
+			}
+			return newTernaryIfExpr(expr, tx, fx, expr.Pos()), nil
+
 		default:
 			t.backup()
 			return expr, nil
