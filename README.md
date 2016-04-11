@@ -26,8 +26,8 @@ autoescape content based on content type.
 Stick is currently quite usable except for a few important missing features: autoescaping,
 whitespace control, and proper error handling.
 
-Stick is made up of three main parts: a lexer, a parser, and a template executor. Stick's lexer
-is complete. Parsing and template execution is under development, but most functionality is complete.
+Stick is made up of three main parts: a lexer, a parser, and a template executor. Stick's lexer and
+parser are complete. Template execution is under development, but most functionality is complete.
 
 See the [to do list](#to-do) for additional information.
 
@@ -67,60 +67,6 @@ See [godoc for more information](https://godoc.org/github.com/tyler-sommer/stick
 To do
 -----
 
-#### Lexer
-- [x] Text
-- [x] Tags
-- [x] Print statements
-- [x] Comments
-- [x] Expressions
-- [x] String interpolation
-
-#### Parser
-- [x] Raw output
-- [x] Comments
-- [x] Basic tag support
-    - [x] if/else if/else/endif
-    - [x] extends
-    - [x] block
-    - [x] for loop
-    - [x] include
-    - [x] macro
-    - [x] import
-    - [x] from
-    - [x] set
-    - [x] filter
-    - [x] embed
-    - [x] use
-    - [x] do
-- [x] Expressions
-    - [x] Unary expressions
-    - [x] Binary expressions
-    - [x] Ternary "if"
-    - [x] String interpolation
-    - [x] Array and dot access
-    - [x] Function calls
-    - [x] Inline filter "expr|filter()"
-    - [x] Method calls
-
-#### Template Execution
-- [x] Basic execution
-- [x] Template loading
-- [x] Inheritance
-    - [x] extends
-    - [x] embed
-    - [x] use
-    - [x] include
-- [x] Expressions
-    - [x] literals
-    - [x] binary operators
-    - [x] unary operators
-    - [x] get attribute
-    - [x] function call
-    - [x] filter application
-- [x] Other basic tags
-- [x] Macros
-- [x] User defined functions
-- [x] User defined filters
 - [ ] Autoescaping
 - [ ] Whitespace control
 - [ ] Improve error reporting
