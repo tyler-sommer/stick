@@ -471,3 +471,107 @@ func (t *FilterNode) Filters() []string {
 func (t *FilterNode) Body() Node {
 	return t.body
 }
+
+// MacroNode represents a reusable macro.
+type MacroNode struct {
+	pos
+	name string
+	args []string
+	body *BodyNode
+}
+
+func newMacroNode(name string, args []string, body *BodyNode, p pos) *MacroNode {
+	return &MacroNode{p, name, args, body}
+}
+
+// String returns a string representation of a MacroNode.
+func (t *MacroNode) String() string {
+	return fmt.Sprintf("Macro %s(%s): %s", t.name, strings.Join(t.args, ", "), t.body)
+}
+
+// All returns all the child Nodes in a MacroNode.
+func (t *MacroNode) All() []Node {
+	return []Node{t.body}
+}
+
+// Name returns the macro name.
+func (t *MacroNode) Name() string {
+	return t.name
+}
+
+// Args returns a slice containing the name of arguments.
+func (t *MacroNode) Args() []string {
+	return t.args
+}
+
+// Body returns the body macro.
+func (t *MacroNode) Body() Node {
+	return t.body
+}
+
+// ImportNode represents importing macros from another template.
+type ImportNode struct {
+	pos
+	tmpl  Expr
+	alias string
+}
+
+func newImportNode(tpl Expr, alias string, p pos) *ImportNode {
+	return &ImportNode{p, tpl, alias}
+}
+
+// String returns a string representation of a ImportNode.
+func (t *ImportNode) String() string {
+	return fmt.Sprintf("Import (%s as %s)", t.tmpl, t.alias)
+}
+
+// All returns all the child Nodes in a ImportNode.
+func (t *ImportNode) All() []Node {
+	return []Node{t.tmpl}
+}
+
+// Tpl returns an expression containing the name of the template to import.
+func (t *ImportNode) Tpl() Expr {
+	return t.tmpl
+}
+
+// Alias returns the name to use when importing macros.
+func (t *ImportNode) Name() string {
+	return t.alias
+}
+
+// FromNode represents an alternative form of importing macros.
+type FromNode struct {
+	pos
+	tmpl    Expr
+	imports map[string]string
+}
+
+func newFromNode(tpl Expr, imports map[string]string, p pos) *FromNode {
+	return &FromNode{p, tpl, imports}
+}
+
+// String returns a string representation of a FromNode.
+func (t *FromNode) String() string {
+	var im []string
+	for orig, alias := range t.imports {
+		im = append(im, orig+" as "+alias)
+	}
+
+	return fmt.Sprintf("From (%s import) %s", t.tmpl, strings.Join(im, ", "))
+}
+
+// All returns all the child Nodes in a FromNode.
+func (t *FromNode) All() []Node {
+	return []Node{t.tmpl}
+}
+
+// Tpl returns an expression containing the name of the template to import.
+func (t *FromNode) Tpl() Expr {
+	return t.tmpl
+}
+
+// Imports returns a map containing the imported macro names.
+func (t *FromNode) Imports() map[string]string {
+	return t.imports
+}

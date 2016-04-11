@@ -255,6 +255,21 @@ var parseTests = []parseTest{
 		"{% filter upper|escape %}Some text{% endfilter %}",
 		mkModule(newFilterNode([]string{"upper", "escape"}, newBodyNode(noPos, newTextNode("Some text", noPos)), noPos)),
 	),
+	newParseTest(
+		"simple macro",
+		"{% macro thing(var1, var2) %}Hello{% endmacro %}",
+		mkModule(newMacroNode("thing", []string{"var1", "var2"}, newBodyNode(noPos, newTextNode("Hello", noPos)), noPos)),
+	),
+	newParseTest(
+		"import statement",
+		"{% import '::macros.html.twig' as macros %}",
+		mkModule(newImportNode(newStringExpr("::macros.html.twig", noPos), "macros", noPos)),
+	),
+	newParseTest(
+		"from statement",
+		"{% from '::macros.html.twig' import input as field, textarea %}",
+		mkModule(newFromNode(newStringExpr("::macros.html.twig", noPos), map[string]string{"input": "field", "textarea": "textarea"}, noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

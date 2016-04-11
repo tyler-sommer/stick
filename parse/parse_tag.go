@@ -1,6 +1,9 @@
 package parse
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // A tagParser can parse the body of a tag, returning the resulting Node or an error.
 // TODO: This will be used to implement user-defined tags.
@@ -34,6 +37,12 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseDo(t, name.Pos())
 	case "filter":
 		return parseFilter(t, name.Pos())
+	case "macro":
+		return parseMacro(t, name.Pos())
+	case "import":
+		return parseImport(t, name.Pos())
+	case "from":
+		return parseFrom(t, name.Pos())
 	default:
 		return nil, newError(name)
 	}
@@ -532,4 +541,115 @@ body:
 		return nil, err
 	}
 	return newFilterNode(filters, body, start), nil
+}
+
+// parseMacro parses a macro definition.
+//
+// 	{% macro <name>([ arg [ , arg]) %}
+//	Macro body
+//	{% endmacro %}
+func parseMacro(t *Tree, start pos) (Node, error) {
+	tok, err := t.expect(tokenName)
+	if err != nil {
+		return nil, err
+	}
+	name := tok.value
+	_, err = t.expect(tokenParensOpen)
+	if err != nil {
+		return nil, err
+	}
+	var args []string
+	for {
+		tok = t.nextNonSpace()
+		switch tok.tokenType {
+		case tokenEOF:
+			return nil, newUnexpectedEOFError(tok)
+		case tokenName:
+			args = append(args, tok.value)
+		case tokenPunctuation:
+			if tok.value != "," {
+				return nil, newUnexpectedValueError(tok, ",")
+			}
+		case tokenParensClose:
+			_, err := t.expect(tokenTagClose)
+			if err != nil {
+				return nil, err
+			}
+			goto body
+		default:
+			fmt.Println(tok)
+			return nil, newUnexpectedTokenError(tok)
+		}
+	}
+body:
+	body, err := t.parseUntilEndTag("macro", start)
+	if err != nil {
+		return nil, err
+	}
+	return newMacroNode(name, args, body, start), nil
+}
+
+// parseImport parses an import statement.
+//
+// 	{% import <name> as <alias> %}
+func parseImport(t *Tree, start pos) (Node, error) {
+	name, err := t.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.expectValue(tokenName, "as")
+	if err != nil {
+		return nil, err
+	}
+	tok, err := t.expect(tokenName)
+	if err != nil {
+		return nil, err
+	}
+	return newImportNode(name, tok.value, start), nil
+}
+
+// parseImport parses an import statement.
+//
+// 	{% from <name> import <name>[ as <alias>[ , <name... ] ] %}
+func parseFrom(t *Tree, start pos) (Node, error) {
+	name, err := t.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.expectValue(tokenName, "import")
+	if err != nil {
+		return nil, err
+	}
+	imports := make(map[string]string)
+	for {
+		tok := t.nextNonSpace()
+		switch tok.tokenType {
+		case tokenEOF:
+			return nil, newUnexpectedEOFError(tok)
+		case tokenName:
+			mal := tok.value
+			mna := mal
+			tok = t.peekNonSpace()
+			if tok.tokenType == tokenName {
+				t.nextNonSpace()
+				if tok.value != "as" {
+					return nil, newUnexpectedValueError(tok, "as")
+				}
+				tok, err = t.expect(tokenName)
+				if err != nil {
+					return nil, err
+				}
+				mal = tok.value
+			}
+			imports[mna] = mal
+		case tokenPunctuation:
+			if tok.value != "," {
+				return nil, newUnexpectedValueError(tok, ",")
+			}
+		case tokenTagClose:
+			return newFromNode(name, imports, start), nil
+		default:
+			return nil, newUnexpectedTokenError(tok)
+		}
+	}
 }
