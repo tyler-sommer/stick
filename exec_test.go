@@ -77,6 +77,12 @@ var tests = []execTest{
 		map[string]Value{"p": &testPerson{"Meeseeks"}},
 		expect("Mister Meeseeks"),
 	},
+	{
+		"Filter statement",
+		`{% filter upper %}hello, world!{% endfilter %}`,
+		emptyCtx,
+		expect("HELLO, WORLD!"),
+	},
 }
 
 type expectedChecker func(actual string) (string, bool)
@@ -118,6 +124,9 @@ func TestExec(t *testing.T) {
 			return 0
 		}
 		return CoerceNumber(args[0]) * CoerceNumber(args[1])
+	}
+	env.Filters["upper"] = func(env *Env, val Value, args ...Value) Value {
+		return strings.ToUpper(CoerceString(val))
 	}
 	env.Filters["default"] = func(env *Env, val Value, args ...Value) Value {
 		var d Value

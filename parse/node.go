@@ -441,3 +441,33 @@ func (t *DoNode) String() string {
 func (t *DoNode) All() []Node {
 	return []Node{t.expr}
 }
+
+// FilterNode represents a block of filtered data.
+type FilterNode struct {
+	pos
+	filters []string
+	body    Node
+}
+
+func newFilterNode(filters []string, body Node, p pos) *FilterNode {
+	return &FilterNode{p, filters, body}
+}
+
+// String returns a string representation of a FilterNode.
+func (t *FilterNode) String() string {
+	return fmt.Sprintf("Filter (%s): %s", strings.Join(t.filters, "|"), t.body)
+}
+
+// All returns all the child Nodes in a FilterNode.
+func (t *FilterNode) All() []Node {
+	return []Node{t.body}
+}
+
+func (t *FilterNode) Filters() []string {
+	return t.filters
+}
+
+// Body returns the body Node to be filtered.
+func (t *FilterNode) Body() Node {
+	return t.body
+}

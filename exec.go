@@ -189,6 +189,8 @@ func (s *state) walk(node parse.Node) error {
 		return s.walkSetNode(node)
 	case *parse.DoNode:
 		return s.walkDoNode(node)
+	case *parse.FilterNode:
+		return s.walkFilterNode(node)
 	default:
 		return errors.New("Unknown node " + node.String())
 	}
@@ -313,6 +315,31 @@ func (s *state) walkDoNode(node *parse.DoNode) error {
 	return nil
 }
 
+func (s *state) walkFilterNode(node *parse.FilterNode) error {
+	// Create a new io.Writer as a buffer
+	// Execute body of template... scope issues?
+	prevBuf := s.out
+	defer func() {
+		s.out = prevBuf
+	}()
+	buf := &bytes.Buffer{}
+	s.out = buf
+	err := s.walk(node.Body())
+	if err != nil {
+		return err
+	}
+	val := string(buf.Bytes())
+	for _, v := range node.Filters() {
+		f, ok := s.env.Filters[v]
+		if !ok {
+			return errors.New("undefined filter \"" + v + "\".")
+		}
+		val = CoerceString(f(s.env, val))
+	}
+	io.WriteString(prevBuf, val)
+	return nil
+}
+
 // Method evalExpr evaluates the given expression, returning a Value or error.
 func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	switch exp := exp.(type) {
@@ -324,7 +351,7 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 		if val, ok := s.scope.get(exp.Name()); ok {
 			v = val
 		} else {
-			e = errors.New("Undefined variable \"" + exp.Name() + "\"")
+			e = errors.New("undefined variable \"" + exp.Name() + "\"")
 		}
 	case *parse.NumberExpr:
 		num, err := strconv.ParseFloat(exp.Value(), 64)

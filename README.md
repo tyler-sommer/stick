@@ -84,13 +84,13 @@ To do
     - [x] block
     - [x] for loop
     - [x] include
+    - [ ] macro
     - [ ] import
     - [ ] from
     - [x] set
-    - [ ] filter
+    - [x] filter
     - [x] embed
     - [x] use
-    - [ ] macro
     - [x] do
 - [ ] Expressions
     - [x] Unary expressions

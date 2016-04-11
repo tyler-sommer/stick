@@ -32,6 +32,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseSet(t, name.Pos())
 	case "do":
 		return parseDo(t, name.Pos())
+	case "filter":
+		return parseFilter(t, name.Pos())
 	default:
 		return nil, newError(name)
 	}
@@ -493,4 +495,41 @@ func parseDo(t *Tree, start pos) (Node, error) {
 		return nil, err
 	}
 	return newDoNode(expr, start), nil
+}
+
+// parseFilter parses a filter statement.
+//
+// 	{% filter <name> %}
+//
+// Multiple filters can be applied to a block:
+//
+// 	{% filter <name>|<name>|<name> %}
+func parseFilter(t *Tree, start pos) (Node, error) {
+	var filters []string
+	for {
+		tok, err := t.expect(tokenName)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, tok.value)
+		tok = t.peekNonSpace()
+		switch tok.tokenType {
+		case tokenEOF:
+			return nil, newUnexpectedEOFError(tok)
+		case tokenPunctuation:
+			if tok.value != "|" {
+				return nil, newUnexpectedValueError(tok, "|")
+			}
+			t.nextNonSpace()
+		case tokenTagClose:
+			t.nextNonSpace()
+			goto body
+		}
+	}
+body:
+	body, err := t.parseUntilEndTag("filter", start)
+	if err != nil {
+		return nil, err
+	}
+	return newFilterNode(filters, body, start), nil
 }

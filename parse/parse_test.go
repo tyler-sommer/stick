@@ -250,6 +250,11 @@ var parseTests = []parseTest{
 		"{% do somefunc() %}",
 		mkModule(newDoNode(newFuncExpr(newNameExpr("somefunc", noPos), []Expr{}, noPos), noPos)),
 	),
+	newParseTest(
+		"filter statement",
+		"{% filter upper|escape %}Some text{% endfilter %}",
+		mkModule(newFilterNode([]string{"upper", "escape"}, newBodyNode(noPos, newTextNode("Some text", noPos)), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {
