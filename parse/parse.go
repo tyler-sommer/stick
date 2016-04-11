@@ -16,6 +16,7 @@ type Tree struct {
 
 	root   *ModuleNode
 	blocks []map[string]*BlockNode // Contains each block available to this template.
+	macros map[string]*MacroNode   // All macros defined on this template.
 
 	unread []token // Any tokens received by the lexer but not yet read.
 	read   []token // Tokens that have already been read.
@@ -29,6 +30,7 @@ func NewTree(input string) *Tree {
 		lex:      newLexer(input),
 		root:     newModuleNode(),
 		blocks:   []map[string]*BlockNode{make(map[string]*BlockNode)},
+		macros:   make(map[string]*MacroNode),
 		unread:   make([]token, 0),
 		read:     make([]token, 0),
 		Visitors: make([]NodeVisitor, 0),
@@ -43,6 +45,11 @@ func (t *Tree) Root() *ModuleNode {
 // Blocks returns a map of blocks in this tree.
 func (t *Tree) Blocks() map[string]*BlockNode {
 	return t.blocks[len(t.blocks)-1]
+}
+
+// Macros returns a map of macros defined in this tree.
+func (t *Tree) Macros() map[string]*MacroNode {
+	return t.macros
 }
 
 func (t *Tree) popBlockStack() map[string]*BlockNode {

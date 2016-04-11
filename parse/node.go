@@ -463,6 +463,7 @@ func (t *FilterNode) All() []Node {
 	return []Node{t.body}
 }
 
+// Filters returns a list of filters to apply.
 func (t *FilterNode) Filters() []string {
 	return t.filters
 }
@@ -536,7 +537,7 @@ func (t *ImportNode) Tpl() Expr {
 }
 
 // Alias returns the name to use when importing macros.
-func (t *ImportNode) Name() string {
+func (t *ImportNode) Alias() string {
 	return t.alias
 }
 
@@ -553,12 +554,22 @@ func newFromNode(tpl Expr, imports map[string]string, p pos) *FromNode {
 
 // String returns a string representation of a FromNode.
 func (t *FromNode) String() string {
-	var im []string
-	for orig, alias := range t.imports {
-		im = append(im, orig+" as "+alias)
+	keys := make([]string, len(t.imports))
+	i := 0
+	for orig := range t.imports {
+		keys[i] = orig
+		i++
 	}
-
-	return fmt.Sprintf("From (%s import) %s", t.tmpl, strings.Join(im, ", "))
+	sort.Strings(keys)
+	res := make([]string, len(t.imports))
+	for i, orig := range keys {
+		if orig == t.imports[orig] {
+			res[i] = orig
+		} else {
+			res[i] = orig + " as " + t.imports[orig]
+		}
+	}
+	return fmt.Sprintf("From %s import %s", t.tmpl, strings.Join(res, ", "))
 }
 
 // All returns all the child Nodes in a FromNode.

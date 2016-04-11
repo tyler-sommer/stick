@@ -23,11 +23,11 @@ autoescape content based on content type.
 
 ##### In development
 
-Stick is currently fairly usable except for a few important missing features: macros,
-autoescaping, whitespace control, and proper error handling, unfortunately.
+Stick is currently quite usable except for a few important missing features: autoescaping,
+whitespace control, and proper error handling.
 
 Stick is made up of three main parts: a lexer, a parser, and a template executor. Stick's lexer
-is complete. Parsing and template execution is under development, but core functionality is complete.
+is complete. Parsing and template execution is under development, but most functionality is complete.
 
 See the [to do list](#to-do) for additional information.
 
@@ -78,15 +78,15 @@ To do
 #### Parser
 - [x] Raw output
 - [x] Comments
-- [ ] Basic tag support
+- [x] Basic tag support
     - [x] if/else if/else/endif
     - [x] extends
     - [x] block
     - [x] for loop
     - [x] include
-    - [ ] macro
-    - [ ] import
-    - [ ] from
+    - [x] macro
+    - [x] import
+    - [x] from
     - [x] set
     - [x] filter
     - [x] embed
@@ -117,15 +117,15 @@ To do
     - [x] get attribute
     - [x] function call
     - [x] filter application
-- [ ] Other basic tags
-- [ ] Macros
+- [x] Other basic tags
+- [x] Macros
 - [x] User defined functions
 - [x] User defined filters
 - [ ] Autoescaping
 - [ ] Whitespace control
+- [ ] Improve error reporting
 
 ##### Further
-- [ ] Improve error reporting
 - [ ] Improve test coverage (especially error cases)
 - [ ] Custom operators and tags
 - [ ] Sandbox

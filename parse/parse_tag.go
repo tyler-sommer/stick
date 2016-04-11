@@ -1,9 +1,6 @@
 package parse
 
-import (
-	"errors"
-	"fmt"
-)
+import "errors"
 
 // A tagParser can parse the body of a tag, returning the resulting Node or an error.
 // TODO: This will be used to implement user-defined tags.
@@ -577,7 +574,6 @@ func parseMacro(t *Tree, start pos) (Node, error) {
 			}
 			goto body
 		default:
-			fmt.Println(tok)
 			return nil, newUnexpectedTokenError(tok)
 		}
 	}
@@ -586,7 +582,9 @@ body:
 	if err != nil {
 		return nil, err
 	}
-	return newMacroNode(name, args, body, start), nil
+	n := newMacroNode(name, args, body, start)
+	t.macros[name] = n
+	return n, nil
 }
 
 // parseImport parses an import statement.
@@ -602,6 +600,10 @@ func parseImport(t *Tree, start pos) (Node, error) {
 		return nil, err
 	}
 	tok, err := t.expect(tokenName)
+	if err != nil {
+		return nil, err
+	}
+	_, err = t.expect(tokenTagClose)
 	if err != nil {
 		return nil, err
 	}

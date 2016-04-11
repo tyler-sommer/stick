@@ -22,23 +22,29 @@ type state struct {
 	out    io.Writer
 	node   parse.Node
 	blocks []map[string]*parse.BlockNode
+	macros map[string]*parse.MacroNode
 
 	env   *Env
 	scope *scopeStack
 }
 
+// A scopeStack is a structure that represents local
+// and parent scopes.
 type scopeStack struct {
 	scopes []map[string]Value
 }
 
+// push adds a scope on top of the stack.
 func (s *scopeStack) push() {
 	s.scopes = append(s.scopes, make(map[string]Value))
 }
 
+// pop removes the top-most scope.
 func (s *scopeStack) pop() {
 	s.scopes = s.scopes[0 : len(s.scopes)-1]
 }
 
+// all returns a flat map of the current scope.
 func (s *scopeStack) all() map[string]Value {
 	res := make(map[string]Value)
 	for _, scope := range s.scopes {
@@ -49,6 +55,12 @@ func (s *scopeStack) all() map[string]Value {
 	return res
 }
 
+// get returns a value in the scope.
+//
+// This function works from the current (local) scope
+// upward. The second parameter returns false if the
+// value was not found-- this can be used to distinguish
+// a non-existent value and a valid nil value.
 func (s *scopeStack) get(name string) (Value, bool) {
 	for i := len(s.scopes); i > 0; i-- {
 		scope := s.scopes[i-1]
@@ -59,6 +71,12 @@ func (s *scopeStack) get(name string) (Value, bool) {
 	return nil, false
 }
 
+// set sets the value in the scope.
+//
+// This function will work from the top-most scope downward,
+// looking for a scope with name defined. The value is set
+// on the scope that it was originally defined on, otherwise
+// on the local scope.
 func (s *scopeStack) set(name string, val Value) {
 	for _, scope := range s.scopes {
 		if _, ok := scope[name]; ok {
@@ -69,9 +87,30 @@ func (s *scopeStack) set(name string, val Value) {
 	s.scopes[len(s.scopes)-1][name] = val
 }
 
+// setLocal explicitly sets the value in the local scope.
+//
+// This is useful when a new scope is created, such as
+// a function call, and you need to override a local variable
+// without destroying the value in the parent scope.
+//
+//	fnParam := // an function argument's name
+// 	s.scope.push()
+//	defer s.scope.pop()
+//	s.scope.setLocal(fnParam, "some value")
+func (s *scopeStack) setLocal(name string, val Value) {
+	s.scopes[len(s.scopes)-1][name] = val
+}
+
 // Function newState creates a new template execution state, ready for use.
 func newState(out io.Writer, ctx map[string]Value, env *Env) *state {
-	return &state{out, nil, make([]map[string]*parse.BlockNode, 0), env, &scopeStack{[]map[string]Value{ctx}}}
+	return &state{
+		out,
+		nil,
+		make([]map[string]*parse.BlockNode, 0),
+		make(map[string]*parse.MacroNode),
+		env,
+		&scopeStack{[]map[string]Value{ctx}},
+	}
 }
 
 // Method load attempts to load and parse the given template.
@@ -131,6 +170,8 @@ func (s *state) walk(node parse.Node) error {
 				return err
 			}
 		}
+	case *parse.MacroNode:
+		return nil
 	case *parse.TextNode:
 		io.WriteString(s.out, node.Text())
 	case *parse.PrintNode:
@@ -191,6 +232,10 @@ func (s *state) walk(node parse.Node) error {
 		return s.walkDoNode(node)
 	case *parse.FilterNode:
 		return s.walkFilterNode(node)
+	case *parse.ImportNode:
+		return s.walkImportNode(node)
+	case *parse.FromNode:
+		return s.walkFromNode(node)
 	default:
 		return errors.New("Unknown node " + node.String())
 	}
@@ -338,6 +383,43 @@ func (s *state) walkFilterNode(node *parse.FilterNode) error {
 	return nil
 }
 
+func (s *state) walkImportNode(node *parse.ImportNode) error {
+	tpl, err := s.evalExpr(node.Tpl())
+	if err != nil {
+		return err
+	}
+	tree, err := s.load(CoerceString(tpl))
+	if err != nil {
+		return err
+	}
+	macros := make(map[string]macroDef)
+	for name, def := range tree.Macros() {
+		macros[name] = macroDef{def}
+	}
+	s.scope.set(node.Alias(), macroSet{macros})
+	return nil
+}
+
+func (s *state) walkFromNode(node *parse.FromNode) error {
+	tpl, err := s.evalExpr(node.Tpl())
+	if err != nil {
+		return err
+	}
+	tree, err := s.load(CoerceString(tpl))
+	if err != nil {
+		return err
+	}
+	macros := tree.Macros()
+	for name, alias := range node.Imports() {
+		def, ok := macros[name]
+		if !ok {
+			return errors.New("undefined macro " + name)
+		}
+		s.macros[alias] = def
+	}
+	return nil
+}
+
 // Method evalExpr evaluates the given expression, returning a Value or error.
 func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	switch exp := exp.(type) {
@@ -481,6 +563,12 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			}
 			args[k] = v
 		}
+		if set, ok := c.(macroSet); ok {
+			if macro, ok := set.defs[CoerceString(k)]; ok {
+				return s.callMacro(macro, args...)
+			}
+			return nil, errors.New("undefined macro: " + CoerceString(k))
+		}
 		v, err = GetAttr(c, CoerceString(k), args...)
 		if err != nil {
 			return nil, err
@@ -532,6 +620,18 @@ func (s *state) evalFunction(exp *parse.FuncExpr) (v Value, e error) {
 		}
 		return nil, errors.New("Unable to locate block \"" + name + "\"")
 	}
+	if macro, ok := s.macros[fnName]; ok {
+		eargs := exp.Args()
+		args := make([]Value, len(eargs))
+		for i, e := range eargs {
+			v, err := s.evalExpr(e)
+			if err != nil {
+				return nil, err
+			}
+			args[i] = v
+		}
+		return s.callMacro(macroDef{macro}, args...)
+	}
 	if fn, ok := s.env.Functions[fnName]; ok {
 		eargs := exp.Args()
 		args := make([]Value, len(eargs))
@@ -565,6 +665,37 @@ func (s *state) evalFilter(exp *parse.FilterExpr) (v Value, e error) {
 		return fn(s.env, args[0], args[1:]...), nil
 	}
 	return nil, errors.New("Undeclared filter \"" + ftName + "\"")
+}
+
+type macroDef struct {
+	*parse.MacroNode
+}
+
+type macroSet struct {
+	defs map[string]macroDef
+}
+
+func (s *state) callMacro(macro macroDef, args ...Value) (Value, error) {
+	s.scope.push()
+	defer s.scope.pop()
+	for i, name := range macro.Args() {
+		if i >= len(args) {
+			s.scope.setLocal(name, nil)
+		} else {
+			s.scope.setLocal(name, args[i])
+		}
+	}
+	prevBuf := s.out
+	defer func() {
+		s.out = prevBuf
+	}()
+	buf := &bytes.Buffer{}
+	s.out = buf
+	err := s.walk(macro.Body())
+	if err != nil {
+		return nil, err
+	}
+	return buf.String(), nil
 }
 
 // execute kicks off execution of the given template.

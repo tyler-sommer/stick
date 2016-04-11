@@ -83,6 +83,18 @@ var tests = []execTest{
 		emptyCtx,
 		expect("HELLO, WORLD!"),
 	},
+	{
+		"Import statement",
+		`{% import 'macros.twig' as mac %}{{ mac.test("hi") }}`,
+		emptyCtx,
+		expect("test: hi"),
+	},
+	{
+		"From statement",
+		`{% from 'macros.twig' import test, def as other %}{{ other("", "HI!") }}`,
+		emptyCtx,
+		expect("HI!"),
+	},
 }
 
 type expectedChecker func(actual string) (string, bool)
@@ -117,8 +129,27 @@ func evaluateTest(t *testing.T, env *Env, test execTest) {
 	}
 }
 
+type testLoader struct {
+	templates map[string]string
+}
+
+func (t *testLoader) Load(name string) (string, error) {
+	if b, ok := t.templates[name]; ok {
+		return b, nil
+	}
+	return name, nil
+}
+
 func TestExec(t *testing.T) {
-	env := NewEnv(&StringLoader{})
+	env := NewEnv(&testLoader{
+		map[string]string{
+			"macros.twig": `
+{% macro test(arg) %}test: {{ arg }}{% endmacro %}
+
+{% macro def(val, default) %}{% if not val %}{{ default }}{% else %}{{ val }}{% endif %}{% endmacro %}
+`,
+		},
+	})
 	env.Functions["multiply"] = func(env *Env, args ...Value) Value {
 		if len(args) != 2 {
 			return 0

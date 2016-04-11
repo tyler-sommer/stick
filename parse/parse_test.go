@@ -261,9 +261,14 @@ var parseTests = []parseTest{
 		mkModule(newMacroNode("thing", []string{"var1", "var2"}, newBodyNode(noPos, newTextNode("Hello", noPos)), noPos)),
 	),
 	newParseTest(
+		"simple macro2",
+		"{% macro thing(var2) %}Hello{% endmacro %}",
+		mkModule(newMacroNode("thing", []string{"var2"}, newBodyNode(noPos, newTextNode("Hello", noPos)), noPos)),
+	),
+	newParseTest(
 		"import statement",
-		"{% import '::macros.html.twig' as macros %}",
-		mkModule(newImportNode(newStringExpr("::macros.html.twig", noPos), "macros", noPos)),
+		"{% import '::macros.html.twig' as mac %}",
+		mkModule(newImportNode(newStringExpr("::macros.html.twig", noPos), "mac", noPos)),
 	),
 	newParseTest(
 		"from statement",
