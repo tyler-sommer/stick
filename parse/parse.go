@@ -76,7 +76,7 @@ func (t *Tree) setBlock(name string, body *BlockNode) {
 }
 
 func (t *Tree) enrichError(err error) error {
-	if err, ok := err.(Error); ok {
+	if err, ok := err.(ParsingError); ok {
 		err.setTree(t)
 	}
 	return err
@@ -253,5 +253,5 @@ func (t *Tree) parse() (Node, error) {
 		// expected end of input
 		return nil, nil
 	}
-	return nil, newError(tok)
+	return nil, newUnexpectedTokenError(tok)
 }

@@ -132,7 +132,7 @@ func (s *state) load(name string) (*parse.Tree, error) {
 }
 
 // Method getBlock iterates through each set of blocks, returning the first
-// block it encounters.
+// block with the given name.
 func (s *state) getBlock(name string) *parse.BlockNode {
 	for _, blocks := range s.blocks {
 		if block, ok := blocks[name]; ok {

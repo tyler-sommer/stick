@@ -24,7 +24,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			// TODO: This duplicates some code in parseInnerExpr, are both necessary?
 			return t.parseFunc(name)
 		default:
-			return nil, newError(nt)
+			return nil, newUnexpectedTokenError(nt)
 		}
 
 	case tokenArrayOpen, tokenPunctuation:
@@ -41,7 +41,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				case *NameExpr, *StringExpr, *NumberExpr, *GroupExpr:
 					// valid
 				default:
-					return nil, newError(nt)
+					return nil, newUnexpectedTokenError(nt)
 				}
 
 				_, err := t.expect(tokenArrayClose)
@@ -60,7 +60,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 					}
 					attr = newStringExpr(exp.Name(), exp.Pos())
 				default:
-					return nil, newError(nt)
+					return nil, newUnexpectedTokenError(nt)
 				}
 			}
 			return t.parseOuterExpr(newGetAttrExpr(expr, attr, args, nt.Pos()))
@@ -79,7 +79,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				return newFilterExpr(n.name, n.args, n.pos), nil
 
 			default:
-				return nil, newError(nt)
+				return nil, newUnexpectedTokenError(nt)
 			}
 
 		case "?": // Ternary if
@@ -105,7 +105,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 	case tokenOperator:
 		op, ok := binaryOperators[nt.value]
 		if !ok {
-			return nil, newError(nt)
+			return nil, newUnexpectedTokenError(nt)
 		}
 
 		var right Node
@@ -126,7 +126,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 		if ntt.tokenType == tokenOperator {
 			nxop, ok := binaryOperators[ntt.value]
 			if !ok {
-				return nil, newError(ntt)
+				return nil, newUnexpectedTokenError(ntt)
 			}
 			if nxop.precedence < op.precedence || (nxop.precedence == op.precedence && op.leftAssoc()) {
 				t.backup()
@@ -190,7 +190,7 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 	case tokenOperator:
 		op, ok := unaryOperators[tok.value]
 		if !ok {
-			return nil, newError(tok)
+			return nil, newUnexpectedTokenError(tok)
 		}
 		expr, err := t.parseExpr()
 		if err != nil {
@@ -279,7 +279,7 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		}
 
 	default:
-		return nil, newError(tok)
+		return nil, newUnexpectedTokenError(tok)
 	}
 }
 

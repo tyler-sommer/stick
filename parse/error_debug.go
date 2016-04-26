@@ -8,8 +8,7 @@ import (
 )
 
 type baseError struct {
-	p          pos
-	name       string
+	pos
 	debug      string
 	lastTokens []token
 }
@@ -27,27 +26,24 @@ func getTrace() string {
 	return res
 }
 
-func (e *baseError) SetName(n string) {
-	e.name = n
-}
-
 func (e *baseError) setTree(t *Tree) {
-	e.lastTokens = append(e.lastTokens, t.read[len(t.read)-5:]...)
+	l := len(t.read) - 5
+	if l < 0 {
+		l = 0
+	}
+	e.lastTokens = append(e.lastTokens, t.read[l:]...)
 	e.lastTokens = append(e.lastTokens, t.unread...)
 }
 
 func newBaseError(p pos) *baseError {
-	return &baseError{p, "", getTrace(), make([]token, 0)}
+	return &baseError{p, getTrace(), make([]token, 0)}
 }
 
 func (e *baseError) sprintf(format string, a ...interface{}) string {
 	res := fmt.Sprintf(format, a...)
-	nameStr := ""
-	if e.name != "" {
-		nameStr = fmt.Sprintf(" in %s", e.name)
-	}
-	if e.debug != "" {
-		return fmt.Sprintf("parse: %s on line %d, column %d%s\n\ncall stack:\n%s\ntokens:\n%v", res, e.p.Line, e.p.Offset, nameStr, e.debug, e.lastTokens)
-	}
-	return fmt.Sprintf("parse: %s on line %d, column %d%s", res, e.p.Line, e.p.Offset, nameStr)
+	return fmt.Sprintf("parse: %s on line %d, column %d", res, e.Line, e.Offset)
+}
+
+func (e *baseError) Debug() string {
+	return fmt.Sprintf("call stack:\n%s\ntokens:\n%v")
 }
