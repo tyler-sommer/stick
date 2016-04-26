@@ -2,15 +2,20 @@ package stick
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 )
 
 type execTest struct {
 	name     string
-	tmpl     string
+	tpl      string
 	ctx      map[string]Value
 	expected expectedChecker
+}
+
+func tpl(name, content string) *testTemplate {
+	return &testTemplate{name, content}
 }
 
 var emptyCtx = map[string]Value{}
@@ -124,7 +129,7 @@ func optionExpect(expected ...string) expectedChecker {
 
 func evaluateTest(t *testing.T, env *Env, test execTest) {
 	w := &bytes.Buffer{}
-	err := execute(test.tmpl, w, test.ctx, env)
+	err := execute(test.tpl, w, test.ctx, env)
 	if err != nil {
 		t.Errorf("%s: unexpected error: %s", test.name, err.Error())
 		return
@@ -136,26 +141,48 @@ func evaluateTest(t *testing.T, env *Env, test execTest) {
 }
 
 type testLoader struct {
-	templates map[string]string
+	templates map[string]Template
 }
 
-func (t *testLoader) Load(name string) (string, error) {
+func newTestLoader(templates []Template) *testLoader {
+	tpls := make(map[string]Template)
+	for i := 0; i < len(templates); i++ {
+		tpl := templates[i]
+		tpls[tpl.Name()] = tpl
+	}
+	return &testLoader{tpls}
+}
+
+type testTemplate struct {
+	name     string
+	contents string
+}
+
+func (t *testTemplate) Name() string {
+	return t.name
+}
+
+func (t *testTemplate) Contents() io.Reader {
+	return bytes.NewReader([]byte(t.contents))
+}
+
+func (t *testLoader) Load(name string) (Template, error) {
 	if b, ok := t.templates[name]; ok {
 		return b, nil
 	}
-	return name, nil
+	return tpl(name, name), nil
 }
 
 func TestExec(t *testing.T) {
-	env := NewEnv(&testLoader{
-		map[string]string{
-			"macros.twig": `
+	env := NewEnv(newTestLoader(
+		[]Template{
+			tpl("macros.twig", `
 {% macro test(arg) %}test: {{ arg }}{% endmacro %}
 
 {% macro def(val, default) %}{% if not val %}{{ default }}{% else %}{{ val }}{% endif %}{% endmacro %}
-`,
+`),
 		},
-	})
+	))
 	env.Functions["multiply"] = func(env *Env, args ...Value) Value {
 		if len(args) != 2 {
 			return 0

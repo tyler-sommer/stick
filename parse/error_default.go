@@ -11,10 +11,11 @@ type baseError struct {
 	name string
 }
 
-func (e *baseError) setTree(t *Tree) {
-	// TODO
-	// e.name = t.name
+func (e *baseError) SetName(n string) {
+	e.name = n
 }
+
+func (e *baseError) setTree(t *Tree) {}
 
 func newBaseError(p pos) *baseError {
 	return &baseError{p, ""}
@@ -22,5 +23,9 @@ func newBaseError(p pos) *baseError {
 
 func (e *baseError) sprintf(format string, a ...interface{}) string {
 	res := fmt.Sprintf(format, a...)
-	return fmt.Sprintf("parse: %s on line %d, column %d in %s", res, e.p.Line, e.p.Offset, e.name)
+	nameStr := ""
+	if e.name != "" {
+		nameStr = fmt.Sprintf(" in %s", e.name)
+	}
+	return fmt.Sprintf("parse: %s on line %d, column %d%s", res, e.p.Line, e.p.Offset, nameStr)
 }

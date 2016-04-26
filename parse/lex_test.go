@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -43,7 +44,7 @@ var lexTests = []lexTest{
 
 	{"unclosed comment", "{# Hello there", []token{
 		mkTok(tokenComment, " Hello there"),
-		mkTok(tokenError, "Unclosed comment"),
+		mkTok(tokenError, "expected comment close"),
 	}},
 
 	{"number", "{{ 5 }}", []token{
@@ -219,8 +220,7 @@ var lexTests = []lexTest{
 		tSpace,
 		mkTok(tokenNumber, "5"),
 		tSpace,
-		tPrintClose,
-		tEOF,
+		mkTok(tokenError, "unclosed parenthesis"),
 	}},
 
 	{"unclosed tag (block)", "{% block test %}", []token{
@@ -278,7 +278,7 @@ var lexTests = []lexTest{
 }
 
 func collect(t *lexTest) (tokens []token) {
-	lex := newLexer(t.input)
+	lex := newLexer(bytes.NewReader([]byte(t.input)))
 	go lex.tokenize()
 	for {
 		tok := lex.nextToken()

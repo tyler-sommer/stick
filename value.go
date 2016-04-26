@@ -10,23 +10,47 @@ import (
 // and used by a Stick template.
 type Value interface{}
 
+// A SafeValue represents a value that has already been sanitized and escaped.
+type SafeValue interface {
+	// Value returns the value stored in the SafeValue.
+	Value() Value
+
+	// Prevent anyone else from implementing SafeValue.
+	safe()
+}
+
+// NewSafeValue wraps the given value and returns a SafeValue.
+func NewSafeValue(val Value) SafeValue {
+	if v, ok := val.(SafeValue); ok {
+		return v
+	}
+	return safeValue{val}
+}
+
+type safeValue struct {
+	val Value
+}
+
+func (v safeValue) Value() Value {
+	return v.val
+}
+
+func (v safeValue) safe() {}
+
 // Stringer is implemented by any value that has a String method.
-// The String method should return a string representation of the value.
 type Stringer interface {
 	fmt.Stringer
 }
 
 // Number is implemented by any value that has a Number method.
-// The Number method should return a float64 representation of the
-// value.
 type Number interface {
+	// Number returns a float64 representation of the type.
 	Number() float64
 }
 
 // Boolean is implemented by any value that has a Boolean method.
-// The Boolean method should return a boolean representation of the
-// valie.
 type Boolean interface {
+	// Boolean returns a boolean representation of the type.
 	Boolean() bool
 }
 
@@ -34,6 +58,8 @@ type Boolean interface {
 // if the value cannot be coerced.
 func CoerceBool(v Value) bool {
 	switch vc := v.(type) {
+	case SafeValue:
+		return CoerceBool(vc.Value())
 	case bool:
 		return vc
 	case Boolean:
@@ -66,6 +92,8 @@ func stringToFloat(s string) float64 {
 // if the value cannot be coerced.
 func CoerceNumber(v Value) float64 {
 	switch vc := v.(type) {
+	case SafeValue:
+		return CoerceNumber(vc.Value())
 	case Number:
 		return vc.Number()
 	case float64:
@@ -92,6 +120,8 @@ func CoerceNumber(v Value) float64 {
 // if the value cannot be coerced.
 func CoerceString(v Value) string {
 	switch vc := v.(type) {
+	case SafeValue:
+		return CoerceString(vc.Value())
 	case string:
 		return vc
 	case Stringer:

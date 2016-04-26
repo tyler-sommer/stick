@@ -2,12 +2,21 @@
 // into AST for further processing.
 package parse
 
+import (
+	"bytes"
+	"io"
+)
+
 // A NodeVisitor can be used to modify node contents and structure.
+// NodeVisitors implement two methods, Enter and Leave. Each method
+// takes a Node and returns a Node. The returned Node will replace
+// the original in the AST. If nil is returned, the Node will be
+// removed.
 type NodeVisitor interface {
 	// Enter is called before the node is executed.
-	Enter(Node)
-	// Exit is called after the node is executed.
-	Leave(Node)
+	Enter(Node) Node
+	// Exit is called before leaving the given Node.
+	Leave(Node) Node
 }
 
 // Tree represents the state of a parser.
@@ -25,7 +34,7 @@ type Tree struct {
 }
 
 // NewTree creates a new parser Tree, ready for use.
-func NewTree(input string) *Tree {
+func NewTree(input io.Reader) *Tree {
 	return &Tree{
 		lex:      newLexer(input),
 		root:     newModuleNode(),
@@ -66,8 +75,8 @@ func (t *Tree) setBlock(name string, body *BlockNode) {
 	t.blocks[len(t.blocks)-1][name] = body
 }
 
-func (t *Tree) errorf(err error) error {
-	if err, ok := err.(parseError); ok {
+func (t *Tree) enrichError(err error) error {
+	if err, ok := err.(Error); ok {
 		err.setTree(t)
 	}
 	return err
@@ -192,7 +201,7 @@ func (t *Tree) traverse(n Node) {
 
 // Parse parses the given input.
 func Parse(input string) (*Tree, error) {
-	t := NewTree(input)
+	t := NewTree(bytes.NewReader([]byte(input)))
 	return t, t.Parse()
 }
 
@@ -202,7 +211,7 @@ func (t *Tree) Parse() error {
 	for {
 		n, err := t.parse()
 		if err != nil {
-			return t.errorf(err)
+			return t.enrichError(err)
 		}
 		if n == nil {
 			break

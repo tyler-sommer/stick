@@ -2,24 +2,31 @@ package parse
 
 // parseError is an internal interface, used to gather additional
 // information about how an error occurred.
-type parseError interface {
+type Error interface {
+	// Set the Name of the template in which this error occurred.
+	SetName(n string)
+
 	setTree(t *Tree)
 }
 
 // Error represents a generic error during parsing when no additional
 // context is available other than the current token.
-type Error struct {
+type BasicError struct {
 	*baseError
 	tok token
 }
 
-func (e *Error) Error() string {
+func (e *BasicError) SetName(name string) {
+	e.baseError.name = name
+}
+
+func (e *BasicError) Error() string {
 	return e.sprintf(`unexpected token "%s"`, e.tok)
 }
 
 // newError returns a new ParseError.
 func newError(tok token) error {
-	return &Error{newBaseError(tok.Pos()), tok}
+	return &BasicError{newBaseError(tok.Pos()), tok}
 }
 
 // UnexpectedTokenError is generated when the current token

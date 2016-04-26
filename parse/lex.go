@@ -2,6 +2,8 @@ package parse
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"strings"
 	"unicode"
 )
@@ -131,8 +133,10 @@ func (l *lexer) tokenize() {
 }
 
 // newLexer creates a lexer, ready to begin tokenizing.
-func newLexer(input string) *lexer {
-	return &lexer{0, 0, 1, 0, input, make(chan token), nil, modeNormal, token{}, 0}
+func newLexer(input io.Reader) *lexer {
+	// TODO: lexer should use the reader.
+	i, _ := ioutil.ReadAll(input)
+	return &lexer{0, 0, 1, 0, string(i), make(chan token), nil, modeNormal, token{}, 0}
 }
 
 func (l *lexer) next() (val string) {
@@ -238,13 +242,13 @@ func lexExpression(l *lexer) stateFn {
 
 	case strings.HasPrefix(l.input[l.pos:], delimCloseTag):
 		if l.pos > l.start {
-			return l.errorf("Incompete token?")
+			return l.errorf("pos > start, previous token not emitted?")
 		}
 		return lexTagClose
 
 	case strings.HasPrefix(l.input[l.pos:], delimClosePrint):
 		if l.pos > l.start {
-			return l.errorf("Incompete token?")
+			return l.errorf("pos > start, previous token not emitted?")
 		}
 		return lexPrintClose
 
@@ -270,7 +274,7 @@ func lexExpression(l *lexer) stateFn {
 		return lexSpace
 
 	default:
-		return l.errorf("Unknown expression")
+		return l.errorf("unknown expression")
 	}
 }
 
@@ -399,7 +403,7 @@ func lexOpenParens(l *lexer) stateFn {
 		l.emit(tokenHashOpen)
 
 	default:
-		return l.errorf("Unknown parenthesis")
+		return l.errorf("unknown parenthesis")
 	}
 	l.parens++
 	return lexExpression
@@ -420,7 +424,7 @@ func lexCloseParens(l *lexer) stateFn {
 		l.emit(tokenHashClose)
 
 	default:
-		return l.errorf("Unknown parenthesis")
+		return l.errorf("invalid parenthesis")
 	}
 	l.parens--
 	return lexExpression
@@ -453,7 +457,7 @@ func lexCommentOpen(l *lexer) stateFn {
 	l.pos += til
 	l.emit(tokenComment)
 	if !strings.HasPrefix(l.input[l.pos:], delimCloseComment) {
-		return l.errorf("Unclosed comment")
+		return l.errorf("expected comment close")
 	}
 	l.pos += len(delimCloseComment)
 	l.start = l.pos
@@ -469,6 +473,9 @@ func lexTagOpen(l *lexer) stateFn {
 }
 
 func lexTagClose(l *lexer) stateFn {
+	if l.parens > 0 {
+		return l.errorf("unclosed parenthesis")
+	}
 	l.pos += len(delimCloseTag)
 	l.emit(tokenTagClose)
 
@@ -483,6 +490,9 @@ func lexPrintOpen(l *lexer) stateFn {
 }
 
 func lexPrintClose(l *lexer) stateFn {
+	if l.parens > 0 {
+		return l.errorf("unclosed parenthesis")
+	}
 	l.pos += len(delimClosePrint)
 	l.emit(tokenPrintClose)
 

@@ -19,13 +19,14 @@ import (
 
 // Type state represents the internal state of a template execution.
 type state struct {
-	out    io.Writer
-	node   parse.Node
-	blocks []map[string]*parse.BlockNode
-	macros map[string]*parse.MacroNode
+	out  io.Writer  // Output.
+	node parse.Node // Current node.
 
-	env   *Env
-	scope *scopeStack
+	blocks []map[string]*parse.BlockNode // Block scopes.
+	macros map[string]*parse.MacroNode   // Imported macros.
+
+	env   *Env        // The configured Stick environment.
+	scope *scopeStack // Handles execution scope.
 }
 
 // A scopeStack is a structure that represents local
@@ -90,7 +91,7 @@ func (s *scopeStack) set(name string, val Value) {
 // setLocal explicitly sets the value in the local scope.
 //
 // This is useful when a new scope is created, such as
-// a function call, and you need to override a local variable
+// a macro call, and you need to override a local variable
 // without destroying the value in the parent scope.
 //
 //	fnParam := // an function argument's name
@@ -115,17 +116,17 @@ func newState(out io.Writer, ctx map[string]Value, env *Env) *state {
 
 // Method load attempts to load and parse the given template.
 func (s *state) load(name string) (*parse.Tree, error) {
-	cnt, err := s.env.Loader.Load(name)
+	tpl, err := s.env.Loader.Load(name)
 	if err != nil {
 		return nil, err
 	}
-	tree := parse.NewTree(cnt)
+	tree := parse.NewTree(tpl.Contents())
 	for _, v := range s.env.Visitors {
 		tree.Visitors = append(tree.Visitors, v)
 	}
 	err = tree.Parse()
 	if err != nil {
-		return nil, err
+		return nil, enrichError(tpl, err)
 	}
 	return tree, nil
 }

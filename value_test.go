@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-type testType struct {}
+type testType struct{}
 
 func (t testType) String() string {
 	return "some string"

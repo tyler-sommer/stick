@@ -39,7 +39,7 @@ var parseTests = []parseTest{
 	newErrorTest("unclosed block", "{% block test %}", `unclosed tag "block" starting on line 1, column 3`),
 	newErrorTest("unclosed if", "{% if test %}", `unclosed tag "if" starting on line 1, column 3`),
 	newErrorTest("unexpected end (function call)", "{{ func('arg1'", `unexpected end of input on line 1, column 14`),
-	newErrorTest("unclosed parenthesis", "{{ func(arg1 }}", `expected one of [PUNCTUATION, PARENS_CLOSE], got "PRINT_CLOSE" on line 1, column 13`),
+	newErrorTest("unclosed parenthesis", "{{ func(arg1 }}", `expected one of [PUNCTUATION, PARENS_CLOSE], got "ERROR" on line 1, column 13`),
 	newErrorTest("unexpected punctuation", "{{ func(arg1? arg2) }}", `expected "PUNCTUATION", got "PARENS_CLOSE"`),
 
 	// Valid

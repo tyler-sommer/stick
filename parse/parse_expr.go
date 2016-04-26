@@ -242,7 +242,7 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		return name, nil
 
 	case tokenStringOpen:
-		exprs := make([]Expr, 0)
+		var exprs []Expr
 		for {
 			nxt, err := t.expect(tokenText, tokenInterpolateOpen, tokenStringClose)
 			if err != nil {
