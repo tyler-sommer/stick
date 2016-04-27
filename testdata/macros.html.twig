@@ -1,0 +1,3 @@
+{% macro list(val) %}{% for i, v in val %}
+* {{ v.Key }}: {{ v.Value }} ({{ i }})
+{% endfor %}{% endmacro %}
