@@ -31,20 +31,20 @@ func (e exampleType) String() string {
 	return "some kinda string"
 }
 
-// ExampleCoerceBool demonstrates how a type can be coerced to a boolean.
+// ExampleBoolean demonstrates how a type can be coerced to a boolean.
 // The struct in this example has the Boolean method implemented.
 //
 // 	func (e exampleType) Boolean() bool {
 //    	return true
 //    }
-func ExampleCoerceBool() {
+func ExampleBoolean() {
 	v := exampleType{}
 	fmt.Printf("%t", stick.CoerceBool(v))
 	// Output: true
 }
 
-// ExampleCoerceBool2 demonstrates how various values are coerced to boolean.
-func ExampleCoerceBool2() {
+// ExampleCoerceBool demonstrates how various values are coerced to boolean.
+func ExampleCoerceBool() {
 	v0 := ""
 	v1 := "some string"
 	v2 := 0
@@ -59,14 +59,14 @@ func ExampleCoerceBool2() {
 // 	func (e exampleType) Number() float64 {
 //    	return 3.14
 //    }
-func ExampleCoerceNumber() {
+func ExampleNumber() {
 	v := exampleType{}
 	fmt.Printf("%.2f", stick.CoerceNumber(v))
 	// Output: 3.14
 }
 
-// ExampleCoerceNumber2 demonstrates how various values are coerced to number.
-func ExampleCoerceNumber2() {
+// ExampleCoerceNumber demonstrates how various values are coerced to number.
+func ExampleCoerceNumber() {
 	v0 := true
 	v1 := ""
 	v2 := "54"
@@ -81,14 +81,14 @@ func ExampleCoerceNumber2() {
 // 	func (e exampleType) String() string {
 //    	return "some kinda string"
 //    }
-func ExampleCoerceString() {
+func ExampleStringer() {
 	v := exampleType{}
 	fmt.Printf("%s", v)
 	// Output: some kinda string
 }
 
-// ExampleCoerceString2 demonstrates how various values are coerced to string.
-func ExampleCoerceString2() {
+// ExampleCoerceString demonstrates how various values are coerced to string.
+func ExampleCoerceString() {
 	v0 := true
 	v1 := false // Coerces into ""
 	v2 := 54
