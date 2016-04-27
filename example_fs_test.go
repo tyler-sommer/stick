@@ -10,13 +10,12 @@ import (
 	"github.com/tyler-sommer/stick"
 )
 
-// ExampleEnv_Execute_fs shows an example of using the provided
-// FilesystemLoader.
+// An example showing the use of the provided FilesystemLoader.
 //
 // This example makes use of templates in the testdata folder. In
 // particular, this example shows vertical (via extends) and horizontal
 // reuse (via use).
-func ExampleEnv_Execute_fs() {
+func ExampleEnv_Execute_filesystemLoader() {
 	d, _ := os.Getwd()
 	env := stick.NewEnv(stick.NewFilesystemLoader(filepath.Join(d, "testdata")))
 
