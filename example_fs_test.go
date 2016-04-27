@@ -1,10 +1,8 @@
 package stick_test
 
 import (
-	"os"
-
 	"fmt"
-
+	"os"
 	"path/filepath"
 
 	"github.com/tyler-sommer/stick"

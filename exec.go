@@ -1,18 +1,14 @@
 package stick
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"math"
-	"strconv"
-
-	"strings"
-
 	"regexp"
-
-	"fmt"
-
-	"bytes"
+	"strconv"
+	"strings"
 
 	"github.com/tyler-sommer/stick/parse"
 )

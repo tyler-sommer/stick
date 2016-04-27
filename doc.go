@@ -137,5 +137,3 @@ User-defined types are added to an Env after it is created. For example:
 For additional information on Twig, check http://twig.sensiolabs.org/
 */
 package stick
-
-// BUG(ts): Missing documentation on operators, tests, functions, filters, and much more.

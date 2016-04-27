@@ -1,17 +1,18 @@
 package stick_test
 
 import (
-	"os"
-
 	"fmt"
-
+	"os"
 	"path/filepath"
 
 	"github.com/tyler-sommer/stick"
 )
 
-// ExampleEnv_Execute_macro shows an example of macro definition and
-// usage.
+// An example of macro definition and usage.
+//
+// This example uses a macro to list the values, also showing two
+// ways to import macros. Check the templates in the testdata folder
+// for more information.
 func ExampleEnv_Execute_macro() {
 	d, _ := os.Getwd()
 	env := stick.NewEnv(stick.NewFilesystemLoader(filepath.Join(d, "testdata")))
