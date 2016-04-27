@@ -89,33 +89,19 @@ A Func represents a user-defined function.
 Functions can be called anywhere expressions are allowed. Functions may take any number
 of arguments.
 
-	{% if form_valid(form) %}
-
 A Filter is a user-defined filter.
 
 	type Filter func(e *Env, val Value, args ...Value) Value
 
-Filters receive a value and modify it in some way. Example of using a filter:
-
-	{{ post|raw }}
-
-Filters also accept zero or more arguments beyond the value to be filtered:
-
-	{{ balance|number_format(2) }}
+Filters receive a value and modify it in some way. Filters also accept zero or more arguments
+beyond the value to be filtered.
 
 A Test represents a user-defined boolean test.
 
 	type Test func(e *Env, val Value, args ...Value) bool
 
-Tests are used to make some comparisons more expressive, for example:
-
-	{% if users is empty %}
-
-Tests also accept zero to any number of arguments, and Test names can contain
-up to one space. Here, "divisible by" is an example of a two-word test that takes
-a parameter:
-
-	{% if loop.index is divisible by(3) %}
+Tests are used to make some comparisons more expressive. Tests also accept zero to any
+number of arguments, and Test names can contain up to one space.
 
 User-defined types are added to an Env after it is created. For example:
 
