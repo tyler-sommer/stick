@@ -7,10 +7,10 @@ import (
 )
 
 type baseError struct {
-	pos
+	Pos
 }
 
-func newBaseError(p pos) *baseError {
+func newBaseError(p Pos) *baseError {
 	return &baseError{p}
 }
 

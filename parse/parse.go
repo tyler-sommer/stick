@@ -175,17 +175,23 @@ func (t *Tree) expectValue(typ tokenType, val string) (token, error) {
 }
 
 // Enter is called when the given Node is entered.
-func (t *Tree) enter(n Node) {
+func (t *Tree) enter(n Node) Node {
 	for _, v := range t.Visitors {
-		v.Enter(n)
+		if n = v.Enter(n); n == nil {
+			return nil
+		}
 	}
+	return n
 }
 
 // Leave is called just before the state exits the given Node.
-func (t *Tree) leave(n Node) {
+func (t *Tree) leave(n Node) Node {
 	for _, v := range t.Visitors {
-		v.Leave(n)
+		if n = v.Leave(n); n == nil {
+			return nil
+		}
 	}
+	return n
 }
 
 func (t *Tree) traverse(n Node) {
@@ -216,7 +222,7 @@ func (t *Tree) Parse() error {
 		if n == nil {
 			break
 		}
-		t.root.append(n)
+		t.root.Append(n)
 	}
 	t.traverse(t.root)
 	return nil
@@ -229,7 +235,7 @@ func (t *Tree) parse() (Node, error) {
 	tok := t.nextNonSpace()
 	switch tok.tokenType {
 	case tokenText:
-		return newTextNode(tok.value, tok.Pos()), nil
+		return newTextNode(tok.value, tok.Pos), nil
 
 	case tokenPrintOpen:
 		name, err := t.parseExpr()
@@ -240,7 +246,7 @@ func (t *Tree) parse() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return newPrintNode(name, tok.Pos()), nil
+		return newPrintNode(name, tok.Pos), nil
 
 	case tokenTagOpen:
 		return t.parseTag()

@@ -4,7 +4,7 @@ import "errors"
 
 // A tagParser can parse the body of a tag, returning the resulting Node or an error.
 // TODO: This will be used to implement user-defined tags.
-type tagParser func(t *Tree, start pos) (Node, error)
+type tagParser func(t *Tree, start Pos) (Node, error)
 
 // parseTag parses the opening of a tag "{%", then delegates to a more specific parser function
 // based on the tag's name.
@@ -15,38 +15,38 @@ func (t *Tree) parseTag() (Node, error) {
 	}
 	switch name.value {
 	case "extends":
-		return parseExtends(t, name.Pos())
+		return parseExtends(t, name.Pos)
 	case "block":
-		return parseBlock(t, name.Pos())
+		return parseBlock(t, name.Pos)
 	case "if", "elseif":
-		return parseIf(t, name.Pos())
+		return parseIf(t, name.Pos)
 	case "for":
-		return parseFor(t, name.Pos())
+		return parseFor(t, name.Pos)
 	case "include":
-		return parseInclude(t, name.Pos())
+		return parseInclude(t, name.Pos)
 	case "embed":
-		return parseEmbed(t, name.Pos())
+		return parseEmbed(t, name.Pos)
 	case "use":
-		return parseUse(t, name.Pos())
+		return parseUse(t, name.Pos)
 	case "set":
-		return parseSet(t, name.Pos())
+		return parseSet(t, name.Pos)
 	case "do":
-		return parseDo(t, name.Pos())
+		return parseDo(t, name.Pos)
 	case "filter":
-		return parseFilter(t, name.Pos())
+		return parseFilter(t, name.Pos)
 	case "macro":
-		return parseMacro(t, name.Pos())
+		return parseMacro(t, name.Pos)
 	case "import":
-		return parseImport(t, name.Pos())
+		return parseImport(t, name.Pos)
 	case "from":
-		return parseFrom(t, name.Pos())
+		return parseFrom(t, name.Pos)
 	default:
 		return nil, newUnexpectedTokenError(name)
 	}
 }
 
 // parseUntilEndTag parses until it reaches the specified tag's "end", returning a specific error otherwise.
-func (t *Tree) parseUntilEndTag(name string, start pos) (*BodyNode, error) {
+func (t *Tree) parseUntilEndTag(name string, start Pos) (*BodyNode, error) {
 	tok := t.peek()
 	if tok.tokenType == tokenEOF {
 		return nil, newUnclosedTagError(name, start)
@@ -73,7 +73,7 @@ func contains(haystack []string, needle string) bool {
 }
 
 // parseUntilTag parses until it reaches the specified tag node, returning a parse error otherwise.
-func (t *Tree) parseUntilTag(start pos, names ...string) (*BodyNode, error) {
+func (t *Tree) parseUntilTag(start Pos, names ...string) (*BodyNode, error) {
 	n := newBodyNode(start)
 	for {
 		switch tok := t.peek(); tok.tokenType {
@@ -94,14 +94,14 @@ func (t *Tree) parseUntilTag(start pos, names ...string) (*BodyNode, error) {
 			if err != nil {
 				return n, err
 			}
-			n.append(o)
+			n.Append(o)
 
 		default:
 			o, err := t.parse()
 			if err != nil {
 				return n, err
 			}
-			n.append(o)
+			n.Append(o)
 		}
 	}
 }
@@ -109,8 +109,8 @@ func (t *Tree) parseUntilTag(start pos, names ...string) (*BodyNode, error) {
 // parseExtends parses an extends tag.
 //
 //   {% extends <expr> %}
-func parseExtends(t *Tree, start pos) (Node, error) {
-	if t.Root().parent != nil {
+func parseExtends(t *Tree, start Pos) (Node, error) {
+	if t.Root().Parent != nil {
 		return nil, newMultipleExtendsError(start)
 	}
 	tplRef, err := t.parseExpr()
@@ -122,7 +122,7 @@ func parseExtends(t *Tree, start pos) (Node, error) {
 		return nil, err
 	}
 	n := newExtendsNode(tplRef, start)
-	t.Root().parent = n
+	t.Root().Parent = n
 	return n, nil
 }
 
@@ -131,7 +131,7 @@ func parseExtends(t *Tree, start pos) (Node, error) {
 //
 //   {% block <name> %}
 //   {% endblock %}
-func parseBlock(t *Tree, start pos) (Node, error) {
+func parseBlock(t *Tree, start Pos) (Node, error) {
 	blockName, err := t.expect(tokenName)
 	if err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ func parseBlock(t *Tree, start pos) (Node, error) {
 //
 //   {% if <expr> %}
 //   {% elseif <expr> %}
-func parseIf(t *Tree, start pos) (Node, error) {
+func parseIf(t *Tree, start Pos) (Node, error) {
 	cond, err := t.parseExpr()
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func parseIf(t *Tree, start pos) (Node, error) {
 //
 //   {% else %}
 //   {% endif %}
-func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) {
+func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) {
 	body = newBodyNode(start)
 	for {
 		switch tok := t.peek(); tok.tokenType {
@@ -201,7 +201,7 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) 
 				if err != nil {
 					return nil, nil, err
 				}
-				els = newBodyNode(tok.Pos(), in)
+				els = newBodyNode(tok.Pos, in)
 			case "endif":
 				_, err := t.expect(tokenTagClose)
 				if err != nil {
@@ -219,7 +219,7 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) 
 			if err != nil {
 				return nil, nil, err
 			}
-			body.append(n)
+			body.Append(n)
 		}
 	}
 }
@@ -231,14 +231,14 @@ func parseIfBody(t *Tree, start pos) (body *BodyNode, els *BodyNode, err error) 
 //   {% for <name, [name]> in <expr> if <expr> %}
 //   {% else %}
 //   {% endfor %}
-func parseFor(t *Tree, start pos) (*ForNode, error) {
+func parseFor(t *Tree, start Pos) (*ForNode, error) {
 	var kn, vn string
 	nam, err := t.parseInnerExpr()
 	if err != nil {
 		return nil, err
 	}
 	if nam, ok := nam.(*NameExpr); ok {
-		vn = nam.Name()
+		vn = nam.Name
 	} else {
 		return nil, errors.New("parse error: a parse error occured, expected name")
 	}
@@ -251,7 +251,7 @@ func parseFor(t *Tree, start pos) (*ForNode, error) {
 			return nil, err
 		}
 		if nam, ok := nam.(*NameExpr); ok {
-			vn = nam.Name()
+			vn = nam.Name
 		} else {
 			return nil, errors.New("parse error: a parse error occured, expected name")
 		}
@@ -283,22 +283,22 @@ func parseFor(t *Tree, start pos) (*ForNode, error) {
 		}
 	}
 	var body Node
-	body, err = t.parseUntilTag(tok.Pos(), "endfor", "else")
+	body, err = t.parseUntilTag(tok.Pos, "endfor", "else")
 	if err != nil {
 		return nil, err
 	}
 	if ifCond != nil {
-		body = newIfNode(ifCond, body, nil, tok.Pos())
+		body = newIfNode(ifCond, body, nil, tok.Pos)
 	}
 	t.backup()
 	tok = t.next()
-	var elseBody Node = newBodyNode(tok.Pos())
+	var elseBody Node = newBodyNode(tok.Pos)
 	if tok.value == "else" {
 		_, err = t.expect(tokenTagClose)
 		if err != nil {
 			return nil, err
 		}
-		elseBody, err = t.parseUntilTag(tok.Pos(), "endfor")
+		elseBody, err = t.parseUntilTag(tok.Pos, "endfor")
 		if err != nil {
 			return nil, err
 		}
@@ -311,7 +311,7 @@ func parseFor(t *Tree, start pos) (*ForNode, error) {
 }
 
 // parseInclude parses an include statement.
-func parseInclude(t *Tree, start pos) (Node, error) {
+func parseInclude(t *Tree, start Pos) (Node, error) {
 	expr, with, only, err := parseIncludeOrEmbed(t)
 	if err != nil {
 		return nil, err
@@ -320,7 +320,7 @@ func parseInclude(t *Tree, start pos) (Node, error) {
 }
 
 // parseEmbed parses an embed statement and body.
-func parseEmbed(t *Tree, start pos) (Node, error) {
+func parseEmbed(t *Tree, start Pos) (Node, error) {
 	expr, with, only, err := parseIncludeOrEmbed(t)
 	if err != nil {
 		return nil, err
@@ -423,7 +423,7 @@ func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
 	return
 }
 
-func parseUse(t *Tree, start pos) (Node, error) {
+func parseUse(t *Tree, start Pos) (Node, error) {
 	tmpl, err := t.parseExpr()
 	if err != nil {
 		return nil, err
@@ -468,7 +468,7 @@ func parseUse(t *Tree, start pos) (Node, error) {
 // parseSet parses a set statement.
 //
 //   {% set <var> = <expr> %}
-func parseSet(t *Tree, start pos) (Node, error) {
+func parseSet(t *Tree, start Pos) (Node, error) {
 	tok, err := t.expect(tokenName)
 	if err != nil {
 		return nil, err
@@ -491,7 +491,7 @@ func parseSet(t *Tree, start pos) (Node, error) {
 // parseDo parses a do statement.
 //
 //   {% do <expr> %}
-func parseDo(t *Tree, start pos) (Node, error) {
+func parseDo(t *Tree, start Pos) (Node, error) {
 	expr, err := t.parseExpr()
 	if err != nil {
 		return nil, err
@@ -510,7 +510,7 @@ func parseDo(t *Tree, start pos) (Node, error) {
 // Multiple filters can be applied to a block:
 //
 // 	{% filter <name>|<name>|<name> %}
-func parseFilter(t *Tree, start pos) (Node, error) {
+func parseFilter(t *Tree, start Pos) (Node, error) {
 	var filters []string
 	for {
 		tok, err := t.expect(tokenName)
@@ -537,7 +537,7 @@ body:
 	if err != nil {
 		return nil, err
 	}
-	return newFilterNode(filters, body, start), nil
+	return NewFilterNode(filters, body, start), nil
 }
 
 // parseMacro parses a macro definition.
@@ -545,7 +545,7 @@ body:
 // 	{% macro <name>([ arg [ , arg]) %}
 //	Macro body
 //	{% endmacro %}
-func parseMacro(t *Tree, start pos) (Node, error) {
+func parseMacro(t *Tree, start Pos) (Node, error) {
 	tok, err := t.expect(tokenName)
 	if err != nil {
 		return nil, err
@@ -590,7 +590,7 @@ body:
 // parseImport parses an import statement.
 //
 // 	{% import <name> as <alias> %}
-func parseImport(t *Tree, start pos) (Node, error) {
+func parseImport(t *Tree, start Pos) (Node, error) {
 	name, err := t.parseExpr()
 	if err != nil {
 		return nil, err
@@ -613,7 +613,7 @@ func parseImport(t *Tree, start pos) (Node, error) {
 // parseImport parses an import statement.
 //
 // 	{% from <name> import <name>[ as <alias>[ , <name... ] ] %}
-func parseFrom(t *Tree, start pos) (Node, error) {
+func parseFrom(t *Tree, start Pos) (Node, error) {
 	name, err := t.parseExpr()
 	if err != nil {
 		return nil, err

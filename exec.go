@@ -110,23 +110,6 @@ func newState(out io.Writer, ctx map[string]Value, env *Env) *state {
 	}
 }
 
-// Method load attempts to load and parse the given template.
-func (s *state) load(name string) (*parse.Tree, error) {
-	tpl, err := s.env.Loader.Load(name)
-	if err != nil {
-		return nil, err
-	}
-	tree := parse.NewTree(tpl.Contents())
-	for _, v := range s.env.Visitors {
-		tree.Visitors = append(tree.Visitors, v)
-	}
-	err = tree.Parse()
-	if err != nil {
-		return nil, enrichError(tpl, err)
-	}
-	return tree, nil
-}
-
 // Method getBlock iterates through each set of blocks, returning the first
 // block with the given name.
 func (s *state) getBlock(name string) *parse.BlockNode {
@@ -143,12 +126,12 @@ func (s *state) getBlock(name string) *parse.BlockNode {
 func (s *state) walk(node parse.Node) error {
 	switch node := node.(type) {
 	case *parse.ModuleNode:
-		if p := node.Parent(); p != nil {
-			tplName, err := s.evalExpr(p.TemplateRef())
+		if p := node.Parent; p != nil {
+			tplName, err := s.evalExpr(p.Tpl)
 			if err != nil {
 				return err
 			}
-			tree, err := s.load(CoerceString(tplName))
+			tree, err := s.env.load(CoerceString(tplName))
 			if err != nil {
 				return err
 			}
@@ -170,29 +153,29 @@ func (s *state) walk(node parse.Node) error {
 	case *parse.MacroNode:
 		return nil
 	case *parse.TextNode:
-		io.WriteString(s.out, node.Text())
+		io.WriteString(s.out, node.Data)
 	case *parse.PrintNode:
-		v, err := s.evalExpr(node.Expr())
+		v, err := s.evalExpr(node.X)
 		if err != nil {
 			return err
 		}
 		io.WriteString(s.out, CoerceString(v))
 	case *parse.BlockNode:
-		name := node.Name()
+		name := node.Name
 		if block := s.getBlock(name); block != nil {
-			return s.walk(block.Body())
+			return s.walk(block.Body)
 		}
 		// TODO: It seems this should never occur.
 		return errors.New("Unable to locate block " + name)
 	case *parse.IfNode:
-		v, err := s.evalExpr(node.Cond())
+		v, err := s.evalExpr(node.Cond)
 		if err != nil {
 			return err
 		}
 		if CoerceBool(v) {
-			s.walk(node.Body())
+			s.walk(node.Body)
 		} else {
-			s.walk(node.Else())
+			s.walk(node.Else)
 		}
 	case *parse.IncludeNode:
 		tpl, ctx, err := s.walkIncludeNode(node)
@@ -210,11 +193,11 @@ func (s *state) walk(node parse.Node) error {
 		}
 		// TODO: We duplicate most of the "execute" function here.
 		si := newState(s.out, ctx, s.env)
-		tree, err := s.load(tpl)
+		tree, err := s.env.load(tpl)
 		if err != nil {
 			return err
 		}
-		si.blocks = append(s.blocks, node.Blocks(), tree.Blocks())
+		si.blocks = append(s.blocks, node.Blocks, tree.Blocks())
 		err = si.walk(tree.Root())
 		if err != nil {
 			return err
@@ -256,12 +239,12 @@ func (s *state) walkChild(node parse.Node) error {
 }
 
 func (s *state) walkForNode(node *parse.ForNode) error {
-	res, err := s.evalExpr(node.Expr())
+	res, err := s.evalExpr(node.X)
 	if err != nil {
 		return err
 	}
-	kn := node.Key()
-	vn := node.Val()
+	kn := node.Key
+	vn := node.Val
 	ct, err := iterate(res, func(k Value, v Value, l loop) (bool, error) {
 		s.scope.push()
 		defer s.scope.pop()
@@ -272,7 +255,7 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 		s.scope.set(vn, v)
 		s.scope.set("loop", l)
 
-		err := s.walk(node.Body())
+		err := s.walk(node.Body)
 		if err != nil {
 			return true, err
 		}
@@ -282,7 +265,7 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 		return err
 	}
 	if ct == 0 {
-		return s.walk(node.Else())
+		return s.walk(node.Else)
 	}
 	return nil
 }
@@ -290,20 +273,20 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 // Method walkInclude determines the necessary parameters for including or embedding a template.
 func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[string]Value, err error) {
 	ctx = make(map[string]Value)
-	v, err := s.evalExpr(node.Tpl())
+	v, err := s.evalExpr(node.Tpl)
 	if err != nil {
 		return "", nil, err
 	}
 	tpl = CoerceString(v)
 	var with Value
-	if n := node.With(); n != nil {
+	if n := node.With; n != nil {
 		with, err = s.evalExpr(n)
 		// TODO: Assert "with" is a hash?
 		if err != nil {
 			return "", nil, err
 		}
 	}
-	if !node.Only() {
+	if !node.Only {
 		ctx = s.scope.all()
 	}
 	if with != nil {
@@ -317,17 +300,17 @@ func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[st
 }
 
 func (s *state) walkUseNode(node *parse.UseNode) error {
-	v, err := s.evalExpr(node.Tpl())
+	v, err := s.evalExpr(node.Tpl)
 	if err != nil {
 		return err
 	}
 	tpl := CoerceString(v)
-	tree, err := s.load(tpl)
+	tree, err := s.env.load(tpl)
 	if err != nil {
 		return err
 	}
 	blocks := tree.Blocks()
-	for orig, alias := range node.Aliases() {
+	for orig, alias := range node.Aliases {
 		v, ok := blocks[orig]
 		if !ok {
 			return errors.New("Unable to locate block with name \"" + orig + "\"")
@@ -341,16 +324,16 @@ func (s *state) walkUseNode(node *parse.UseNode) error {
 }
 
 func (s *state) walkSetNode(node *parse.SetNode) error {
-	v, err := s.evalExpr(node.Expr())
+	v, err := s.evalExpr(node.X)
 	if err != nil {
 		return err
 	}
-	s.scope.set(node.VarName(), v)
+	s.scope.set(node.Name, v)
 	return nil
 }
 
 func (s *state) walkDoNode(node *parse.DoNode) error {
-	_, err := s.evalExpr(node.Expr())
+	_, err := s.evalExpr(node.X)
 	if err != nil {
 		return err
 	}
@@ -364,12 +347,12 @@ func (s *state) walkFilterNode(node *parse.FilterNode) error {
 	}()
 	buf := &bytes.Buffer{}
 	s.out = buf
-	err := s.walk(node.Body())
+	err := s.walk(node.Body)
 	if err != nil {
 		return err
 	}
 	val := string(buf.Bytes())
-	for _, v := range node.Filters() {
+	for _, v := range node.Filters {
 		f, ok := s.env.Filters[v]
 		if !ok {
 			return errors.New("undefined filter \"" + v + "\".")
@@ -381,11 +364,11 @@ func (s *state) walkFilterNode(node *parse.FilterNode) error {
 }
 
 func (s *state) walkImportNode(node *parse.ImportNode) error {
-	tpl, err := s.evalExpr(node.Tpl())
+	tpl, err := s.evalExpr(node.Tpl)
 	if err != nil {
 		return err
 	}
-	tree, err := s.load(CoerceString(tpl))
+	tree, err := s.env.load(CoerceString(tpl))
 	if err != nil {
 		return err
 	}
@@ -393,21 +376,21 @@ func (s *state) walkImportNode(node *parse.ImportNode) error {
 	for name, def := range tree.Macros() {
 		macros[name] = macroDef{def}
 	}
-	s.scope.set(node.Alias(), macroSet{macros})
+	s.scope.set(node.Alias, macroSet{macros})
 	return nil
 }
 
 func (s *state) walkFromNode(node *parse.FromNode) error {
-	tpl, err := s.evalExpr(node.Tpl())
+	tpl, err := s.evalExpr(node.Tpl)
 	if err != nil {
 		return err
 	}
-	tree, err := s.load(CoerceString(tpl))
+	tree, err := s.env.load(CoerceString(tpl))
 	if err != nil {
 		return err
 	}
 	macros := tree.Macros()
-	for name, alias := range node.Imports() {
+	for name, alias := range node.Imports {
 		def, ok := macros[name]
 		if !ok {
 			return errors.New("undefined macro " + name)
@@ -423,29 +406,29 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	case *parse.NullExpr:
 		return nil, nil
 	case *parse.BoolExpr:
-		return exp.Value(), nil
+		return exp.Value, nil
 	case *parse.NameExpr:
-		if val, ok := s.scope.get(exp.Name()); ok {
+		if val, ok := s.scope.get(exp.Name); ok {
 			v = val
 		} else {
-			e = errors.New("undefined variable \"" + exp.Name() + "\"")
+			e = errors.New("undefined variable \"" + exp.Name + "\"")
 		}
 	case *parse.NumberExpr:
-		num, err := strconv.ParseFloat(exp.Value(), 64)
+		num, err := strconv.ParseFloat(exp.Value, 64)
 		if err != nil {
 			return nil, err
 		}
 		return num, nil
 	case *parse.StringExpr:
-		return exp.Value(), nil
+		return exp.Text, nil
 	case *parse.GroupExpr:
-		return s.evalExpr(exp.Inner())
+		return s.evalExpr(exp.X)
 	case *parse.UnaryExpr:
-		in, err := s.evalExpr(exp.Expr())
+		in, err := s.evalExpr(exp.X)
 		if err != nil {
 			return nil, err
 		}
-		switch exp.Op() {
+		switch exp.Op {
 		case parse.OpUnaryNot:
 			return !CoerceBool(in), nil
 		case parse.OpUnaryPositive:
@@ -455,15 +438,15 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			return -CoerceNumber(in), nil
 		}
 	case *parse.BinaryExpr:
-		left, err := s.evalExpr(exp.Left())
+		left, err := s.evalExpr(exp.Left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := s.evalExpr(exp.Right())
+		right, err := s.evalExpr(exp.Right)
 		if err != nil {
 			return nil, err
 		}
-		switch exp.Op() {
+		switch exp.Op {
 		case parse.OpBinaryAdd:
 			return CoerceNumber(left) + CoerceNumber(right), nil
 		case parse.OpBinarySubtract:
@@ -543,15 +526,15 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	case *parse.FilterExpr:
 		return s.evalFilter(exp)
 	case *parse.GetAttrExpr:
-		c, err := s.evalExpr(exp.Cont())
+		c, err := s.evalExpr(exp.Cont)
 		if err != nil {
 			return nil, err
 		}
-		k, err := s.evalExpr(exp.Attr())
+		k, err := s.evalExpr(exp.Attr)
 		if err != nil {
 			return nil, err
 		}
-		exargs := exp.Args()
+		exargs := exp.Args
 		args := make([]Value, len(exargs))
 		for k, e := range exargs {
 			v, err := s.evalExpr(e)
@@ -571,8 +554,8 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			return nil, err
 		}
 	case *parse.TestExpr:
-		if tfn, ok := s.env.Tests[exp.Name()]; ok {
-			eargs := exp.Args()
+		if tfn, ok := s.env.Tests[exp.Name]; ok {
+			eargs := exp.Args
 			args := make([]Value, len(eargs))
 			for i, e := range eargs {
 				v, err := s.evalExpr(e)
@@ -585,26 +568,26 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 				return tfn(s.env, v, args...)
 			}, nil
 		}
-		return nil, fmt.Errorf(`unknown test "%v"`, exp.Name())
+		return nil, fmt.Errorf(`unknown test "%v"`, exp.Name)
 	case *parse.TernaryIfExpr:
-		cond, err := s.evalExpr(exp.Cond())
+		cond, err := s.evalExpr(exp.Cond)
 		if err != nil {
 			return nil, err
 		}
 		if CoerceBool(cond) == true {
-			return s.evalExpr(exp.TrueExpr())
+			return s.evalExpr(exp.TrueX)
 		}
-		return s.evalExpr(exp.FalseExpr())
+		return s.evalExpr(exp.FalseX)
 	}
 
 	return v, nil
 }
 
-func (s *state) evalFunction(exp *parse.FuncExpr) (v Value, e error) {
-	fnName := exp.Name()
+func (s *state) evalFunction(exp *parse.FuncExpr) (Value, error) {
+	fnName := exp.Name
 	switch fnName {
 	case "block":
-		eargs := exp.Args()
+		eargs := exp.Args
 		if len(eargs) != 1 {
 			return nil, errors.New("block expects one parameter")
 		}
@@ -617,7 +600,7 @@ func (s *state) evalFunction(exp *parse.FuncExpr) (v Value, e error) {
 			pout := s.out
 			buf := &bytes.Buffer{}
 			s.out = buf
-			err = s.walk(blk.Body())
+			err = s.walk(blk.Body)
 			if err != nil {
 				return nil, err
 			}
@@ -627,7 +610,7 @@ func (s *state) evalFunction(exp *parse.FuncExpr) (v Value, e error) {
 		return nil, errors.New("Unable to locate block \"" + name + "\"")
 	}
 	if macro, ok := s.macros[fnName]; ok {
-		eargs := exp.Args()
+		eargs := exp.Args
 		args := make([]Value, len(eargs))
 		for i, e := range eargs {
 			v, err := s.evalExpr(e)
@@ -639,7 +622,7 @@ func (s *state) evalFunction(exp *parse.FuncExpr) (v Value, e error) {
 		return s.callMacro(macroDef{macro}, args...)
 	}
 	if fn, ok := s.env.Functions[fnName]; ok {
-		eargs := exp.Args()
+		eargs := exp.Args
 		args := make([]Value, len(eargs))
 		for i, e := range eargs {
 			v, err := s.evalExpr(e)
@@ -653,10 +636,10 @@ func (s *state) evalFunction(exp *parse.FuncExpr) (v Value, e error) {
 	return nil, errors.New("Undeclared function \"" + fnName + "\"")
 }
 
-func (s *state) evalFilter(exp *parse.FilterExpr) (v Value, e error) {
-	ftName := exp.Name()
+func (s *state) evalFilter(exp *parse.FilterExpr) (Value, error) {
+	ftName := exp.Name
 	if fn, ok := s.env.Filters[ftName]; ok {
-		eargs := exp.Args()
+		eargs := exp.Args
 		if len(eargs) == 0 {
 			return nil, errors.New("Filter call must receive at least one argument")
 		}
@@ -684,7 +667,7 @@ type macroSet struct {
 func (s *state) callMacro(macro macroDef, args ...Value) (Value, error) {
 	s.scope.push()
 	defer s.scope.pop()
-	for i, name := range macro.Args() {
+	for i, name := range macro.Args {
 		if i >= len(args) {
 			s.scope.setLocal(name, nil)
 		} else {
@@ -697,7 +680,7 @@ func (s *state) callMacro(macro macroDef, args ...Value) (Value, error) {
 	}()
 	buf := &bytes.Buffer{}
 	s.out = buf
-	err := s.walk(macro.Body())
+	err := s.walk(macro.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -710,7 +693,7 @@ func execute(name string, out io.Writer, ctx map[string]Value, env *Env) error {
 		ctx = make(map[string]Value)
 	}
 	s := newState(out, ctx, env)
-	tree, err := s.load(name)
+	tree, err := s.env.load(name)
 	if err != nil {
 		return err
 	}
@@ -720,4 +703,26 @@ func execute(name string, out io.Writer, ctx map[string]Value, env *Env) error {
 		return err
 	}
 	return nil
+}
+
+// Parse loads and parses the given template.
+func (env *Env) Parse(name string) (*parse.Tree, error) {
+	return env.load(name)
+}
+
+// Method load attempts to load and parse the given template.
+func (env *Env) load(name string) (*parse.Tree, error) {
+	tpl, err := env.Loader.Load(name)
+	if err != nil {
+		return nil, err
+	}
+	tree := parse.NewTree(tpl.Contents())
+	for _, v := range env.Visitors {
+		tree.Visitors = append(tree.Visitors, v)
+	}
+	err = tree.Parse()
+	if err != nil {
+		return nil, enrichError(tpl, err)
+	}
+	return tree, nil
 }

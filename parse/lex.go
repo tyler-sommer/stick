@@ -82,11 +82,11 @@ const (
 type token struct {
 	value     string
 	tokenType tokenType
-	pos
+	Pos
 }
 
 func (tok token) String() string {
-	return fmt.Sprintf("{%s '%s' %s}", tok.tokenType, tok.value, tok.Pos())
+	return fmt.Sprintf("{%s '%s' %s}", tok.tokenType, tok.value, tok.Pos)
 }
 
 // stateFn may emit zero or more tokens.
@@ -170,7 +170,7 @@ func (l *lexer) emit(t tokenType) {
 		val = l.input[l.start:l.pos]
 	}
 
-	tok := token{val, t, newPos(l.line, l.offset)}
+	tok := token{val, t, Pos{l.line, l.offset}}
 
 	if c := strings.Count(val, "\n"); c > 0 {
 		l.line += c
@@ -189,7 +189,7 @@ func (l *lexer) emit(t tokenType) {
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	tok := token{fmt.Sprintf(format, args...), tokenError, newPos(l.line, l.offset)}
+	tok := token{fmt.Sprintf(format, args...), tokenError, Pos{l.line, l.offset}}
 	l.tokens <- tok
 
 	return nil

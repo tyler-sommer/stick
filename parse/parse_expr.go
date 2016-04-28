@@ -52,18 +52,18 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				switch exp := attr.(type) {
 				case *NameExpr:
 					// valid, but we want to treat the name as a string
-					attr = newStringExpr(exp.Name(), exp.Pos())
+					attr = newStringExpr(exp.Name, exp.Pos)
 				case *FuncExpr:
 					// method call
-					for _, v := range exp.Args() {
+					for _, v := range exp.Args {
 						args = append(args, v)
 					}
-					attr = newStringExpr(exp.Name(), exp.Pos())
+					attr = newStringExpr(exp.Name, exp.Pos)
 				default:
 					return nil, newUnexpectedTokenError(nt)
 				}
 			}
-			return t.parseOuterExpr(newGetAttrExpr(expr, attr, args, nt.Pos()))
+			return t.parseOuterExpr(newGetAttrExpr(expr, attr, args, nt.Pos))
 
 		case "|": // Filter application
 			nx, err := t.parseExpr()
@@ -72,11 +72,11 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			}
 			switch n := nx.(type) {
 			case *NameExpr:
-				return newFilterExpr(n, []Expr{expr}, nt.Pos()), nil
+				return newFilterExpr(n.Name, []Expr{expr}, nt.Pos), nil
 
 			case *FuncExpr:
-				n.args = append([]Expr{expr}, n.args...)
-				return newFilterExpr(n.name, n.args, n.pos), nil
+				n.Args = append([]Expr{expr}, n.Args...)
+				return newFilterExpr(n.Name, n.Args, n.Pos), nil
 
 			default:
 				return nil, newUnexpectedTokenError(nt)
@@ -95,7 +95,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			return newTernaryIfExpr(expr, tx, fx, expr.Pos()), nil
+			return newTernaryIfExpr(expr, tx, fx, expr.Start()), nil
 
 		default:
 			t.backup()
@@ -130,7 +130,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			}
 			if nxop.precedence < op.precedence || (nxop.precedence == op.precedence && op.leftAssoc()) {
 				t.backup()
-				return t.parseOuterExpr(newBinaryExpr(expr, op.Operator(), right, expr.Pos()))
+				return t.parseOuterExpr(newBinaryExpr(expr, op.Operator(), right, expr.Start()))
 			}
 			t.backup()
 			right, err = t.parseOuterExpr(right)
@@ -140,7 +140,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 		} else {
 			t.backup()
 		}
-		return newBinaryExpr(expr, op.Operator(), right, expr.Pos()), nil
+		return newBinaryExpr(expr, op.Operator(), right, expr.Start()), nil
 
 	default:
 		t.backup()
@@ -166,13 +166,13 @@ func (t *Tree) parseRightTestOperand(prev *NameExpr) (*TestExpr, error) {
 	switch r := right.(type) {
 	case *NameExpr:
 		if prev != nil {
-			r.name = prev.name + " " + r.name
+			r.Name = prev.Name + " " + r.Name
 		}
-		return newTestExpr(r, []Expr{}, r.Pos()), nil
+		return newTestExpr(r.Name, []Expr{}, r.Pos), nil
 
 	case *FuncExpr:
 		if prev != nil {
-			r.name.name = prev.name + " " + r.name.name
+			r.Name = prev.Name + " " + r.Name
 		}
 		return &TestExpr{r}, nil
 	default:
@@ -196,7 +196,7 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return newUnaryExpr(op.Operator(), expr, tok.Pos()), nil
+		return newUnaryExpr(op.Operator(), expr, tok.Pos), nil
 
 	case tokenParensOpen:
 		inner, err := t.parseExpr()
@@ -207,7 +207,7 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return newGroupExpr(inner, tok.Pos()), nil
+		return newGroupExpr(inner, tok.Pos), nil
 
 	case tokenNumber:
 		nxt := t.peek()
@@ -221,18 +221,18 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 			}
 			val = val + nxt.value
 		}
-		return newNumberExpr(val, tok.Pos()), nil
+		return newNumberExpr(val, tok.Pos), nil
 
 	case tokenName:
 		switch tok.value {
 		case "null", "NULL", "none", "NONE":
-			return newNullExpr(tok.Pos()), nil
+			return newNullExpr(tok.Pos), nil
 		case "true", "TRUE":
-			return newBoolExpr(true, tok.Pos()), nil
+			return newBoolExpr(true, tok.Pos), nil
 		case "false", "FALSE":
-			return newBoolExpr(false, tok.Pos()), nil
+			return newBoolExpr(false, tok.Pos), nil
 		}
-		name := newNameExpr(tok.value, tok.Pos())
+		name := newNameExpr(tok.value, tok.Pos)
 		nt := t.nextNonSpace()
 		if nt.tokenType == tokenParensOpen {
 			// TODO: This duplicates some code in parseOuterExpr, are both necessary?
@@ -250,7 +250,7 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 			}
 			switch nxt.tokenType {
 			case tokenText:
-				exprs = append(exprs, newStringExpr(nxt.value, nxt.Pos()))
+				exprs = append(exprs, newStringExpr(nxt.value, nxt.Pos))
 			case tokenInterpolateOpen:
 				exp, err := t.parseExpr()
 				if err != nil {
@@ -267,10 +267,10 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 					var res *BinaryExpr
 					for i := 1; i < ln; i++ {
 						if res == nil {
-							res = newBinaryExpr(exprs[i-1], OpBinaryConcat, exprs[i], exprs[i-1].Pos())
+							res = newBinaryExpr(exprs[i-1], OpBinaryConcat, exprs[i], exprs[i-1].Start())
 							continue
 						}
-						res = newBinaryExpr(res, OpBinaryConcat, exprs[i], res.Pos())
+						res = newBinaryExpr(res, OpBinaryConcat, exprs[i], res.Pos)
 					}
 					return res, nil
 				}
@@ -313,7 +313,7 @@ func (t *Tree) parseFunc(name *NameExpr) (Expr, error) {
 			}
 
 		case tokenParensClose:
-			return newFuncExpr(name, args, name.Pos()), nil
+			return newFuncExpr(name.Name, args, name.Pos), nil
 
 		default:
 			return nil, newUnexpectedTokenError(tok, tokenPunctuation, tokenParensClose)

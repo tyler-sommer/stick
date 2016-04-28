@@ -5,7 +5,7 @@ type ParsingError interface {
 	error
 
 	// Pos returns the position where the error originated.
-	Pos() pos
+	Pos() Pos
 
 	// setTree is used internally to enrich the error with extra information.
 	setTree(t *Tree)
@@ -40,7 +40,7 @@ func (e *UnexpectedTokenError) Error() string {
 
 // newUnexpectedTokenError returns a new UnexpectedTokenError
 func newUnexpectedTokenError(actual token, expected ...tokenType) error {
-	return &UnexpectedTokenError{newBaseError(actual.Pos()), actual, expected}
+	return &UnexpectedTokenError{newBaseError(actual.Pos), actual, expected}
 }
 
 // UnclosedTagError is generated when a tag is not properly closed.
@@ -54,7 +54,7 @@ func (e *UnclosedTagError) Error() string {
 }
 
 // newUnclosedTagError returns a new UnclosedTagError.
-func newUnclosedTagError(name string, start pos) error {
+func newUnclosedTagError(name string, start Pos) error {
 	return &UnclosedTagError{newBaseError(start), name}
 }
 
@@ -69,7 +69,7 @@ func (e *UnexpectedEOFError) Error() string {
 
 // newUnexpectedEOFError returns a new UnexpectedEOFError
 func newUnexpectedEOFError(tok token) error {
-	return &UnexpectedEOFError{newBaseError(tok.Pos())}
+	return &UnexpectedEOFError{newBaseError(tok.Pos)}
 }
 
 // UnexpectedValueError describes an invalid or unexpected value inside a token.
@@ -85,7 +85,7 @@ func (e *UnexpectedValueError) Error() string {
 
 // newUnexpectedValueError returns a new UnexpectedPunctuationError
 func newUnexpectedValueError(tok token, expected string) error {
-	return &UnexpectedValueError{newBaseError(tok.Pos()), tok, expected}
+	return &UnexpectedValueError{newBaseError(tok.Pos), tok, expected}
 }
 
 // MultipleExtendsError describes an attempt to extend from multiple parent templates.
@@ -98,6 +98,6 @@ func (e *MultipleExtendsError) Error() string {
 }
 
 // newMultipleExtendsError returns a new MultipleExtendsError
-func newMultipleExtendsError(start pos) error {
+func newMultipleExtendsError(start Pos) error {
 	return &MultipleExtendsError{newBaseError(start)}
 }

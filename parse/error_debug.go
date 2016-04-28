@@ -8,7 +8,7 @@ import (
 )
 
 type baseError struct {
-	pos
+	Pos
 	debug      string
 	lastTokens []token
 }
@@ -35,7 +35,7 @@ func (e *baseError) setTree(t *Tree) {
 	e.lastTokens = append(e.lastTokens, t.unread...)
 }
 
-func newBaseError(p pos) *baseError {
+func newBaseError(p Pos) *baseError {
 	return &baseError{p, getTrace(), make([]token, 0)}
 }
 

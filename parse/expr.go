@@ -9,11 +9,11 @@ type Expr interface {
 
 // NameExpr represents an identifier, such as a variable.
 type NameExpr struct {
-	pos
-	name string
+	Pos
+	Name string // Name of the identifier.
 }
 
-func newNameExpr(name string, pos pos) *NameExpr {
+func newNameExpr(name string, pos Pos) *NameExpr {
 	return &NameExpr{pos, name}
 }
 
@@ -22,19 +22,14 @@ func (exp *NameExpr) All() []Node {
 	return []Node{}
 }
 
-// Name returns the expression's name.
-func (exp *NameExpr) Name() string {
-	return exp.name
-}
-
 // String returns a string representation of the NameExpr.
 func (exp *NameExpr) String() string {
-	return fmt.Sprintf("NameExpr(%s)", exp.name)
+	return fmt.Sprintf("NameExpr(%s)", exp.Name)
 }
 
 // NullExpr represents a null literal.
 type NullExpr struct {
-	pos
+	Pos
 }
 
 // All returns all the child Nodes in a NullExpr.
@@ -42,7 +37,7 @@ func (exp *NullExpr) All() []Node {
 	return []Node{}
 }
 
-func newNullExpr(pos pos) *NullExpr {
+func newNullExpr(pos Pos) *NullExpr {
 	return &NullExpr{pos}
 }
 
@@ -53,11 +48,11 @@ func (exp *NullExpr) String() string {
 
 // BoolExpr represents a boolean literal.
 type BoolExpr struct {
-	pos
-	value bool
+	Pos
+	Value bool // The raw boolean value.
 }
 
-func newBoolExpr(value bool, pos pos) *BoolExpr {
+func newBoolExpr(value bool, pos Pos) *BoolExpr {
 	return &BoolExpr{pos, value}
 }
 
@@ -66,14 +61,9 @@ func (exp *BoolExpr) All() []Node {
 	return []Node{}
 }
 
-// Value returns the boolean value stored in the expression.
-func (exp *BoolExpr) Value() bool {
-	return exp.value
-}
-
 // String returns a string representation of the BoolExpr.
 func (exp *BoolExpr) String() string {
-	if exp.value {
+	if exp.Value {
 		return "TRUE"
 	}
 	return "FALSE"
@@ -81,11 +71,11 @@ func (exp *BoolExpr) String() string {
 
 // NumberExpr represents a number literal.
 type NumberExpr struct {
-	pos
-	value string
+	Pos
+	Value string // The string representation of the number.
 }
 
-func newNumberExpr(val string, pos pos) *NumberExpr {
+func newNumberExpr(val string, pos Pos) *NumberExpr {
 	return &NumberExpr{pos, val}
 }
 
@@ -94,23 +84,18 @@ func (exp *NumberExpr) All() []Node {
 	return []Node{}
 }
 
-// Value returns the value stored in the NumberExpr.
-func (exp *NumberExpr) Value() string {
-	return exp.value
-}
-
 // String returns a string representation of the NumberExpr.
 func (exp *NumberExpr) String() string {
-	return fmt.Sprintf("NumberExpr(%s)", exp.value)
+	return fmt.Sprintf("NumberExpr(%s)", exp.Value)
 }
 
 // StringExpr represents a string literal.
 type StringExpr struct {
-	pos
-	text string
+	Pos
+	Text string // The text contained within the literal.
 }
 
-func newStringExpr(text string, pos pos) *StringExpr {
+func newStringExpr(text string, pos Pos) *StringExpr {
 	return &StringExpr{pos, text}
 }
 
@@ -119,50 +104,34 @@ func (exp *StringExpr) All() []Node {
 	return []Node{}
 }
 
-// Value returns the stored string value.
-func (exp *StringExpr) Value() string {
-	return exp.text
-}
-
 // String returns a string representation of the StringExpr.
 func (exp *StringExpr) String() string {
-	return fmt.Sprintf("StringExpr(%s)", exp.text)
+	return fmt.Sprintf("StringExpr(%s)", exp.Text)
 }
 
 // FuncExpr represents a function call.
 type FuncExpr struct {
-	pos
-	name *NameExpr
-	args []Expr
+	Pos
+	Name string // The name of the function.
+	Args []Expr // Arguments to be passed to the function.
 }
 
 // All returns all the child Nodes in a FuncExpr.
 func (exp *FuncExpr) All() []Node {
-	res := []Node{exp.name}
-	for _, n := range exp.args {
-		res = append(res, n)
+	res := make([]Node, len(exp.Args))
+	for i, n := range exp.Args {
+		res[i] = n
 	}
 	return res
 }
 
-func newFuncExpr(name *NameExpr, args []Expr, pos pos) *FuncExpr {
+func newFuncExpr(name string, args []Expr, pos Pos) *FuncExpr {
 	return &FuncExpr{pos, name, args}
 }
 
 // String returns a string representation of a FuncExpr.
 func (exp *FuncExpr) String() string {
-	return fmt.Sprintf("FuncExpr(%s, %s)", exp.name, exp.args)
-}
-
-// Name returns the name of the function to be called.
-func (exp *FuncExpr) Name() string {
-	return exp.name.Name()
-}
-
-// Args returns any arguments that should be evaluated and passed
-// into the function.
-func (exp *FuncExpr) Args() []Expr {
-	return exp.args
+	return fmt.Sprintf("FuncExpr(%s, %s)", exp.Name, exp.Args)
 }
 
 // FilterExpr represents a filter application.
@@ -172,10 +141,10 @@ type FilterExpr struct {
 
 // String returns a string representation of the FilterExpr.
 func (exp *FilterExpr) String() string {
-	return fmt.Sprintf("FilterExpr(%s, %s)", exp.name, exp.args)
+	return fmt.Sprintf("FilterExpr(%s, %s)", exp.Name, exp.Args)
 }
 
-func newFilterExpr(name *NameExpr, args []Expr, pos pos) *FilterExpr {
+func newFilterExpr(name string, args []Expr, pos Pos) *FilterExpr {
 	return &FilterExpr{newFuncExpr(name, args, pos)}
 }
 
@@ -186,122 +155,92 @@ type TestExpr struct {
 
 // String returns a string representation of the TestExpr.
 func (exp *TestExpr) String() string {
-	return fmt.Sprintf("TestExpr(%s, %s)", exp.name, exp.args)
+	return fmt.Sprintf("TestExpr(%s, %s)", exp.Name, exp.Args)
 }
 
-func newTestExpr(name *NameExpr, args []Expr, pos pos) *TestExpr {
+func newTestExpr(name string, args []Expr, pos Pos) *TestExpr {
 	return &TestExpr{newFuncExpr(name, args, pos)}
 }
 
 // BinaryExpr represents a binary operation, such as "x + y"
 type BinaryExpr struct {
-	pos
-	left  Expr
-	op    string
-	right Expr
+	Pos
+	Left  Expr   // Left side expression.
+	Op    string // Binary operation in string form.
+	Right Expr   // Right side expression.
 }
 
-func newBinaryExpr(left Expr, op string, right Expr, pos pos) *BinaryExpr {
+func newBinaryExpr(left Expr, op string, right Expr, pos Pos) *BinaryExpr {
 	return &BinaryExpr{pos, left, op, right}
 }
 
 // All returns all the child Nodes in a BinaryExpr.
 func (exp *BinaryExpr) All() []Node {
-	return []Node{exp.left, exp.right}
-}
-
-// Left returns the left operand expression.
-func (exp *BinaryExpr) Left() Expr {
-	return exp.left
-}
-
-// Right returns the right operand expression.
-func (exp *BinaryExpr) Right() Expr {
-	return exp.right
-}
-
-// Op returns the operation to be performed.
-func (exp *BinaryExpr) Op() string {
-	return exp.op
+	return []Node{exp.Left, exp.Right}
 }
 
 // String returns a string representation of the BinaryExpr.
 func (exp *BinaryExpr) String() string {
-	return fmt.Sprintf("BinaryExpr(%s %s %s)", exp.left, exp.op, exp.right)
+	return fmt.Sprintf("BinaryExpr(%s %s %s)", exp.Left, exp.Op, exp.Right)
 }
 
 // UnaryExpr represents a unary operation, such as "not x"
 type UnaryExpr struct {
-	pos
-	op   string
-	expr Expr
+	Pos
+	Op string // The operation, in string form.
+	X  Expr   // Expression to be evaluated.
 }
 
-func newUnaryExpr(op string, expr Expr, pos pos) *UnaryExpr {
+func newUnaryExpr(op string, expr Expr, pos Pos) *UnaryExpr {
 	return &UnaryExpr{pos, op, expr}
 }
 
 // All returns all the child Nodes in a UnaryExpr.
 func (exp *UnaryExpr) All() []Node {
-	return []Node{exp.expr}
-}
-
-// Expr returns the expression to be evaluated and operated on.
-func (exp *UnaryExpr) Expr() Expr {
-	return exp.expr
-}
-
-// Op returns the operation to be performed.
-func (exp *UnaryExpr) Op() string {
-	return exp.op
+	return []Node{exp.X}
 }
 
 // String returns a string representation of a UnaryExpr.
 func (exp *UnaryExpr) String() string {
-	return fmt.Sprintf("UnaryExpr(%s %s)", exp.op, exp.expr)
+	return fmt.Sprintf("UnaryExpr(%s %s)", exp.Op, exp.X)
 }
 
 // GroupExpr represents an arbitrary wrapper around an inner expression.
 type GroupExpr struct {
-	pos
-	inner Expr
+	Pos
+	X Expr // Expression to be evaluated.
 }
 
-func newGroupExpr(inner Expr, pos pos) *GroupExpr {
+func newGroupExpr(inner Expr, pos Pos) *GroupExpr {
 	return &GroupExpr{pos, inner}
 }
 
 // All returns all the child Nodes in a GroupExpr.
 func (exp *GroupExpr) All() []Node {
-	return []Node{exp.inner}
-}
-
-// Inner returns the inner expression of a GroupExpr.
-func (exp *GroupExpr) Inner() Expr {
-	return exp.inner
+	return []Node{exp.X}
 }
 
 // String returns a string representation of a GroupExpr.
 func (exp *GroupExpr) String() string {
-	return fmt.Sprintf("GroupExpr(%s)", exp.inner)
+	return fmt.Sprintf("GroupExpr(%s)", exp.X)
 }
 
 // GetAttrExpr represents an attempt to retrieve an attribute from a value.
 type GetAttrExpr struct {
-	pos
-	cont Expr
-	attr Expr
-	args []Expr
+	Pos
+	Cont Expr   // Container to get attribute from.
+	Attr Expr   // Attribute to get.
+	Args []Expr // Args to pass to attribute, if its a method.
 }
 
-func newGetAttrExpr(cont Expr, attr Expr, args []Expr, pos pos) *GetAttrExpr {
+func newGetAttrExpr(cont Expr, attr Expr, args []Expr, pos Pos) *GetAttrExpr {
 	return &GetAttrExpr{pos, cont, attr, args}
 }
 
 // All returns all the child Nodes in a GetAttrExpr.
 func (exp *GetAttrExpr) All() []Node {
-	res := []Node{exp.cont, exp.attr}
-	for _, v := range exp.args {
+	res := []Node{exp.Cont, exp.Attr}
+	for _, v := range exp.Args {
 		res = append(res, v)
 	}
 	return res
@@ -309,60 +248,30 @@ func (exp *GetAttrExpr) All() []Node {
 
 // String returns a string representation of a GetAttrExpr.
 func (exp *GetAttrExpr) String() string {
-	if len(exp.args) > 0 {
-		return fmt.Sprintf("GetAttrExpr(%s -> %s %v)", exp.cont, exp.attr, exp.args)
+	if len(exp.Args) > 0 {
+		return fmt.Sprintf("GetAttrExpr(%s -> %s %v)", exp.Cont, exp.Attr, exp.Args)
 	}
-	return fmt.Sprintf("GetAttrExpr(%s -> %s)", exp.cont, exp.attr)
-}
-
-// Cont returns the container expression to be evaluated.
-func (exp *GetAttrExpr) Cont() Expr {
-	return exp.cont
-}
-
-// Attr returns the expression to be used as the attribute name.
-func (exp *GetAttrExpr) Attr() Expr {
-	return exp.attr
-}
-
-// Args returns any arguments that should be used during attribute fetching.
-func (exp *GetAttrExpr) Args() []Expr {
-	return exp.args
+	return fmt.Sprintf("GetAttrExpr(%s -> %s)", exp.Cont, exp.Attr)
 }
 
 // TernaryIfExpr represents an attempt to retrieve an attribute from a value.
 type TernaryIfExpr struct {
-	pos
-	cond Expr
-	tx   Expr
-	fx   Expr
+	Pos
+	Cond   Expr // Condition to test.
+	TrueX  Expr // Expression if Cond is true.
+	FalseX Expr // Expression if Cond is false.
 }
 
-func newTernaryIfExpr(cond, tx, fx Expr, pos pos) *TernaryIfExpr {
+func newTernaryIfExpr(cond, tx, fx Expr, pos Pos) *TernaryIfExpr {
 	return &TernaryIfExpr{pos, cond, tx, fx}
 }
 
 // All returns all the child Nodes in a TernaryIfExpr.
 func (exp *TernaryIfExpr) All() []Node {
-	return []Node{exp.cond, exp.tx, exp.fx}
+	return []Node{exp.Cond, exp.TrueX, exp.FalseX}
 }
 
 // String returns a string representation of a TernaryIfExpr.
 func (exp *TernaryIfExpr) String() string {
-	return fmt.Sprintf("%s ? %s : %v", exp.cond, exp.tx, exp.fx)
-}
-
-// Cond returns the conditional expression to be evaluated.
-func (exp *TernaryIfExpr) Cond() Expr {
-	return exp.cond
-}
-
-// TrueExpr returns the expression to be evaluated when cond is true.
-func (exp *TernaryIfExpr) TrueExpr() Expr {
-	return exp.tx
-}
-
-// FalseExpr returns the expression to be evaluated when cond is false.
-func (exp *TernaryIfExpr) FalseExpr() Expr {
-	return exp.fx
+	return fmt.Sprintf("%s ? %s : %v", exp.Cond, exp.TrueX, exp.FalseX)
 }

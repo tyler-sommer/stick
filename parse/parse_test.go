@@ -15,7 +15,7 @@ type parseTest struct {
 const noError = ""
 
 // Position testing isnt implemented
-var noPos = pos{0, 0}
+var noPos = Pos{0, 0}
 
 func newParseTest(name, input string, expected *ModuleNode) parseTest {
 	return parseTest{name, input, expected, noError}
@@ -28,7 +28,7 @@ func newErrorTest(name, input string, err string) parseTest {
 func mkModule(nodes ...Node) *ModuleNode {
 	l := newModuleNode()
 	for _, n := range nodes {
-		l.append(n)
+		l.Append(n)
 	}
 
 	return l
@@ -57,7 +57,7 @@ var parseTests = []parseTest{
 						OpBinaryConcat,
 						newStringExpr(" ", noPos), noPos),
 					OpBinaryConcat,
-					newFilterExpr(newNameExpr("titlecase", noPos), []Expr{newNameExpr("name", noPos)}, noPos), noPos),
+					newFilterExpr("titlecase", []Expr{newNameExpr("name", noPos)}, noPos), noPos),
 				OpBinaryConcat,
 				newStringExpr(".", noPos), noPos),
 			noPos)),
@@ -93,7 +93,7 @@ var parseTests = []parseTest{
 	newParseTest(
 		"function expr",
 		"{{ func('arg1', arg2) }}",
-		mkModule(newPrintNode(newFuncExpr(newNameExpr("func", noPos), []Expr{newStringExpr("arg1", noPos), newNameExpr("arg2", noPos)}, noPos), noPos)),
+		mkModule(newPrintNode(newFuncExpr("func", []Expr{newStringExpr("arg1", noPos), newNameExpr("arg2", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"extends statement",
@@ -148,17 +148,17 @@ var parseTests = []parseTest{
 	newParseTest(
 		"dot notation array access mix",
 		"{{ something().another['test'].further }}",
-		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newGetAttrExpr(newFuncExpr(newNameExpr("something", noPos), []Expr{}, noPos), newStringExpr("another", noPos), []Expr{}, noPos), newStringExpr("test", noPos), []Expr{}, noPos), newStringExpr("further", noPos), []Expr{}, noPos), noPos)),
+		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newGetAttrExpr(newFuncExpr("something", []Expr{}, noPos), newStringExpr("another", noPos), []Expr{}, noPos), newStringExpr("test", noPos), []Expr{}, noPos), newStringExpr("further", noPos), []Expr{}, noPos), noPos)),
 	),
 	newParseTest(
 		"basic filter",
 		"{{ something|default('another') }}",
-		mkModule(newPrintNode(newFilterExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos), newStringExpr("another", noPos)}, noPos), noPos)),
+		mkModule(newPrintNode(newFilterExpr("default", []Expr{newNameExpr("something", noPos), newStringExpr("another", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"filter with no args",
 		"{{ something|default }}",
-		mkModule(newPrintNode(newFilterExpr(newNameExpr("default", noPos), []Expr{newNameExpr("something", noPos)}, noPos), noPos)),
+		mkModule(newPrintNode(newFilterExpr("default", []Expr{newNameExpr("something", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"basic for loop",
@@ -218,7 +218,7 @@ var parseTests = []parseTest{
 	newParseTest(
 		"test parsing",
 		"{{ animal is mammal }}{{ 10 is not divisible by(3) }}",
-		mkModule(newPrintNode(newBinaryExpr(newNameExpr("animal", noPos), OpBinaryIs, newTestExpr(newNameExpr("mammal", noPos), []Expr{}, noPos), noPos), noPos), newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryIsNot, newTestExpr(newNameExpr("divisible by", noPos), []Expr{newNumberExpr("3", noPos)}, noPos), noPos), noPos)),
+		mkModule(newPrintNode(newBinaryExpr(newNameExpr("animal", noPos), OpBinaryIs, newTestExpr("mammal", []Expr{}, noPos), noPos), noPos), newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryIsNot, newTestExpr("divisible by", []Expr{newNumberExpr("3", noPos)}, noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"comment",
@@ -248,12 +248,12 @@ var parseTests = []parseTest{
 	newParseTest(
 		"do statement",
 		"{% do somefunc() %}",
-		mkModule(newDoNode(newFuncExpr(newNameExpr("somefunc", noPos), []Expr{}, noPos), noPos)),
+		mkModule(newDoNode(newFuncExpr("somefunc", []Expr{}, noPos), noPos)),
 	),
 	newParseTest(
 		"filter statement",
 		"{% filter upper|escape %}Some text{% endfilter %}",
-		mkModule(newFilterNode([]string{"upper", "escape"}, newBodyNode(noPos, newTextNode("Some text", noPos)), noPos)),
+		mkModule(NewFilterNode([]string{"upper", "escape"}, newBodyNode(noPos, newTextNode("Some text", noPos)), noPos)),
 	),
 	newParseTest(
 		"simple macro",

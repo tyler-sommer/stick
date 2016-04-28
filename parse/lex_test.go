@@ -12,7 +12,7 @@ type lexTest struct {
 }
 
 func mkTok(t tokenType, val string) token {
-	return token{val, t, newPos(0, 0)}
+	return token{val, t, Pos{0, 0}}
 }
 
 var (
