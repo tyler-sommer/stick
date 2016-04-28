@@ -69,17 +69,6 @@ func (l *BodyNode) All() []Node {
 	return l.Nodes
 }
 
-func (l *BodyNode) visit(v NodeVisitor) {
-	nodes := l.Nodes[:0]
-	for _, n := range l.Nodes {
-		n = v.Enter(n)
-		if n == nil {
-			continue
-		}
-		nodes = append(nodes, n)
-	}
-}
-
 // TextNode represents raw, non Stick source code, like plain HTML.
 type TextNode struct {
 	Pos

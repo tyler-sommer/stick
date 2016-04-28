@@ -8,15 +8,9 @@ import (
 )
 
 // A NodeVisitor can be used to modify node contents and structure.
-// NodeVisitors implement two methods, Enter and Leave. Each method
-// takes a Node and returns a Node. The returned Node will replace
-// the original in the AST. If nil is returned, the Node will be
-// removed.
 type NodeVisitor interface {
-	// Enter is called before the node is executed.
-	Enter(Node) Node
-	// Exit is called before leaving the given Node.
-	Leave(Node) Node
+	Enter(Node) // Enter is called before the node is traversed.
+	Leave(Node) // Exit is called before leaving the given Node.
 }
 
 // Tree represents the state of a parser.
@@ -175,23 +169,17 @@ func (t *Tree) expectValue(typ tokenType, val string) (token, error) {
 }
 
 // Enter is called when the given Node is entered.
-func (t *Tree) enter(n Node) Node {
+func (t *Tree) enter(n Node) {
 	for _, v := range t.Visitors {
-		if n = v.Enter(n); n == nil {
-			return nil
-		}
+		v.Enter(n)
 	}
-	return n
 }
 
 // Leave is called just before the state exits the given Node.
-func (t *Tree) leave(n Node) Node {
+func (t *Tree) leave(n Node) {
 	for _, v := range t.Visitors {
-		if n = v.Leave(n); n == nil {
-			return nil
-		}
+		v.Leave(n)
 	}
-	return n
 }
 
 func (t *Tree) traverse(n Node) {
