@@ -223,7 +223,7 @@ var parseTests = []parseTest{
 	newParseTest(
 		"comment",
 		"But{# This is a test #} not this.",
-		mkModule(newTextNode("But", noPos), newTextNode(" not this.", noPos)),
+		mkModule(newTextNode("But", noPos), newCommentNode(" This is a test ", noPos), newTextNode(" not this.", noPos)),
 	),
 	newParseTest(
 		"use statement",

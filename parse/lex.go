@@ -14,9 +14,10 @@ type tokenType int
 const (
 	tokenEOF tokenType = iota
 	tokenText
-	tokenComment
 	tokenName
 	tokenNumber
+	tokenCommentOpen
+	tokenCommentClose
 	tokenTagOpen
 	tokenTagClose
 	tokenPrintOpen
@@ -39,9 +40,10 @@ const (
 
 var names = map[tokenType]string{
 	tokenText:             "TEXT",
-	tokenComment:          "COMMENT",
 	tokenName:             "NAME",
 	tokenNumber:           "NUMBER",
+	tokenCommentOpen:      "COMMENT_OPEN",
+	tokenCommentClose:     "COMMENT_CLOSE",
 	tokenTagOpen:          "TAG_OPEN",
 	tokenTagClose:         "TAG_CLOSE",
 	tokenPrintOpen:        "PRINT_OPEN",
@@ -77,6 +79,7 @@ const (
 	delimCloseComment     = "#}"
 	delimOpenInterpolate  = "#{"
 	delimCloseInterpolate = "}"
+	delimTrimWhitespace   = "-"
 )
 
 type token struct {
@@ -233,20 +236,23 @@ func lexData(l *lexer) stateFn {
 
 func lexExpression(l *lexer) stateFn {
 	if l.tryLexOperator() {
-		// Special handling for operators is necessary because of the alphabetical operators like "not" and "is"
+		// Special handling for operators is necessary because of the alphabetical
+		// operators like "not" and "is".
 		return lexExpression
 	}
 	switch str := l.peek(); {
 	case str == delimEOF:
 		return lexData
 
-	case strings.HasPrefix(l.input[l.pos:], delimCloseTag):
+	case strings.HasPrefix(l.input[l.pos:], delimCloseTag),
+		strings.HasPrefix(l.input[l.pos:], delimTrimWhitespace+delimCloseTag):
 		if l.pos > l.start {
 			return l.errorf("pos > start, previous token not emitted?")
 		}
 		return lexTagClose
 
-	case strings.HasPrefix(l.input[l.pos:], delimClosePrint):
+	case strings.HasPrefix(l.input[l.pos:], delimClosePrint),
+		strings.HasPrefix(l.input[l.pos:], delimTrimWhitespace+delimClosePrint):
 		if l.pos > l.start {
 			return l.errorf("pos > start, previous token not emitted?")
 		}
@@ -294,6 +300,11 @@ func (l *lexer) tryLexOperator() bool {
 	} else if op == "in" {
 		// TODO: Workaround to avoid matching "include" tags.
 		if l.input[l.pos+2:l.pos+3] != " " {
+			return false
+		}
+	} else if op == delimTrimWhitespace {
+		switch l.input[l.pos+1 : l.pos+3] {
+		case delimClosePrint, delimCloseTag:
 			return false
 		}
 	}
@@ -449,24 +460,36 @@ func lexName(l *lexer) stateFn {
 
 func lexCommentOpen(l *lexer) stateFn {
 	l.pos += len(delimOpenComment)
-	l.start = l.pos
+	if l.peek() == delimTrimWhitespace {
+		l.pos++
+	}
+	l.emit(tokenCommentOpen)
 	til := strings.Index(l.input[l.pos:], delimCloseComment)
 	if til < 0 {
 		til = len(l.input[l.start:])
 	}
 	l.pos += til
-	l.emit(tokenComment)
+	if string(l.input[l.pos-1]) == delimTrimWhitespace {
+		l.backup()
+		l.emit(tokenText)
+		l.next()
+	} else {
+		l.emit(tokenText)
+	}
 	if !strings.HasPrefix(l.input[l.pos:], delimCloseComment) {
 		return l.errorf("expected comment close")
 	}
 	l.pos += len(delimCloseComment)
-	l.start = l.pos
+	l.emit(tokenCommentClose)
 
 	return lexData
 }
 
 func lexTagOpen(l *lexer) stateFn {
 	l.pos += len(delimOpenTag)
+	if l.peek() == delimTrimWhitespace {
+		l.pos++
+	}
 	l.emit(tokenTagOpen)
 
 	return lexExpression
@@ -476,6 +499,9 @@ func lexTagClose(l *lexer) stateFn {
 	if l.parens > 0 {
 		return l.errorf("unclosed parenthesis")
 	}
+	if l.peek() == delimTrimWhitespace {
+		l.pos++
+	}
 	l.pos += len(delimCloseTag)
 	l.emit(tokenTagClose)
 
@@ -484,6 +510,9 @@ func lexTagClose(l *lexer) stateFn {
 
 func lexPrintOpen(l *lexer) stateFn {
 	l.pos += len(delimOpenPrint)
+	if l.peek() == delimTrimWhitespace {
+		l.pos++
+	}
 	l.emit(tokenPrintOpen)
 
 	return lexExpression
@@ -492,6 +521,9 @@ func lexPrintOpen(l *lexer) stateFn {
 func lexPrintClose(l *lexer) stateFn {
 	if l.parens > 0 {
 		return l.errorf("unclosed parenthesis")
+	}
+	if l.peek() == delimTrimWhitespace {
+		l.pos++
 	}
 	l.pos += len(delimClosePrint)
 	l.emit(tokenPrintClose)

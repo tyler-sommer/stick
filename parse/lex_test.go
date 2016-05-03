@@ -19,10 +19,18 @@ var (
 	tEOF              = mkTok(tokenEOF, delimEOF)
 	tSpace            = mkTok(tokenWhitespace, " ")
 	tNewLine          = mkTok(tokenWhitespace, "\n")
+	tCommentOpen      = mkTok(tokenCommentOpen, delimOpenComment)
+	tCommentClose     = mkTok(tokenCommentClose, delimCloseComment)
+	tCommentTrimOpen  = mkTok(tokenCommentOpen, delimOpenComment+delimTrimWhitespace)
+	tCommentTrimClose = mkTok(tokenCommentClose, delimTrimWhitespace+delimCloseComment)
 	tTagOpen          = mkTok(tokenTagOpen, delimOpenTag)
 	tTagClose         = mkTok(tokenTagClose, delimCloseTag)
+	tTagTrimOpen      = mkTok(tokenTagOpen, delimOpenTag+delimTrimWhitespace)
+	tTagTrimClose     = mkTok(tokenTagClose, delimTrimWhitespace+delimCloseTag)
 	tPrintOpen        = mkTok(tokenPrintOpen, delimOpenPrint)
 	tPrintClose       = mkTok(tokenPrintClose, delimClosePrint)
+	tPrintTrimOpen    = mkTok(tokenPrintOpen, delimOpenPrint+delimTrimWhitespace)
+	tPrintTrimClose   = mkTok(tokenPrintClose, delimTrimWhitespace+delimClosePrint)
 	tDblStringOpen    = mkTok(tokenStringOpen, "\"")
 	tDblStringClose   = mkTok(tokenStringClose, "\"")
 	tStringOpen       = mkTok(tokenStringOpen, "'")
@@ -38,12 +46,15 @@ var lexTests = []lexTest{
 
 	{"comment", "Some text{# Hello there #}", []token{
 		mkTok(tokenText, "Some text"),
-		mkTok(tokenComment, " Hello there "),
+		tCommentOpen,
+		mkTok(tokenText, " Hello there "),
+		tCommentClose,
 		tEOF,
 	}},
 
 	{"unclosed comment", "{# Hello there", []token{
-		mkTok(tokenComment, " Hello there"),
+		tCommentOpen,
+		mkTok(tokenText, " Hello there"),
 		mkTok(tokenError, "expected comment close"),
 	}},
 
@@ -273,6 +284,31 @@ var lexTests = []lexTest{
 		tDblStringClose,
 		tSpace,
 		tPrintClose,
+		tEOF,
+	}},
+
+	{"whitespace control print", `{{- test -}}`, []token{
+		tPrintTrimOpen,
+		tSpace,
+		mkTok(tokenName, "test"),
+		tSpace,
+		tPrintTrimClose,
+		tEOF,
+	}},
+
+	{"whitespace control tag", `{%- test -%}`, []token{
+		tTagTrimOpen,
+		tSpace,
+		mkTok(tokenName, "test"),
+		tSpace,
+		tTagTrimClose,
+		tEOF,
+	}},
+
+	{"whitespace control comment", `{#- test -#}`, []token{
+		tCommentTrimOpen,
+		mkTok(tokenText, " test "),
+		tCommentTrimClose,
 		tEOF,
 	}},
 }

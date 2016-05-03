@@ -13,6 +13,11 @@ type Node interface {
 	All() []Node    // All children of the Node.
 }
 
+type TrimmableNode struct {
+	TrimBefore bool // True if whitespace before the node should be removed.
+	TrimAfter  bool // True if whitespace after the node should be removed.
+}
+
 // Pos is used to track line and offset in a given string.
 type Pos struct {
 	Line   int
@@ -89,14 +94,25 @@ func (t *TextNode) All() []Node {
 	return []Node{}
 }
 
+// CommentNode represents a comment.
+type CommentNode struct {
+	*TextNode
+	TrimmableNode
+}
+
+func newCommentNode(data string, p Pos) *CommentNode {
+	return &CommentNode{newTextNode(data, p), TrimmableNode{}}
+}
+
 // PrintNode represents a print statement
 type PrintNode struct {
 	Pos
+	TrimmableNode
 	X Expr // Expression to print.
 }
 
 func newPrintNode(exp Expr, p Pos) *PrintNode {
-	return &PrintNode{p, exp}
+	return &PrintNode{p, TrimmableNode{}, exp}
 }
 
 // String returns a string representation of a PrintNode.
@@ -112,12 +128,13 @@ func (t *PrintNode) All() []Node {
 // BlockNode represents a block statement
 type BlockNode struct {
 	Pos
+	TrimmableNode
 	Name string // Name of the block.
 	Body Node   // Body of the block.
 }
 
 func newBlockNode(name string, body Node, p Pos) *BlockNode {
-	return &BlockNode{p, name, body}
+	return &BlockNode{p, TrimmableNode{}, name, body}
 }
 
 // String returns a string representation of a BlockNode.
@@ -133,13 +150,14 @@ func (t *BlockNode) All() []Node {
 // IfNode represents an if statement
 type IfNode struct {
 	Pos
+	TrimmableNode
 	Cond Expr // Condition to test.
 	Body Node // Body to evaluate if Cond is true.
 	Else Node // Body if Cond is false.
 }
 
 func newIfNode(cond Expr, body Node, els Node, p Pos) *IfNode {
-	return &IfNode{p, cond, body, els}
+	return &IfNode{p, TrimmableNode{}, cond, body, els}
 }
 
 // String returns a string representation of an IfNode.
@@ -155,11 +173,12 @@ func (t *IfNode) All() []Node {
 // ExtendsNode represents an extends statement
 type ExtendsNode struct {
 	Pos
+	TrimmableNode
 	Tpl Expr // Name of the template being extended.
 }
 
 func newExtendsNode(tplRef Expr, p Pos) *ExtendsNode {
-	return &ExtendsNode{p, tplRef}
+	return &ExtendsNode{p, TrimmableNode{}, tplRef}
 }
 
 // String returns a string representation of an ExtendsNode.
@@ -175,6 +194,7 @@ func (t *ExtendsNode) All() []Node {
 // ForNode represents a for loop construct.
 type ForNode struct {
 	Pos
+	TrimmableNode
 	Key  string // Name of key variable, or empty string.
 	Val  string // Name of val variable.
 	X    Expr   // Expression to iterate over.
@@ -183,7 +203,7 @@ type ForNode struct {
 }
 
 func newForNode(k, v string, expr Expr, body, els Node, p Pos) *ForNode {
-	return &ForNode{p, k, v, expr, body, els}
+	return &ForNode{p, TrimmableNode{}, k, v, expr, body, els}
 }
 
 // String returns a string representation of a ForNode.
@@ -199,13 +219,14 @@ func (t *ForNode) All() []Node {
 // IncludeNode is an include statement.
 type IncludeNode struct {
 	Pos
+	TrimmableNode
 	Tpl  Expr // Expression evaluating to the name of the template to include.
 	With Expr // Explicit list of variables to include in the included template.
 	Only bool // If true, only vars defined in With will be passed.
 }
 
 func newIncludeNode(tmpl Expr, with Expr, only bool, pos Pos) *IncludeNode {
-	return &IncludeNode{pos, tmpl, with, only}
+	return &IncludeNode{pos, TrimmableNode{}, tmpl, with, only}
 }
 
 // String returns a string representation of an IncludeNode.
@@ -247,12 +268,13 @@ func (t *EmbedNode) All() []Node {
 //	{% use '::blocks.html.twig' with main as base_main, left as base_left %}
 type UseNode struct {
 	Pos
+	TrimmableNode
 	Tpl     Expr              // Evaluates to the name of the template to include.
 	Aliases map[string]string // Aliases for included block names, if any.
 }
 
 func newUseNode(tpl Expr, aliases map[string]string, pos Pos) *UseNode {
-	return &UseNode{pos, tpl, aliases}
+	return &UseNode{pos, TrimmableNode{}, tpl, aliases}
 }
 
 // String returns a string representation of a UseNode.
@@ -282,12 +304,13 @@ func (t *UseNode) All() []Node {
 // SetNode is a set operation on the given varName.
 type SetNode struct {
 	Pos
+	TrimmableNode
 	Name string // Name of the var to set.
 	X    Expr   // Value of the var.
 }
 
 func newSetNode(varName string, expr Expr, pos Pos) *SetNode {
-	return &SetNode{pos, varName, expr}
+	return &SetNode{pos, TrimmableNode{}, varName, expr}
 }
 
 // String returns a string representation of an SetNode.
@@ -303,11 +326,12 @@ func (t *SetNode) All() []Node {
 // DoNode simply executes the expression it contains.
 type DoNode struct {
 	Pos
+	TrimmableNode
 	X Expr // The expression to evaluate.
 }
 
 func newDoNode(expr Expr, pos Pos) *DoNode {
-	return &DoNode{pos, expr}
+	return &DoNode{pos, TrimmableNode{}, expr}
 }
 
 // String returns a string representation of an DoNode.
@@ -323,13 +347,14 @@ func (t *DoNode) All() []Node {
 // FilterNode represents a block of filtered data.
 type FilterNode struct {
 	Pos
+	TrimmableNode
 	Filters []string // Filters to apply to Body.
 	Body    Node     // Body of the filter tag.
 }
 
 // NewFilterNode creates a FilterNode.
 func NewFilterNode(filters []string, body Node, p Pos) *FilterNode {
-	return &FilterNode{p, filters, body}
+	return &FilterNode{p, TrimmableNode{}, filters, body}
 }
 
 // String returns a string representation of a FilterNode.
@@ -345,13 +370,14 @@ func (t *FilterNode) All() []Node {
 // MacroNode represents a reusable macro.
 type MacroNode struct {
 	Pos
+	TrimmableNode
 	Name string    // Name of the macro.
 	Args []string  // Args the macro receives.
 	Body *BodyNode // Body of the macro.
 }
 
 func newMacroNode(name string, args []string, body *BodyNode, p Pos) *MacroNode {
-	return &MacroNode{p, name, args, body}
+	return &MacroNode{p, TrimmableNode{}, name, args, body}
 }
 
 // String returns a string representation of a MacroNode.
@@ -367,12 +393,13 @@ func (t *MacroNode) All() []Node {
 // ImportNode represents importing macros from another template.
 type ImportNode struct {
 	Pos
+	TrimmableNode
 	Tpl   Expr   // Evaluates to the name of the template to include.
 	Alias string // Name of the var to be used as the base for any macros.
 }
 
 func newImportNode(tpl Expr, alias string, p Pos) *ImportNode {
-	return &ImportNode{p, tpl, alias}
+	return &ImportNode{p, TrimmableNode{}, tpl, alias}
 }
 
 // String returns a string representation of a ImportNode.
@@ -388,12 +415,13 @@ func (t *ImportNode) All() []Node {
 // FromNode represents an alternative form of importing macros.
 type FromNode struct {
 	Pos
+	TrimmableNode
 	Tpl     Expr              // Evaluates to the name of the template to include.
 	Imports map[string]string // Imports to fetch from the included template.
 }
 
 func newFromNode(tpl Expr, imports map[string]string, p Pos) *FromNode {
-	return &FromNode{p, tpl, imports}
+	return &FromNode{p, TrimmableNode{}, tpl, imports}
 }
 
 // String returns a string representation of a FromNode.

@@ -239,9 +239,16 @@ func (t *Tree) parse() (Node, error) {
 	case tokenTagOpen:
 		return t.parseTag()
 
-	case tokenComment:
-		// comment, try again
-		return t.parse()
+	case tokenCommentOpen:
+		tok, err := t.expect(tokenText)
+		if err != nil {
+			return nil, err
+		}
+		_, err = t.expect(tokenCommentClose)
+		if err != nil {
+			return nil, err
+		}
+		return newCommentNode(tok.value, tok.Pos), nil
 
 	case tokenEOF:
 		// expected end of input
