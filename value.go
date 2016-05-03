@@ -15,27 +15,51 @@ type SafeValue interface {
 	// Value returns the value stored in the SafeValue.
 	Value() Value
 
-	// Prevent anyone else from implementing SafeValue.
-	safe()
+	// IsSafe returns true if the value is safely escaped for content of type typ.
+	IsSafe(typ string) bool
+
+	// SafeFor returns the content types this value is safe for.
+	SafeFor() []string
 }
 
 // NewSafeValue wraps the given value and returns a SafeValue.
-func NewSafeValue(val Value) SafeValue {
-	if v, ok := val.(SafeValue); ok {
-		return v
+func NewSafeValue(val Value, types ...string) SafeValue {
+	safeFor := make(map[string]bool)
+	for _, k := range types {
+		safeFor[k] = true
 	}
-	return safeValue{val}
+	if v, ok := val.(SafeValue); ok {
+		for _, k := range v.SafeFor() {
+			safeFor[k] = true
+		}
+		return safeValue{safeFor, v.Value()}
+	}
+	return safeValue{safeFor, val}
 }
 
 type safeValue struct {
-	val Value
+	safeFor map[string]bool
+	val     Value
 }
 
 func (v safeValue) Value() Value {
 	return v.val
 }
 
-func (v safeValue) safe() {}
+func (v safeValue) IsSafe(typ string) bool {
+	_, ok := v.safeFor[typ]
+	return ok
+}
+
+func (v safeValue) SafeFor() []string {
+	r := make([]string, len(v.safeFor))
+	i := 0
+	for k := range v.safeFor {
+		r[i] = k
+		i++
+	}
+	return r
+}
 
 // Stringer is implemented by any value that has a String method.
 type Stringer interface {

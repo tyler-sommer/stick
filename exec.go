@@ -705,11 +705,6 @@ func execute(name string, out io.Writer, ctx map[string]Value, env *Env) error {
 	return nil
 }
 
-// Parse loads and parses the given template.
-func (env *Env) Parse(name string) (*parse.Tree, error) {
-	return env.load(name)
-}
-
 // Method load attempts to load and parse the given template.
 func (env *Env) load(name string) (*parse.Tree, error) {
 	tpl, err := env.Loader.Load(name)

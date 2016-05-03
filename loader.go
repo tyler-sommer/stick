@@ -2,7 +2,6 @@ package stick
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,15 +11,6 @@ import (
 type Loader interface {
 	// Load attempts to load the specified template, returning a Template or an error.
 	Load(name string) (Template, error)
-}
-
-// UnableToLoadTemplateErr describes a template that was not able to be loaded.
-type UnableToLoadTemplateErr struct {
-	name string
-}
-
-func (e *UnableToLoadTemplateErr) Error() string {
-	return fmt.Sprintf("Unable to load template: %s", e.name)
 }
 
 type stringTemplate struct {

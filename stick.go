@@ -53,3 +53,8 @@ func NewEnv(loader Loader) *Env {
 func (env *Env) Execute(tmpl string, out io.Writer, ctx map[string]Value) error {
 	return execute(tmpl, out, ctx, env)
 }
+
+// Parse loads and parses the given template.
+func (env *Env) Parse(name string) (*parse.Tree, error) {
+	return env.load(name)
+}
