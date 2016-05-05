@@ -14,15 +14,16 @@ type Loader interface {
 }
 
 type stringTemplate struct {
+	name     string
 	contents string
 }
 
 func (t *stringTemplate) Name() string {
-	return t.contents
+	return t.name
 }
 
 func (t *stringTemplate) Contents() io.Reader {
-	return bytes.NewReader([]byte(t.contents))
+	return bytes.NewBufferString(t.contents)
 }
 
 // StringLoader is intended to be used to load Stick templates directly from a string.
@@ -30,7 +31,21 @@ type StringLoader struct{}
 
 // Load on a StringLoader simply returns the name that is passed in.
 func (l *StringLoader) Load(name string) (Template, error) {
-	return &stringTemplate{name}, nil
+	return &stringTemplate{name, name}, nil
+}
+
+// MemoryLoader loads templates from an in-memory map.
+type MemoryLoader struct {
+	Templates map[string]string
+}
+
+// Load tries to load the template from the in-memory map.
+func (l *MemoryLoader) Load(name string) (Template, error) {
+	v, ok := l.Templates[name]
+	if !ok {
+		return nil, os.ErrNotExist
+	}
+	return &stringTemplate{name, v}, nil
 }
 
 type fileTemplate struct {

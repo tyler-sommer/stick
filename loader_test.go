@@ -1,6 +1,7 @@
 package stick
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -30,5 +31,22 @@ func TestStringLoader(t *testing.T) {
 		t.Errorf("expected load to succeed got %s", e)
 	} else if b.Name() != "test string" {
 		t.Errorf("unexpected template name: %s", b.Name())
+	}
+}
+
+func TestMemoryLoader(t *testing.T) {
+	l := &MemoryLoader{map[string]string{"test.twig": "some text"}}
+	b, e := l.Load("test.twig")
+	if e != nil {
+		t.Fatalf("expected load to succeed got %s", e)
+	} else if b.Name() != "test.twig" {
+		t.Fatalf("expected to load test.twig got %s", b.Name())
+	}
+	s, e := ioutil.ReadAll(b.Contents())
+	if e != nil {
+		t.Fatalf("unexpected error %s", e)
+	}
+	if string(s) != "some text" {
+		t.Fatalf("expected 'some text' got '%s'", string(s))
 	}
 }
