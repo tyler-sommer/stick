@@ -1,20 +1,52 @@
 package parse
 
-// ParsingError is followed by all errors emitted from the parse package.
+import "fmt"
+
+// A ParsingError represents an error originating from parsing.
 type ParsingError interface {
 	error
-
-	// Pos returns the position where the error originated.
-	Pos() Pos
+	Pos() Pos     // Pos returns the position where the error originated.
+	Name() string // Name returns the name of the template this error occurred in.
 
 	// setTree is used internally to enrich the error with extra information.
 	setTree(t *Tree)
 }
 
+// A DebugError is emitted when the package is built with the debug flag.
+type DebugError interface {
+	error
+	Debug() string // Debug returns extra information about the error.
+}
+
+type parseError struct {
+	Pos
+	name string // The template this error occurred in.
+}
+
+func newParseError(p Pos) parseError {
+	return parseError{p, ""}
+}
+
+func (e *parseError) Name() string {
+	return e.name
+}
+
+func (e *parseError) setTree(t *Tree) {
+	e.name = t.Name
+}
+
+func (e *parseError) sprintf(format string, a ...interface{}) string {
+	res := fmt.Sprintf(format, a...)
+	if e.name == "" {
+		return fmt.Sprintf("parse: %s on line %d, column %d", res, e.Line, e.Offset)
+	}
+	return fmt.Sprintf("parse: %s on line %d, column %d in %s", res, e.Line, e.Offset, e.name)
+}
+
 // UnexpectedTokenError is generated when the current token
 // is not of the expected type.
 type UnexpectedTokenError struct {
-	*baseError
+	baseError
 	actual   token
 	expected []tokenType
 }
@@ -45,22 +77,22 @@ func newUnexpectedTokenError(actual token, expected ...tokenType) error {
 
 // UnclosedTagError is generated when a tag is not properly closed.
 type UnclosedTagError struct {
-	*baseError
-	name string
+	baseError
+	tagName string
 }
 
 func (e *UnclosedTagError) Error() string {
-	return e.sprintf(`unclosed tag "%s" starting`, e.name)
+	return e.sprintf(`unclosed tag "%s" starting`, e.tagName)
 }
 
 // newUnclosedTagError returns a new UnclosedTagError.
-func newUnclosedTagError(name string, start Pos) error {
-	return &UnclosedTagError{newBaseError(start), name}
+func newUnclosedTagError(tagName string, start Pos) error {
+	return &UnclosedTagError{newBaseError(start), tagName}
 }
 
 // UnexpectedEOFError describes an unexpected end of input.
 type UnexpectedEOFError struct {
-	*baseError
+	baseError
 }
 
 func (e *UnexpectedEOFError) Error() string {
@@ -74,9 +106,9 @@ func newUnexpectedEOFError(tok token) error {
 
 // UnexpectedValueError describes an invalid or unexpected value inside a token.
 type UnexpectedValueError struct {
-	*baseError
-	tok token  // The actual token
-	val string // The expected value
+	baseError
+	tok token  // The actual token.
+	val string // The expected value.
 }
 
 func (e *UnexpectedValueError) Error() string {
@@ -90,7 +122,7 @@ func newUnexpectedValueError(tok token, expected string) error {
 
 // MultipleExtendsError describes an attempt to extend from multiple parent templates.
 type MultipleExtendsError struct {
-	*baseError
+	baseError
 }
 
 func (e *MultipleExtendsError) Error() string {

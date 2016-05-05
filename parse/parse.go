@@ -24,18 +24,29 @@ type Tree struct {
 	unread []token // Any tokens received by the lexer but not yet read.
 	read   []token // Tokens that have already been read.
 
+	Name string // A name identifying this tree; the template name.
+
 	Visitors []NodeVisitor
 }
 
 // NewTree creates a new parser Tree, ready for use.
 func NewTree(input io.Reader) *Tree {
+	return NewNamedTree("", input)
+}
+
+// NewNamedTree is an alternative constructor which creates a Tree with a name
+func NewNamedTree(name string, input io.Reader) *Tree {
 	return &Tree{
-		lex:      newLexer(input),
-		root:     newModuleNode(),
-		blocks:   []map[string]*BlockNode{make(map[string]*BlockNode)},
-		macros:   make(map[string]*MacroNode),
-		unread:   make([]token, 0),
-		read:     make([]token, 0),
+		lex: newLexer(input),
+
+		root:   newModuleNode(name),
+		blocks: []map[string]*BlockNode{make(map[string]*BlockNode)},
+		macros: make(map[string]*MacroNode),
+
+		unread: make([]token, 0),
+		read:   make([]token, 0),
+
+		Name:     name,
 		Visitors: make([]NodeVisitor, 0),
 	}
 }

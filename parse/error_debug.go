@@ -8,7 +8,7 @@ import (
 )
 
 type baseError struct {
-	Pos
+	parseError
 	debug      string
 	lastTokens []token
 }
@@ -27,6 +27,7 @@ func getTrace() string {
 }
 
 func (e *baseError) setTree(t *Tree) {
+	e.name = t.Name
 	l := len(t.read) - 5
 	if l < 0 {
 		l = 0
@@ -35,13 +36,8 @@ func (e *baseError) setTree(t *Tree) {
 	e.lastTokens = append(e.lastTokens, t.unread...)
 }
 
-func newBaseError(p Pos) *baseError {
-	return &baseError{p, getTrace(), make([]token, 0)}
-}
-
-func (e *baseError) sprintf(format string, a ...interface{}) string {
-	res := fmt.Sprintf(format, a...)
-	return fmt.Sprintf("parse: %s on line %d, column %d", res, e.Line, e.Offset)
+func newBaseError(p Pos) baseError {
+	return baseError{newParseError(p), getTrace(), make([]token, 0)}
 }
 
 func (e *baseError) Debug() string {
