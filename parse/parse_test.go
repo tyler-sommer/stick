@@ -26,10 +26,7 @@ func newErrorTest(name, input string, err string) parseTest {
 }
 
 func mkModule(nodes ...Node) *ModuleNode {
-	l := newModuleNode()
-	for _, n := range nodes {
-		l.Append(n)
-	}
+	l := newModuleNode("", nodes...)
 
 	return l
 }

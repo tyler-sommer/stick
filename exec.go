@@ -14,9 +14,14 @@ import (
 )
 
 // Type state represents the internal state of a template execution.
+//
+// state implements the exported Context interface.
 type state struct {
 	out  io.Writer  // Output.
 	node parse.Node // Current node.
+
+	name string    // The name of the template.
+	meta *metadata // Additional template metadata.
 
 	blocks []map[string]*parse.BlockNode // Block scopes.
 	macros map[string]*parse.MacroNode   // Imported macros.
@@ -25,8 +30,73 @@ type state struct {
 	scope *scopeStack // Handles execution scope.
 }
 
+// newState creates a new template execution state, ready for use.
+func newState(name string, out io.Writer, ctx map[string]Value, env *Env) *state {
+	return &state{
+		out:  out,
+		node: nil,
+
+		name: name,
+		meta: &metadata{make(map[string]string)},
+
+		blocks: make([]map[string]*parse.BlockNode, 0),
+		macros: make(map[string]*parse.MacroNode),
+
+		env:   env,
+		scope: &scopeStack{[]map[string]Value{ctx}},
+	}
+}
+
+func (s *state) Env() *Env {
+	return s.env
+}
+
+func (s *state) Name() string {
+	return s.name
+}
+
+func (s *state) Scope() ContextScope {
+	return s.scope
+}
+
+func (s *state) Meta() ContextMetadata {
+	return s.meta
+}
+
+// noexport satisfies the Context interface.
+func (s *state) noexport() {}
+
+// metadata contains extra information about the state.
+//
+// metadata implements the exported ContextMetadata interface.
+type metadata struct {
+	attr map[string]string
+}
+
+func (m *metadata) All() map[string]string {
+	ret := make(map[string]string, len(m.attr))
+	for k, v := range m.attr {
+		ret[k] = v
+	}
+	return ret
+}
+
+func (m *metadata) Set(name, val string) {
+	m.attr[name] = val
+}
+
+func (m *metadata) Get(name string) (string, bool) {
+	ret, ok := m.attr[name]
+	return ret, ok
+}
+
+// noexport satisfies the ContextMetadata interface.
+func (m *metadata) noexport() {}
+
 // A scopeStack is a structure that represents local
 // and parent scopes.
+//
+// scopeStack implements the exported ContextScope interface.
 type scopeStack struct {
 	scopes []map[string]Value
 }
@@ -41,8 +111,8 @@ func (s *scopeStack) pop() {
 	s.scopes = s.scopes[0 : len(s.scopes)-1]
 }
 
-// all returns a flat map of the current scope.
-func (s *scopeStack) all() map[string]Value {
+// All returns a flat map of the current scope.
+func (s *scopeStack) All() map[string]Value {
 	res := make(map[string]Value)
 	for _, scope := range s.scopes {
 		for k, v := range scope {
@@ -52,13 +122,16 @@ func (s *scopeStack) all() map[string]Value {
 	return res
 }
 
-// get returns a value in the scope.
+// noexport satisfies the ContextScope interface.
+func (s *scopeStack) noexport() {}
+
+// Get returns a value in the scope.
 //
 // This function works from the current (local) scope
 // upward. The second parameter returns false if the
 // value was not found-- this can be used to distinguish
 // a non-existent value and a valid nil value.
-func (s *scopeStack) get(name string) (Value, bool) {
+func (s *scopeStack) Get(name string) (Value, bool) {
 	for i := len(s.scopes); i > 0; i-- {
 		scope := s.scopes[i-1]
 		if v, ok := scope[name]; ok {
@@ -68,13 +141,13 @@ func (s *scopeStack) get(name string) (Value, bool) {
 	return nil, false
 }
 
-// set sets the value in the scope.
+// Set sets the value in the scope.
 //
 // This function will work from the top-most scope downward,
 // looking for a scope with name defined. The value is set
 // on the scope that it was originally defined on, otherwise
-// on the local scope.
-func (s *scopeStack) set(name string, val Value) {
+// on the local (last) scope.
+func (s *scopeStack) Set(name string, val Value) {
 	for _, scope := range s.scopes {
 		if _, ok := scope[name]; ok {
 			scope[name] = val
@@ -98,18 +171,6 @@ func (s *scopeStack) setLocal(name string, val Value) {
 	s.scopes[len(s.scopes)-1][name] = val
 }
 
-// Function newState creates a new template execution state, ready for use.
-func newState(out io.Writer, ctx map[string]Value, env *Env) *state {
-	return &state{
-		out,
-		nil,
-		make([]map[string]*parse.BlockNode, 0),
-		make(map[string]*parse.MacroNode),
-		env,
-		&scopeStack{[]map[string]Value{ctx}},
-	}
-}
-
 // Method getBlock iterates through each set of blocks, returning the first
 // block with the given name.
 func (s *state) getBlock(name string) *parse.BlockNode {
@@ -131,10 +192,15 @@ func (s *state) walk(node parse.Node) error {
 			if err != nil {
 				return err
 			}
-			tree, err := s.env.load(CoerceString(tplName))
+			name := CoerceString(tplName)
+			tree, err := s.env.load(name)
 			if err != nil {
 				return err
 			}
+			defer func(name string) {
+				s.name = name
+			}(s.name)
+			s.name = name
 			s.blocks = append(s.blocks, tree.Blocks())
 			err = s.walkChild(node.BodyNode)
 			if err != nil {
@@ -163,6 +229,12 @@ func (s *state) walk(node parse.Node) error {
 	case *parse.BlockNode:
 		name := node.Name
 		if block := s.getBlock(name); block != nil {
+			if block.Origin != "" {
+				defer func(name string) {
+					s.name = name
+				}(s.name)
+				s.name = block.Origin
+			}
 			return s.walk(block.Body)
 		}
 		// TODO: It seems this should never occur.
@@ -191,8 +263,7 @@ func (s *state) walk(node parse.Node) error {
 		if err != nil {
 			return err
 		}
-		// TODO: We duplicate most of the "execute" function here.
-		si := newState(s.out, ctx, s.env)
+		si := newState(tpl, s.out, ctx, s.env)
 		tree, err := s.env.load(tpl)
 		if err != nil {
 			return err
@@ -250,10 +321,10 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 		defer s.scope.pop()
 
 		if kn != "" {
-			s.scope.set(kn, k)
+			s.scope.Set(kn, k)
 		}
-		s.scope.set(vn, v)
-		s.scope.set("loop", l)
+		s.scope.Set(vn, v)
+		s.scope.Set("loop", l)
 
 		err := s.walk(node.Body)
 		if err != nil {
@@ -287,7 +358,7 @@ func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[st
 		}
 	}
 	if !node.Only {
-		ctx = s.scope.all()
+		ctx = s.scope.All()
 	}
 	if with != nil {
 		if with, ok := with.(map[string]Value); ok {
@@ -328,7 +399,7 @@ func (s *state) walkSetNode(node *parse.SetNode) error {
 	if err != nil {
 		return err
 	}
-	s.scope.set(node.Name, v)
+	s.scope.Set(node.Name, v)
 	return nil
 }
 
@@ -357,7 +428,7 @@ func (s *state) walkFilterNode(node *parse.FilterNode) error {
 		if !ok {
 			return errors.New("undefined filter \"" + v + "\".")
 		}
-		val = CoerceString(f(s.env, val))
+		val = CoerceString(f(s, val))
 	}
 	io.WriteString(prevBuf, val)
 	return nil
@@ -376,7 +447,7 @@ func (s *state) walkImportNode(node *parse.ImportNode) error {
 	for name, def := range tree.Macros() {
 		macros[name] = macroDef{def}
 	}
-	s.scope.set(node.Alias, macroSet{macros})
+	s.scope.Set(node.Alias, macroSet{macros})
 	return nil
 }
 
@@ -408,7 +479,7 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	case *parse.BoolExpr:
 		return exp.Value, nil
 	case *parse.NameExpr:
-		if val, ok := s.scope.get(exp.Name); ok {
+		if val, ok := s.scope.Get(exp.Name); ok {
 			v = val
 		} else {
 			e = errors.New("undefined variable \"" + exp.Name + "\"")
@@ -565,7 +636,7 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 				args[i] = v
 			}
 			return func(v Value) bool {
-				return tfn(s.env, v, args...)
+				return tfn(s, v, args...)
 			}, nil
 		}
 		return nil, fmt.Errorf(`unknown test "%v"`, exp.Name)
@@ -631,7 +702,7 @@ func (s *state) evalFunction(exp *parse.FuncExpr) (Value, error) {
 			}
 			args[i] = v
 		}
-		return fn(s.env, args...), nil
+		return fn(s, args...), nil
 	}
 	return nil, errors.New("Undeclared function \"" + fnName + "\"")
 }
@@ -651,7 +722,7 @@ func (s *state) evalFilter(exp *parse.FilterExpr) (Value, error) {
 			}
 			args[i] = v
 		}
-		return fn(s.env, args[0], args[1:]...), nil
+		return fn(s, args[0], args[1:]...), nil
 	}
 	return nil, errors.New("Undeclared filter \"" + ftName + "\"")
 }
@@ -674,12 +745,17 @@ func (s *state) callMacro(macro macroDef, args ...Value) (Value, error) {
 			s.scope.setLocal(name, args[i])
 		}
 	}
-	prevBuf := s.out
-	defer func() {
-		s.out = prevBuf
-	}()
+	defer func(buf io.Writer) {
+		s.out = buf
+	}(s.out)
 	buf := &bytes.Buffer{}
 	s.out = buf
+	if macro.Origin != "" {
+		defer func(name string) {
+			s.name = name
+		}(s.name)
+		s.name = macro.Origin
+	}
 	err := s.walk(macro.Body)
 	if err != nil {
 		return nil, err
@@ -692,7 +768,7 @@ func execute(name string, out io.Writer, ctx map[string]Value, env *Env) error {
 	if ctx == nil {
 		ctx = make(map[string]Value)
 	}
-	s := newState(out, ctx, env)
+	s := newState(name, out, ctx, env)
 	tree, err := s.env.load(name)
 	if err != nil {
 		return err
@@ -711,13 +787,11 @@ func (env *Env) load(name string) (*parse.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	tree := parse.NewTree(tpl.Contents())
-	for _, v := range env.Visitors {
-		tree.Visitors = append(tree.Visitors, v)
-	}
+	tree := parse.NewNamedTree(name, tpl.Contents())
+	tree.Visitors = append(tree.Visitors, env.Visitors...)
 	err = tree.Parse()
 	if err != nil {
-		return nil, enrichError(tpl, err)
+		return nil, err
 	}
 	return tree, nil
 }

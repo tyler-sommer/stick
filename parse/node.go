@@ -38,10 +38,11 @@ func (p Pos) String() string {
 type ModuleNode struct {
 	*BodyNode
 	Parent *ExtendsNode // Parent template reference.
+	Origin string       // The name where this module is originally defined.
 }
 
-func newModuleNode(nodes ...Node) *ModuleNode {
-	return &ModuleNode{newBodyNode(Pos{1, 0}, nodes...), nil}
+func newModuleNode(name string, nodes ...Node) *ModuleNode {
+	return &ModuleNode{newBodyNode(Pos{1, 0}, nodes...), nil, name}
 }
 
 // String returns a string representation of a ModuleNode.
@@ -129,12 +130,13 @@ func (t *PrintNode) All() []Node {
 type BlockNode struct {
 	Pos
 	TrimmableNode
-	Name string // Name of the block.
-	Body Node   // Body of the block.
+	Name   string // Name of the block.
+	Body   Node   // Body of the block.
+	Origin string // The name where this block is originally defined.
 }
 
 func newBlockNode(name string, body Node, p Pos) *BlockNode {
-	return &BlockNode{p, TrimmableNode{}, name, body}
+	return &BlockNode{p, TrimmableNode{}, name, body, ""}
 }
 
 // String returns a string representation of a BlockNode.
@@ -371,13 +373,14 @@ func (t *FilterNode) All() []Node {
 type MacroNode struct {
 	Pos
 	TrimmableNode
-	Name string    // Name of the macro.
-	Args []string  // Args the macro receives.
-	Body *BodyNode // Body of the macro.
+	Name   string    // Name of the macro.
+	Args   []string  // Args the macro receives.
+	Body   *BodyNode // Body of the macro.
+	Origin string    // The name where this macro is originally defined.
 }
 
 func newMacroNode(name string, args []string, body *BodyNode, p Pos) *MacroNode {
-	return &MacroNode{p, TrimmableNode{}, name, args, body}
+	return &MacroNode{p, TrimmableNode{}, name, args, body, ""}
 }
 
 // String returns a string representation of a MacroNode.

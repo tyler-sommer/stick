@@ -6,6 +6,10 @@ import (
 
 	"strconv"
 
+	"bytes"
+
+	"io/ioutil"
+
 	"github.com/tyler-sommer/stick"
 )
 
@@ -105,7 +109,7 @@ func ExampleCoerceString() {
 // A simple test to check if a value is empty
 func ExampleTest() {
 	env := stick.NewEnv(nil)
-	env.Tests["empty"] = func(env *stick.Env, val stick.Value, args ...stick.Value) bool {
+	env.Tests["empty"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) bool {
 		return stick.CoerceBool(val) == false
 	}
 
@@ -123,7 +127,7 @@ func ExampleTest() {
 // A test made up of two words that takes an argument.
 func ExampleTest_twoWordsWithArgs() {
 	env := stick.NewEnv(nil)
-	env.Tests["divisible by"] = func(env *stick.Env, val stick.Value, args ...stick.Value) bool {
+	env.Tests["divisible by"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) bool {
 		if len(args) != 1 {
 			return false
 		}
@@ -149,7 +153,7 @@ func ExampleTest_twoWordsWithArgs() {
 // A contrived example of a user-defined function.
 func ExampleFunc() {
 	env := stick.NewEnv(nil)
-	env.Functions["get_post"] = func(e *stick.Env, args ...stick.Value) stick.Value {
+	env.Functions["get_post"] = func(ctx stick.Context, args ...stick.Value) stick.Value {
 		if len(args) == 0 {
 			return nil
 		}
@@ -173,7 +177,7 @@ func ExampleFunc() {
 // A simple user-defined filter.
 func ExampleFilter() {
 	env := stick.NewEnv(nil)
-	env.Filters["raw"] = func(e *stick.Env, val stick.Value, args ...stick.Value) stick.Value {
+	env.Filters["raw"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 		return stick.NewSafeValue(val)
 	}
 
@@ -191,7 +195,7 @@ func ExampleFilter() {
 // A simple user-defined filter that accepts a parameter.
 func ExampleFilter_withParam() {
 	env := stick.NewEnv(nil)
-	env.Filters["number_format"] = func(e *stick.Env, val stick.Value, args ...stick.Value) stick.Value {
+	env.Filters["number_format"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 		var d float64
 		if len(args) > 0 {
 			d = stick.CoerceNumber(args[0])
@@ -208,4 +212,59 @@ func ExampleFilter_withParam() {
 		fmt.Println(err)
 	}
 	// Output: $4.99
+}
+
+func ExampleFunc_usingContext() {
+	env := stick.NewEnv(&stick.MemoryLoader{
+		Templates: map[string]string{
+			"base.html.twig": `<!doctype html>
+<html>
+<head>
+	<title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+{% block nav %}{% endblock %}
+#3 base: {{ current_template() }}
+{% block content %}{% endblock %}
+</body>
+</html>
+`,
+			"side.html.twig": `{% block nav %}#2 side: {{ current_template() }}{% endblock %}`,
+			"child.html.twig": `{% extends 'base.html.twig' %}
+{% use 'side.html.twig' %}
+{% block title %}#1 child: {{ current_template() }}{% endblock %}
+{% block content %}#4 child: {{ current_template() }}{% endblock %}`,
+		},
+	})
+	buf := &bytes.Buffer{}
+	env.Functions["current_template"] = func(ctx stick.Context, args ...stick.Value) stick.Value {
+		// Reading persistent metadata
+		v, _ := ctx.Meta().Get("current_template_calls")
+		nc := stick.CoerceNumber(v)
+		nc++
+
+		fmt.Fprintf(buf, "#%.0f Current Template: %s\n", nc, ctx.Name())
+
+		// Writing persistent metadata
+		ctx.Meta().Set("current_template_calls", stick.CoerceString(nc))
+
+		return nil
+	}
+
+	// Notice that we discard the actual output. We only care about what the
+	// current_template function writes to buf.
+	err := env.Execute(
+		`child.html.twig`,
+		ioutil.Discard,
+		nil,
+	)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(buf.String())
+	// Output:
+	// #1 Current Template: child.html.twig
+	// #2 Current Template: side.html.twig
+	// #3 Current Template: base.html.twig
+	// #4 Current Template: child.html.twig
 }

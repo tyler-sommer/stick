@@ -145,6 +145,7 @@ func parseBlock(t *Tree, start Pos) (Node, error) {
 		return nil, err
 	}
 	nod := newBlockNode(blockName.value, body, start)
+	nod.Origin = t.Name
 	t.setBlock(blockName.value, nod)
 	return nod, nil
 }
@@ -583,6 +584,7 @@ body:
 		return nil, err
 	}
 	n := newMacroNode(name, args, body, start)
+	n.Origin = t.Name
 	t.macros[name] = n
 	return n, nil
 }

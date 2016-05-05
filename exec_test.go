@@ -183,16 +183,16 @@ func TestExec(t *testing.T) {
 `),
 		},
 	))
-	env.Functions["multiply"] = func(env *Env, args ...Value) Value {
+	env.Functions["multiply"] = func(ctx Context, args ...Value) Value {
 		if len(args) != 2 {
 			return 0
 		}
 		return CoerceNumber(args[0]) * CoerceNumber(args[1])
 	}
-	env.Filters["upper"] = func(env *Env, val Value, args ...Value) Value {
+	env.Filters["upper"] = func(ctx Context, val Value, args ...Value) Value {
 		return strings.ToUpper(CoerceString(val))
 	}
-	env.Filters["default"] = func(env *Env, val Value, args ...Value) Value {
+	env.Filters["default"] = func(ctx Context, val Value, args ...Value) Value {
 		var d Value
 		if len(args) == 0 {
 			d = nil
