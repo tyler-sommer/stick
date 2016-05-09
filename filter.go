@@ -6,38 +6,39 @@ import (
 )
 
 func BuiltInFilters() map[string]Filter {
-	filters := make(map[string]Filter)
-	filters["abs"] = FilterAbs
-	filters["default"] = FilterDefault
-	filters["batch"] = FilterBatch
-	filters["capitalize"] = FilterCapitalize
-	filters["convert_encoding"] = FilterConvertEncoding
-	filters["date"] = FilterDate
-	filters["date_modify"] = FilterDateModify
-	filters["escape"] = FilterEscape
-	filters["first"] = FilterFirst
-	filters["format"] = FilterFormat
-	filters["join"] = FilterJoin
-	filters["json_encode"] = FilterJsonEncode
-	filters["keys"] = FilterKeys
-	filters["last"] = FilterLast
-	filters["length"] = FilterLength
-	filters["lower"] = FilterLower
-	filters["merge"] = FilterMerge
-	filters["nl2br"] = FilterNl2Br
-	filters["number_format"] = FilterNumberFormat
-	filters["raw"] = FilterRaw
-	filters["replace"] = FilterReplace
-	filters["reverse"] = FilterReverse
-	filters["round"] = FilterRound
-	filters["slice"] = FilterSlice
-	filters["sort"] = FilterSort
-	filters["split"] = FilterSplit
-	filters["striptags"] = FilterStripTags
-	filters["title"] = FilterTitle
-	filters["trim"] = FilterTrim
-	filters["upper"] = FilterUpper
-	filters["url_encode"] = FilterUrlEncode
+	filters := map[string]Filter{
+		"abs": FilterAbs,
+		"default": FilterDefault,
+		"batch": FilterBatch,
+		"capitalize": FilterCapitalize,
+		"convert_encoding": FilterConvertEncoding,
+		"date": FilterDate,
+		"date_modify": FilterDateModify,
+		"escape": FilterEscape,
+		"first": FilterFirst,
+		"format": FilterFormat,
+		"join": FilterJoin,
+		"json_encode": FilterJsonEncode,
+		"keys": FilterKeys,
+		"last": FilterLast,
+		"length": FilterLength,
+		"lower": FilterLower,
+		"merge": FilterMerge,
+		"nl2br": FilterNl2Br,
+		"number_format": FilterNumberFormat,
+		"raw": FilterRaw,
+		"replace": FilterReplace,
+		"reverse": FilterReverse,
+		"round": FilterRound,
+		"slice": FilterSlice,
+		"sort": FilterSort,
+		"split": FilterSplit,
+		"striptags": FilterStripTags,
+		"title": FilterTitle,
+		"trim": FilterTrim,
+		"upper": FilterUpper,
+		"url_encode": FilterUrlEncode,
+	}
 	return filters
 }
 
@@ -49,13 +50,45 @@ func FilterAbs(ctx Context, val Value, args ...Value) Value {
 	return math.Abs(n)
 }
 
+// Arg1: length, Arg2: Blank Fill Item
 func FilterBatch(ctx Context, val Value, args ...Value) Value {
-	// TODO: Implement Me
-	return val
+	if 2 != len(args) {
+		// need 2 arguments
+		return args
+	}
+	sl, ok := val.([]Value)
+	if !ok {
+		// not a slice of Values
+		return val
+	}
+
+	numItemsPerSlice := int(CoerceNumber(args[0]))
+	if 0 == numItemsPerSlice || 1 == numItemsPerSlice {
+		return val
+	}
+
+	blankValue := args[1]
+
+	numSlices := int(len(sl) / numItemsPerSlice)
+
+	out := make([][]Value, numSlices)
+
+	location := 0;
+	for outter := 0; outter < numSlices; outter++ {
+		for inner := 0; inner < numItemsPerSlice; inner++ {
+			if location < len(sl) {
+				out[outter][inner] = sl[location]
+			} else {
+				out[outter][inner] = blankValue
+			}
+			location++
+		}
+	}
+	return out
 }
 
 func FilterCapitalize(ctx Context, val Value, args ...Value) Value {
-	s := strings.ToLower(val.(string))
+	s := strings.ToLower(CoerceString(val))
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
@@ -127,7 +160,7 @@ func FilterLength(ctx Context, val Value, args ...Value) Value {
 }
 
 func FilterLower(ctx Context, val Value, args ...Value) Value {
-	return strings.ToLower(val.(string))
+	return strings.ToLower(CoerceString(val))
 }
 
 func FilterMerge(ctx Context, val Value, args ...Value) Value {
@@ -186,15 +219,15 @@ func FilterStripTags(ctx Context, val Value, args ...Value) Value {
 }
 
 func FilterTitle(ctx Context, val Value, args ...Value) Value {
-	return strings.Title(val.(string))
+	return strings.Title(CoerceString(val))
 }
 
 func FilterTrim(ctx Context, val Value, args ...Value) Value {
-	return strings.TrimSpace(val.(string))
+	return strings.TrimSpace(CoerceString(val))
 }
 
 func FilterUpper(ctx Context, val Value, args ...Value) Value {
-	return strings.ToUpper(val.(string))
+	return strings.ToUpper(CoerceString(val))
 }
 
 func FilterUrlEncode(ctx Context, val Value, args ...Value) Value {
