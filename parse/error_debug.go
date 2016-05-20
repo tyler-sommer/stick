@@ -41,5 +41,5 @@ func newBaseError(p Pos) baseError {
 }
 
 func (e *baseError) Debug() string {
-	return fmt.Sprintf("call stack:\n%s\ntokens:\n%v")
+	return fmt.Sprintf("call stack:\n%s\ntokens:\n%v", e.debug, e.lastTokens)
 }

@@ -13,7 +13,7 @@ type NameExpr struct {
 	Name string // Name of the identifier.
 }
 
-func newNameExpr(name string, pos Pos) *NameExpr {
+func NewNameExpr(name string, pos Pos) *NameExpr {
 	return &NameExpr{pos, name}
 }
 
@@ -37,7 +37,7 @@ func (exp *NullExpr) All() []Node {
 	return []Node{}
 }
 
-func newNullExpr(pos Pos) *NullExpr {
+func NewNullExpr(pos Pos) *NullExpr {
 	return &NullExpr{pos}
 }
 
@@ -52,7 +52,7 @@ type BoolExpr struct {
 	Value bool // The raw boolean value.
 }
 
-func newBoolExpr(value bool, pos Pos) *BoolExpr {
+func NewBoolExpr(value bool, pos Pos) *BoolExpr {
 	return &BoolExpr{pos, value}
 }
 
@@ -75,7 +75,7 @@ type NumberExpr struct {
 	Value string // The string representation of the number.
 }
 
-func newNumberExpr(val string, pos Pos) *NumberExpr {
+func NewNumberExpr(val string, pos Pos) *NumberExpr {
 	return &NumberExpr{pos, val}
 }
 
@@ -95,7 +95,7 @@ type StringExpr struct {
 	Text string // The text contained within the literal.
 }
 
-func newStringExpr(text string, pos Pos) *StringExpr {
+func NewStringExpr(text string, pos Pos) *StringExpr {
 	return &StringExpr{pos, text}
 }
 
@@ -125,7 +125,7 @@ func (exp *FuncExpr) All() []Node {
 	return res
 }
 
-func newFuncExpr(name string, args []Expr, pos Pos) *FuncExpr {
+func NewFuncExpr(name string, args []Expr, pos Pos) *FuncExpr {
 	return &FuncExpr{pos, name, args}
 }
 
@@ -144,8 +144,8 @@ func (exp *FilterExpr) String() string {
 	return fmt.Sprintf("FilterExpr(%s, %s)", exp.Name, exp.Args)
 }
 
-func newFilterExpr(name string, args []Expr, pos Pos) *FilterExpr {
-	return &FilterExpr{newFuncExpr(name, args, pos)}
+func NewFilterExpr(name string, args []Expr, pos Pos) *FilterExpr {
+	return &FilterExpr{NewFuncExpr(name, args, pos)}
 }
 
 // TestExpr represents a boolean test expression.
@@ -158,8 +158,8 @@ func (exp *TestExpr) String() string {
 	return fmt.Sprintf("TestExpr(%s, %s)", exp.Name, exp.Args)
 }
 
-func newTestExpr(name string, args []Expr, pos Pos) *TestExpr {
-	return &TestExpr{newFuncExpr(name, args, pos)}
+func NewTestExpr(name string, args []Expr, pos Pos) *TestExpr {
+	return &TestExpr{NewFuncExpr(name, args, pos)}
 }
 
 // BinaryExpr represents a binary operation, such as "x + y"
@@ -170,7 +170,7 @@ type BinaryExpr struct {
 	Right Expr   // Right side expression.
 }
 
-func newBinaryExpr(left Expr, op string, right Expr, pos Pos) *BinaryExpr {
+func NewBinaryExpr(left Expr, op string, right Expr, pos Pos) *BinaryExpr {
 	return &BinaryExpr{pos, left, op, right}
 }
 
@@ -191,7 +191,7 @@ type UnaryExpr struct {
 	X  Expr   // Expression to be evaluated.
 }
 
-func newUnaryExpr(op string, expr Expr, pos Pos) *UnaryExpr {
+func NewUnaryExpr(op string, expr Expr, pos Pos) *UnaryExpr {
 	return &UnaryExpr{pos, op, expr}
 }
 
@@ -211,7 +211,7 @@ type GroupExpr struct {
 	X Expr // Expression to be evaluated.
 }
 
-func newGroupExpr(inner Expr, pos Pos) *GroupExpr {
+func NewGroupExpr(inner Expr, pos Pos) *GroupExpr {
 	return &GroupExpr{pos, inner}
 }
 
@@ -233,7 +233,7 @@ type GetAttrExpr struct {
 	Args []Expr // Args to pass to attribute, if its a method.
 }
 
-func newGetAttrExpr(cont Expr, attr Expr, args []Expr, pos Pos) *GetAttrExpr {
+func NewGetAttrExpr(cont Expr, attr Expr, args []Expr, pos Pos) *GetAttrExpr {
 	return &GetAttrExpr{pos, cont, attr, args}
 }
 
@@ -262,7 +262,7 @@ type TernaryIfExpr struct {
 	FalseX Expr // Expression if Cond is false.
 }
 
-func newTernaryIfExpr(cond, tx, fx Expr, pos Pos) *TernaryIfExpr {
+func NewTernaryIfExpr(cond, tx, fx Expr, pos Pos) *TernaryIfExpr {
 	return &TernaryIfExpr{pos, cond, tx, fx}
 }
 

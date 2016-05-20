@@ -12,10 +12,9 @@ import (
 // This example shows how the AutoEscapeVisitor can be used to automatically
 // sanitize input. It does this by wrapping printed expressions with a filter
 // application, which resolves to stick.EscapeFilter.
-func ExampleAutoEscapeVisitor() {
+func ExampleAutoEscapeExtension() {
 	env := stick.NewEnv(nil)
-	env.Visitors = append(env.Visitors, &stick.AutoEscapeVisitor{})
-	env.Filters["escape"] = stick.EscapeFilter
+	env.Register(stick.NewAutoEscapeExtension())
 
 	env.Execute("<html>{{ '<script>bad stuff</script>' }}", os.Stdout, map[string]stick.Value{})
 	// Output:
@@ -26,27 +25,21 @@ func ExampleAutoEscapeVisitor() {
 //
 // Note the "already_safe" value wrapped in a NewSafeValue; it is not
 // escaped.
-func ExampleEscapeFilter() {
+func ExampleAutoEscapeExtension_alreadySafe() {
 	env := stick.NewEnv(nil)
-	env.Filters["escape"] = stick.EscapeFilter
+	env.Register(stick.NewAutoEscapeExtension())
 
 	env.Execute("<html>{{ dangerous|escape }} {{ already_safe|escape }}", os.Stdout, map[string]stick.Value{
-		"already_safe": stick.NewSafeValue("<script>good script</script>"),
+		"already_safe": stick.NewSafeValue("<script>good script</script>", "html"),
 		"dangerous":    "<script>bad script</script>",
 	})
 	// Output:
 	// <html>&lt;script&gt;bad script&lt;/script&gt; <script>good script</script>
 }
 
-func newVisitorEnv() *stick.Env {
-	env := stick.NewEnv(nil)
-	env.Visitors = append(env.Visitors, &stick.AutoEscapeVisitor{})
-	env.Filters["escape"] = stick.EscapeFilter
-	return env
-}
-
 func TestAutoEscapeVisitor(t *testing.T) {
-	env := newVisitorEnv()
+	env := stick.NewEnv(nil)
+	env.Register(stick.NewAutoEscapeExtension())
 	tree, err := env.Parse("Some {{ 'text' }}")
 	if err != nil {
 		t.Error(err)

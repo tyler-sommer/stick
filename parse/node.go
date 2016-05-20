@@ -41,8 +41,8 @@ type ModuleNode struct {
 	Origin string       // The name where this module is originally defined.
 }
 
-func newModuleNode(name string, nodes ...Node) *ModuleNode {
-	return &ModuleNode{newBodyNode(Pos{1, 0}, nodes...), nil, name}
+func NewModuleNode(name string, nodes ...Node) *ModuleNode {
+	return &ModuleNode{NewBodyNode(Pos{1, 0}, nodes...), nil, name}
 }
 
 // String returns a string representation of a ModuleNode.
@@ -56,7 +56,7 @@ type BodyNode struct {
 	Nodes []Node
 }
 
-func newBodyNode(pos Pos, nodes ...Node) *BodyNode {
+func NewBodyNode(pos Pos, nodes ...Node) *BodyNode {
 	return &BodyNode{pos, nodes}
 }
 
@@ -81,7 +81,7 @@ type TextNode struct {
 	Data string // Textual data in the node.
 }
 
-func newTextNode(data string, p Pos) *TextNode {
+func NewTextNode(data string, p Pos) *TextNode {
 	return &TextNode{p, data}
 }
 
@@ -101,8 +101,8 @@ type CommentNode struct {
 	TrimmableNode
 }
 
-func newCommentNode(data string, p Pos) *CommentNode {
-	return &CommentNode{newTextNode(data, p), TrimmableNode{}}
+func NewCommentNode(data string, p Pos) *CommentNode {
+	return &CommentNode{NewTextNode(data, p), TrimmableNode{}}
 }
 
 // PrintNode represents a print statement
@@ -112,7 +112,7 @@ type PrintNode struct {
 	X Expr // Expression to print.
 }
 
-func newPrintNode(exp Expr, p Pos) *PrintNode {
+func NewPrintNode(exp Expr, p Pos) *PrintNode {
 	return &PrintNode{p, TrimmableNode{}, exp}
 }
 
@@ -135,7 +135,7 @@ type BlockNode struct {
 	Origin string // The name where this block is originally defined.
 }
 
-func newBlockNode(name string, body Node, p Pos) *BlockNode {
+func NewBlockNode(name string, body Node, p Pos) *BlockNode {
 	return &BlockNode{p, TrimmableNode{}, name, body, ""}
 }
 
@@ -158,7 +158,7 @@ type IfNode struct {
 	Else Node // Body if Cond is false.
 }
 
-func newIfNode(cond Expr, body Node, els Node, p Pos) *IfNode {
+func NewIfNode(cond Expr, body Node, els Node, p Pos) *IfNode {
 	return &IfNode{p, TrimmableNode{}, cond, body, els}
 }
 
@@ -179,7 +179,7 @@ type ExtendsNode struct {
 	Tpl Expr // Name of the template being extended.
 }
 
-func newExtendsNode(tplRef Expr, p Pos) *ExtendsNode {
+func NewExtendsNode(tplRef Expr, p Pos) *ExtendsNode {
 	return &ExtendsNode{p, TrimmableNode{}, tplRef}
 }
 
@@ -204,7 +204,7 @@ type ForNode struct {
 	Else Node   // Body of the else section if X is empty.
 }
 
-func newForNode(k, v string, expr Expr, body, els Node, p Pos) *ForNode {
+func NewForNode(k, v string, expr Expr, body, els Node, p Pos) *ForNode {
 	return &ForNode{p, TrimmableNode{}, k, v, expr, body, els}
 }
 
@@ -227,7 +227,7 @@ type IncludeNode struct {
 	Only bool // If true, only vars defined in With will be passed.
 }
 
-func newIncludeNode(tmpl Expr, with Expr, only bool, pos Pos) *IncludeNode {
+func NewIncludeNode(tmpl Expr, with Expr, only bool, pos Pos) *IncludeNode {
 	return &IncludeNode{pos, TrimmableNode{}, tmpl, with, only}
 }
 
@@ -247,8 +247,8 @@ type EmbedNode struct {
 	Blocks map[string]*BlockNode // Blocks inside the embed body.
 }
 
-func newEmbedNode(tmpl Expr, with Expr, only bool, blocks map[string]*BlockNode, pos Pos) *EmbedNode {
-	return &EmbedNode{newIncludeNode(tmpl, with, only, pos), blocks}
+func NewEmbedNode(tmpl Expr, with Expr, only bool, blocks map[string]*BlockNode, pos Pos) *EmbedNode {
+	return &EmbedNode{NewIncludeNode(tmpl, with, only, pos), blocks}
 }
 
 // String returns a string representation of an EmbedNode.
@@ -275,7 +275,7 @@ type UseNode struct {
 	Aliases map[string]string // Aliases for included block names, if any.
 }
 
-func newUseNode(tpl Expr, aliases map[string]string, pos Pos) *UseNode {
+func NewUseNode(tpl Expr, aliases map[string]string, pos Pos) *UseNode {
 	return &UseNode{pos, TrimmableNode{}, tpl, aliases}
 }
 
@@ -311,7 +311,7 @@ type SetNode struct {
 	X    Expr   // Value of the var.
 }
 
-func newSetNode(varName string, expr Expr, pos Pos) *SetNode {
+func NewSetNode(varName string, expr Expr, pos Pos) *SetNode {
 	return &SetNode{pos, TrimmableNode{}, varName, expr}
 }
 
@@ -332,7 +332,7 @@ type DoNode struct {
 	X Expr // The expression to evaluate.
 }
 
-func newDoNode(expr Expr, pos Pos) *DoNode {
+func NewDoNode(expr Expr, pos Pos) *DoNode {
 	return &DoNode{pos, TrimmableNode{}, expr}
 }
 
@@ -379,7 +379,7 @@ type MacroNode struct {
 	Origin string    // The name where this macro is originally defined.
 }
 
-func newMacroNode(name string, args []string, body *BodyNode, p Pos) *MacroNode {
+func NewMacroNode(name string, args []string, body *BodyNode, p Pos) *MacroNode {
 	return &MacroNode{p, TrimmableNode{}, name, args, body, ""}
 }
 
@@ -401,7 +401,7 @@ type ImportNode struct {
 	Alias string // Name of the var to be used as the base for any macros.
 }
 
-func newImportNode(tpl Expr, alias string, p Pos) *ImportNode {
+func NewImportNode(tpl Expr, alias string, p Pos) *ImportNode {
 	return &ImportNode{p, TrimmableNode{}, tpl, alias}
 }
 
@@ -423,7 +423,7 @@ type FromNode struct {
 	Imports map[string]string // Imports to fetch from the included template.
 }
 
-func newFromNode(tpl Expr, imports map[string]string, p Pos) *FromNode {
+func NewFromNode(tpl Expr, imports map[string]string, p Pos) *FromNode {
 	return &FromNode{p, TrimmableNode{}, tpl, imports}
 }
 

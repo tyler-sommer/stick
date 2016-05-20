@@ -39,7 +39,7 @@ func NewNamedTree(name string, input io.Reader) *Tree {
 	return &Tree{
 		lex: newLexer(input),
 
-		root:   newModuleNode(name),
+		root:   NewModuleNode(name),
 		blocks: []map[string]*BlockNode{make(map[string]*BlockNode)},
 		macros: make(map[string]*MacroNode),
 
@@ -234,7 +234,7 @@ func (t *Tree) parse() (Node, error) {
 	tok := t.nextNonSpace()
 	switch tok.tokenType {
 	case tokenText:
-		return newTextNode(tok.value, tok.Pos), nil
+		return NewTextNode(tok.value, tok.Pos), nil
 
 	case tokenPrintOpen:
 		name, err := t.parseExpr()
@@ -245,7 +245,7 @@ func (t *Tree) parse() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return newPrintNode(name, tok.Pos), nil
+		return NewPrintNode(name, tok.Pos), nil
 
 	case tokenTagOpen:
 		return t.parseTag()
@@ -259,7 +259,7 @@ func (t *Tree) parse() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return newCommentNode(tok.value, tok.Pos), nil
+		return NewCommentNode(tok.value, tok.Pos), nil
 
 	case tokenEOF:
 		// expected end of input

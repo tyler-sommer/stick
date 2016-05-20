@@ -74,7 +74,7 @@ func contains(haystack []string, needle string) bool {
 
 // parseUntilTag parses until it reaches the specified tag node, returning a parse error otherwise.
 func (t *Tree) parseUntilTag(start Pos, names ...string) (*BodyNode, error) {
-	n := newBodyNode(start)
+	n := NewBodyNode(start)
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenEOF:
@@ -121,7 +121,7 @@ func parseExtends(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	n := newExtendsNode(tplRef, start)
+	n := NewExtendsNode(tplRef, start)
 	t.Root().Parent = n
 	return n, nil
 }
@@ -144,7 +144,7 @@ func parseBlock(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	nod := newBlockNode(blockName.value, body, start)
+	nod := NewBlockNode(blockName.value, body, start)
 	nod.Origin = t.Name
 	t.setBlock(blockName.value, nod)
 	return nod, nil
@@ -167,7 +167,7 @@ func parseIf(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newIfNode(cond, body, els, start), nil
+	return NewIfNode(cond, body, els, start), nil
 }
 
 // parseIfBody parses the body of an if statement.
@@ -175,7 +175,7 @@ func parseIf(t *Tree, start Pos) (Node, error) {
 //   {% else %}
 //   {% endif %}
 func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) {
-	body = newBodyNode(start)
+	body = NewBodyNode(start)
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenEOF:
@@ -202,7 +202,7 @@ func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) 
 				if err != nil {
 					return nil, nil, err
 				}
-				els = newBodyNode(tok.Pos, in)
+				els = NewBodyNode(tok.Pos, in)
 			case "endif":
 				_, err := t.expect(tokenTagClose)
 				if err != nil {
@@ -212,7 +212,7 @@ func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) 
 				return nil, nil, newUnclosedTagError("if", start)
 			}
 			if els == nil {
-				els = newBodyNode(start)
+				els = NewBodyNode(start)
 			}
 			return body, els, nil
 		default:
@@ -289,11 +289,11 @@ func parseFor(t *Tree, start Pos) (*ForNode, error) {
 		return nil, err
 	}
 	if ifCond != nil {
-		body = newIfNode(ifCond, body, nil, tok.Pos)
+		body = NewIfNode(ifCond, body, nil, tok.Pos)
 	}
 	t.backup()
 	tok = t.next()
-	var elseBody Node = newBodyNode(tok.Pos)
+	var elseBody Node = NewBodyNode(tok.Pos)
 	if tok.value == "else" {
 		_, err = t.expect(tokenTagClose)
 		if err != nil {
@@ -308,7 +308,7 @@ func parseFor(t *Tree, start Pos) (*ForNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newForNode(kn, vn, expr, body, elseBody, start), nil
+	return NewForNode(kn, vn, expr, body, elseBody, start), nil
 }
 
 // parseInclude parses an include statement.
@@ -317,7 +317,7 @@ func parseInclude(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newIncludeNode(expr, with, only, start), nil
+	return NewIncludeNode(expr, with, only, start), nil
 }
 
 // parseEmbed parses an embed statement and body.
@@ -357,7 +357,7 @@ func parseEmbed(t *Tree, start Pos) (Node, error) {
 		}
 	}
 	blockRefs := t.popBlockStack()
-	return newEmbedNode(expr, with, only, blockRefs, start), nil
+	return NewEmbedNode(expr, with, only, blockRefs, start), nil
 }
 
 // parseIncludeOrEmbed parses an include or embed tag's parameters.
@@ -463,7 +463,7 @@ func parseUse(t *Tree, start Pos) (Node, error) {
 			}
 		}
 	}
-	return newUseNode(tmpl, aliases, start), nil
+	return NewUseNode(tmpl, aliases, start), nil
 }
 
 // parseSet parses a set statement.
@@ -486,7 +486,7 @@ func parseSet(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newSetNode(tok.value, expr, start), nil
+	return NewSetNode(tok.value, expr, start), nil
 }
 
 // parseDo parses a do statement.
@@ -501,7 +501,7 @@ func parseDo(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newDoNode(expr, start), nil
+	return NewDoNode(expr, start), nil
 }
 
 // parseFilter parses a filter statement.
@@ -583,7 +583,7 @@ body:
 	if err != nil {
 		return nil, err
 	}
-	n := newMacroNode(name, args, body, start)
+	n := NewMacroNode(name, args, body, start)
 	n.Origin = t.Name
 	t.macros[name] = n
 	return n, nil
@@ -609,7 +609,7 @@ func parseImport(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newImportNode(name, tok.value, start), nil
+	return NewImportNode(name, tok.value, start), nil
 }
 
 // parseImport parses an import statement.
@@ -651,7 +651,7 @@ func parseFrom(t *Tree, start Pos) (Node, error) {
 				return nil, newUnexpectedValueError(tok, ",")
 			}
 		case tokenTagClose:
-			return newFromNode(name, imports, start), nil
+			return NewFromNode(name, imports, start), nil
 		default:
 			return nil, newUnexpectedTokenError(tok)
 		}

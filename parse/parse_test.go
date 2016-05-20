@@ -26,7 +26,7 @@ func newErrorTest(name, input string, err string) parseTest {
 }
 
 func mkModule(nodes ...Node) *ModuleNode {
-	l := newModuleNode("", nodes...)
+	l := NewModuleNode("", nodes...)
 
 	return l
 }
@@ -40,242 +40,247 @@ var parseTests = []parseTest{
 	newErrorTest("unexpected punctuation", "{{ func(arg1? arg2) }}", `expected "PUNCTUATION", got "PARENS_CLOSE"`),
 
 	// Valid
-	newParseTest("text", "some text", mkModule(newTextNode("some text", noPos))),
-	newParseTest("hello", "Hello {{ name }}", mkModule(newTextNode("Hello ", noPos), newPrintNode(newNameExpr("name", noPos), noPos))),
-	newParseTest("string expr", "Hello {{ 'Tyler' }}", mkModule(newTextNode("Hello ", noPos), newPrintNode(newStringExpr("Tyler", noPos), noPos))),
+	newParseTest("text", "some text", mkModule(NewTextNode("some text", noPos))),
+	newParseTest("hello", "Hello {{ name }}", mkModule(NewTextNode("Hello ", noPos), NewPrintNode(NewNameExpr("name", noPos), noPos))),
+	newParseTest("string expr", "Hello {{ 'Tyler' }}", mkModule(NewTextNode("Hello ", noPos), NewPrintNode(NewStringExpr("Tyler", noPos), noPos))),
 	newParseTest(
 		"string interpolation",
 		`{{ "Hello, #{greeting} #{name|titlecase}." }}`,
-		mkModule(newPrintNode(
-			newBinaryExpr(
-				newBinaryExpr(
-					newBinaryExpr(
-						newBinaryExpr(newStringExpr("Hello, ", noPos), OpBinaryConcat, newNameExpr("greeting", noPos), noPos),
+		mkModule(NewPrintNode(
+			NewBinaryExpr(
+				NewBinaryExpr(
+					NewBinaryExpr(
+						NewBinaryExpr(NewStringExpr("Hello, ", noPos), OpBinaryConcat, NewNameExpr("greeting", noPos), noPos),
 						OpBinaryConcat,
-						newStringExpr(" ", noPos), noPos),
+						NewStringExpr(" ", noPos), noPos),
 					OpBinaryConcat,
-					newFilterExpr("titlecase", []Expr{newNameExpr("name", noPos)}, noPos), noPos),
+					NewFilterExpr("titlecase", []Expr{NewNameExpr("name", noPos)}, noPos), noPos),
 				OpBinaryConcat,
-				newStringExpr(".", noPos), noPos),
+				NewStringExpr(".", noPos), noPos),
 			noPos)),
 	),
 	newParseTest(
 		"simple tag",
 		"{% block something %}Body{% endblock %}",
-		mkModule(newBlockNode("something", newBodyNode(noPos, newTextNode("Body", noPos)), noPos)),
+		mkModule(NewBlockNode("something", NewBodyNode(noPos, NewTextNode("Body", noPos)), noPos)),
 	),
 	newParseTest(
 		"if",
 		"{% if something %}Do Something{% endif %}",
-		mkModule(newIfNode(newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("Do Something", noPos)), newBodyNode(noPos), noPos)),
+		mkModule(NewIfNode(NewNameExpr("something", noPos), NewBodyNode(noPos, NewTextNode("Do Something", noPos)), NewBodyNode(noPos), noPos)),
 	),
 	newParseTest(
 		"if else",
 		"{% if something %}Do Something{% else %}Another thing{% endif %}",
-		mkModule(newIfNode(newNameExpr("something", noPos), newBodyNode(noPos, newTextNode("Do Something", noPos)), newBodyNode(noPos, newTextNode("Another thing", noPos)), noPos)),
+		mkModule(NewIfNode(NewNameExpr("something", noPos), NewBodyNode(noPos, NewTextNode("Do Something", noPos)), NewBodyNode(noPos, NewTextNode("Another thing", noPos)), noPos)),
 	),
 	newParseTest(
 		"if elseif else",
 		"{% if something %}Do Something{% elseif another %}Another thing{% else %}Final thing{% endif %}",
-		mkModule(newIfNode(
-			newNameExpr("something", noPos),
-			newBodyNode(noPos, newTextNode("Do Something", noPos)),
-			newBodyNode(noPos, newIfNode(
-				newNameExpr("another", noPos),
-				newBodyNode(noPos, newTextNode("Another thing", noPos)),
-				newBodyNode(noPos, newTextNode("Final thing", noPos)),
+		mkModule(NewIfNode(
+			NewNameExpr("something", noPos),
+			NewBodyNode(noPos, NewTextNode("Do Something", noPos)),
+			NewBodyNode(noPos, NewIfNode(
+				NewNameExpr("another", noPos),
+				NewBodyNode(noPos, NewTextNode("Another thing", noPos)),
+				NewBodyNode(noPos, NewTextNode("Final thing", noPos)),
 				noPos)),
 			noPos)),
 	),
 	newParseTest(
 		"function expr",
 		"{{ func('arg1', arg2) }}",
-		mkModule(newPrintNode(newFuncExpr("func", []Expr{newStringExpr("arg1", noPos), newNameExpr("arg2", noPos)}, noPos), noPos)),
+		mkModule(NewPrintNode(NewFuncExpr("func", []Expr{NewStringExpr("arg1", noPos), NewNameExpr("arg2", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"extends statement",
 		"{% extends '::base.html.twig' %}",
-		mkModule(newExtendsNode(newStringExpr("::base.html.twig", noPos), noPos)),
+		mkModule(NewExtendsNode(NewStringExpr("::base.html.twig", noPos), noPos)),
 	),
 	newParseTest(
 		"basic binary operation",
 		"{{ something + else }}",
-		mkModule(newPrintNode(newBinaryExpr(newNameExpr("something", noPos), OpBinaryAdd, newNameExpr("else", noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewBinaryExpr(NewNameExpr("something", noPos), OpBinaryAdd, NewNameExpr("else", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"number literal binary operation",
 		"{{ 4.123 + else - test }}",
-		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("4.123", noPos), OpBinaryAdd, newNameExpr("else", noPos), noPos), OpBinarySubtract, newNameExpr("test", noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewBinaryExpr(NewBinaryExpr(NewNumberExpr("4.123", noPos), OpBinaryAdd, NewNameExpr("else", noPos), noPos), OpBinarySubtract, NewNameExpr("test", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"parenthesis grouping expression",
 		"{{ (4 + else) / 10 }}",
-		mkModule(newPrintNode(newBinaryExpr(newGroupExpr(newBinaryExpr(newNumberExpr("4", noPos), OpBinaryAdd, newNameExpr("else", noPos), noPos), noPos), OpBinaryDivide, newNumberExpr("10", noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewBinaryExpr(NewGroupExpr(NewBinaryExpr(NewNumberExpr("4", noPos), OpBinaryAdd, NewNameExpr("else", noPos), noPos), noPos), OpBinaryDivide, NewNumberExpr("10", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"correct order of operations",
 		"{{ 10 + 5 / 5 }}",
-		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryAdd, newBinaryExpr(newNumberExpr("5", noPos), OpBinaryDivide, newNumberExpr("5", noPos), noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewBinaryExpr(NewNumberExpr("10", noPos), OpBinaryAdd, NewBinaryExpr(NewNumberExpr("5", noPos), OpBinaryDivide, NewNumberExpr("5", noPos), noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"correct ** associativity",
 		"{{ 10 ** 2 ** 5 }}",
-		mkModule(newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryPower, newBinaryExpr(newNumberExpr("2", noPos), OpBinaryPower, newNumberExpr("5", noPos), noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewBinaryExpr(NewNumberExpr("10", noPos), OpBinaryPower, NewBinaryExpr(NewNumberExpr("2", noPos), OpBinaryPower, NewNumberExpr("5", noPos), noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"extended binary expression",
 		"{{ 5 + 10 + 15 * 12 / 4 }}",
-		mkModule(newPrintNode(newBinaryExpr(newBinaryExpr(newNumberExpr("5", noPos), OpBinaryAdd, newNumberExpr("10", noPos), noPos), OpBinaryAdd, newBinaryExpr(newBinaryExpr(newNumberExpr("15", noPos), OpBinaryMultiply, newNumberExpr("12", noPos), noPos), OpBinaryDivide, newNumberExpr("4", noPos), noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewBinaryExpr(NewBinaryExpr(NewNumberExpr("5", noPos), OpBinaryAdd, NewNumberExpr("10", noPos), noPos), OpBinaryAdd, NewBinaryExpr(NewBinaryExpr(NewNumberExpr("15", noPos), OpBinaryMultiply, NewNumberExpr("12", noPos), noPos), OpBinaryDivide, NewNumberExpr("4", noPos), noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"unary not expression",
 		"{{ not something }}",
-		mkModule(newPrintNode(newUnaryExpr(OpUnaryNot, newNameExpr("something", noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewUnaryExpr(OpUnaryNot, NewNameExpr("something", noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"dot notation accessor",
 		"{{ something.another.else }}",
-		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newNameExpr("something", noPos), newStringExpr("another", noPos), []Expr{}, noPos), newStringExpr("else", noPos), []Expr{}, noPos), noPos)),
+		mkModule(NewPrintNode(NewGetAttrExpr(NewGetAttrExpr(NewNameExpr("something", noPos), NewStringExpr("another", noPos), []Expr{}, noPos), NewStringExpr("else", noPos), []Expr{}, noPos), noPos)),
 	),
 	newParseTest(
 		"explicit method call",
 		"{{ something.doThing('arg1', arg2) }}",
-		mkModule(newPrintNode(newGetAttrExpr(newNameExpr("something", noPos), newStringExpr("doThing", noPos), []Expr{newStringExpr("arg1", noPos), newNameExpr("arg2", noPos)}, noPos), noPos)),
+		mkModule(NewPrintNode(NewGetAttrExpr(NewNameExpr("something", noPos), NewStringExpr("doThing", noPos), []Expr{NewStringExpr("arg1", noPos), NewNameExpr("arg2", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"dot notation array access mix",
 		"{{ something().another['test'].further }}",
-		mkModule(newPrintNode(newGetAttrExpr(newGetAttrExpr(newGetAttrExpr(newFuncExpr("something", []Expr{}, noPos), newStringExpr("another", noPos), []Expr{}, noPos), newStringExpr("test", noPos), []Expr{}, noPos), newStringExpr("further", noPos), []Expr{}, noPos), noPos)),
+		mkModule(NewPrintNode(NewGetAttrExpr(NewGetAttrExpr(NewGetAttrExpr(NewFuncExpr("something", []Expr{}, noPos), NewStringExpr("another", noPos), []Expr{}, noPos), NewStringExpr("test", noPos), []Expr{}, noPos), NewStringExpr("further", noPos), []Expr{}, noPos), noPos)),
 	),
 	newParseTest(
 		"basic filter",
 		"{{ something|default('another') }}",
-		mkModule(newPrintNode(newFilterExpr("default", []Expr{newNameExpr("something", noPos), newStringExpr("another", noPos)}, noPos), noPos)),
+		mkModule(NewPrintNode(NewFilterExpr("default", []Expr{NewNameExpr("something", noPos), NewStringExpr("another", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"filter with no args",
 		"{{ something|default }}",
-		mkModule(newPrintNode(newFilterExpr("default", []Expr{newNameExpr("something", noPos)}, noPos), noPos)),
+		mkModule(NewPrintNode(NewFilterExpr("default", []Expr{NewNameExpr("something", noPos)}, noPos), noPos)),
 	),
 	newParseTest(
 		"basic for loop",
 		"{% for val in 1..10 %}body{% endfor %}",
-		mkModule(newForNode("", "val", newBinaryExpr(newNumberExpr("1", noPos), OpBinaryRange, newNumberExpr("10", noPos), noPos), newBodyNode(noPos, newTextNode("body", noPos)), newBodyNode(noPos), noPos)),
+		mkModule(NewForNode("", "val", NewBinaryExpr(NewNumberExpr("1", noPos), OpBinaryRange, NewNumberExpr("10", noPos), noPos), NewBodyNode(noPos, NewTextNode("body", noPos)), NewBodyNode(noPos), noPos)),
 	),
 	newParseTest(
 		"for loop",
 		"{% for k, val in something if val %}body{% else %}No results.{% endfor %}",
-		mkModule(newForNode("k", "val", newNameExpr("something", noPos), newIfNode(newNameExpr("val", noPos), newBodyNode(noPos, newTextNode("body", noPos)), nil, noPos), newBodyNode(noPos, newTextNode("No results.", noPos)), noPos)),
+		mkModule(NewForNode("k", "val", NewNameExpr("something", noPos), NewIfNode(NewNameExpr("val", noPos), NewBodyNode(noPos, NewTextNode("body", noPos)), nil, noPos), NewBodyNode(noPos, NewTextNode("No results.", noPos)), noPos)),
 	),
 	newParseTest(
 		"include",
 		"{% include '::_subnav.html.twig' %}",
-		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), nil, false, noPos)),
+		mkModule(NewIncludeNode(NewStringExpr("::_subnav.html.twig", noPos), nil, false, noPos)),
 	),
 	newParseTest(
 		"include with",
 		"{% include '::_subnav.html.twig' with var %}",
-		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), newNameExpr("var", noPos), false, noPos)),
+		mkModule(NewIncludeNode(NewStringExpr("::_subnav.html.twig", noPos), NewNameExpr("var", noPos), false, noPos)),
 	),
 	newParseTest(
 		"include with only",
 		"{% include '::_subnav.html.twig' with var only %}",
-		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), newNameExpr("var", noPos), true, noPos)),
+		mkModule(NewIncludeNode(NewStringExpr("::_subnav.html.twig", noPos), NewNameExpr("var", noPos), true, noPos)),
 	),
 	newParseTest(
 		"include only",
 		"{% include '::_subnav.html.twig' only %}",
-		mkModule(newIncludeNode(newStringExpr("::_subnav.html.twig", noPos), nil, true, noPos)),
+		mkModule(NewIncludeNode(NewStringExpr("::_subnav.html.twig", noPos), nil, true, noPos)),
 	),
 	newParseTest(
 		"embed",
 		"{% embed '::_modal.html.twig' %}{% block title %}Hello{% endblock %}{% endembed  %}",
-		mkModule(newEmbedNode(newStringExpr("::_modal.html.twig", noPos), nil, false, map[string]*BlockNode{"title": newBlockNode("title", newBodyNode(noPos, newTextNode("Hello", noPos)), noPos)}, noPos)),
+		mkModule(NewEmbedNode(NewStringExpr("::_modal.html.twig", noPos), nil, false, map[string]*BlockNode{"title": NewBlockNode("title", NewBodyNode(noPos, NewTextNode("Hello", noPos)), noPos)}, noPos)),
 	),
 	newParseTest(
 		"null",
 		"{{ null }}{{ NONE }}{{ NULL }}{{ none }}",
-		mkModule(newPrintNode(newNullExpr(noPos), noPos), newPrintNode(newNullExpr(noPos), noPos), newPrintNode(newNullExpr(noPos), noPos), newPrintNode(newNullExpr(noPos), noPos)),
+		mkModule(NewPrintNode(NewNullExpr(noPos), noPos), NewPrintNode(NewNullExpr(noPos), noPos), NewPrintNode(NewNullExpr(noPos), noPos), NewPrintNode(NewNullExpr(noPos), noPos)),
 	),
 	newParseTest(
 		"boolean",
 		"{{ true }}{{ TRUE }}{{ false }}{{ FALSE }}",
-		mkModule(newPrintNode(newBoolExpr(true, noPos), noPos), newPrintNode(newBoolExpr(true, noPos), noPos), newPrintNode(newBoolExpr(false, noPos), noPos), newPrintNode(newBoolExpr(false, noPos), noPos)),
+		mkModule(NewPrintNode(NewBoolExpr(true, noPos), noPos), NewPrintNode(NewBoolExpr(true, noPos), noPos), NewPrintNode(NewBoolExpr(false, noPos), noPos), NewPrintNode(NewBoolExpr(false, noPos), noPos)),
 	),
 	newParseTest(
 		"unary then getattr",
 		"{% if not loop.last %}{% endif %}",
-		mkModule(newIfNode(newUnaryExpr(OpUnaryNot, newGetAttrExpr(newNameExpr("loop", noPos), newStringExpr("last", noPos), []Expr{}, noPos), noPos), newBodyNode(noPos), newBodyNode(noPos), noPos)),
+		mkModule(NewIfNode(NewUnaryExpr(OpUnaryNot, NewGetAttrExpr(NewNameExpr("loop", noPos), NewStringExpr("last", noPos), []Expr{}, noPos), noPos), NewBodyNode(noPos), NewBodyNode(noPos), noPos)),
 	),
 	newParseTest(
 		"binary expr if",
 		"<option{% if script.Type == 'Javascript' %} selected{% endif %}>Javascript</option>",
-		mkModule(newTextNode("<option", noPos), newIfNode(newBinaryExpr(newGetAttrExpr(newNameExpr("script", noPos), newStringExpr("Type", noPos), []Expr{}, noPos), OpBinaryEqual, newStringExpr("Javascript", noPos), noPos), newBodyNode(noPos, newTextNode(" selected", noPos)), newBodyNode(noPos), noPos), newTextNode(">Javascript</option>", noPos)),
+		mkModule(NewTextNode("<option", noPos), NewIfNode(NewBinaryExpr(NewGetAttrExpr(NewNameExpr("script", noPos), NewStringExpr("Type", noPos), []Expr{}, noPos), OpBinaryEqual, NewStringExpr("Javascript", noPos), noPos), NewBodyNode(noPos, NewTextNode(" selected", noPos)), NewBodyNode(noPos), noPos), NewTextNode(">Javascript</option>", noPos)),
 	),
 	newParseTest(
 		"test parsing",
 		"{{ animal is mammal }}{{ 10 is not divisible by(3) }}",
-		mkModule(newPrintNode(newBinaryExpr(newNameExpr("animal", noPos), OpBinaryIs, newTestExpr("mammal", []Expr{}, noPos), noPos), noPos), newPrintNode(newBinaryExpr(newNumberExpr("10", noPos), OpBinaryIsNot, newTestExpr("divisible by", []Expr{newNumberExpr("3", noPos)}, noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewBinaryExpr(NewNameExpr("animal", noPos), OpBinaryIs, NewTestExpr("mammal", []Expr{}, noPos), noPos), noPos), NewPrintNode(NewBinaryExpr(NewNumberExpr("10", noPos), OpBinaryIsNot, NewTestExpr("divisible by", []Expr{NewNumberExpr("3", noPos)}, noPos), noPos), noPos)),
 	),
 	newParseTest(
 		"comment",
 		"But{# This is a test #} not this.",
-		mkModule(newTextNode("But", noPos), newCommentNode(" This is a test ", noPos), newTextNode(" not this.", noPos)),
+		mkModule(NewTextNode("But", noPos), NewCommentNode(" This is a test ", noPos), NewTextNode(" not this.", noPos)),
 	),
 	newParseTest(
 		"use statement",
 		"{% use '::blocks.html.twig' %}",
-		mkModule(newUseNode(newStringExpr("::blocks.html.twig", noPos), map[string]string{}, noPos)),
+		mkModule(NewUseNode(NewStringExpr("::blocks.html.twig", noPos), map[string]string{}, noPos)),
 	),
 	newParseTest(
 		"use statement with one alias",
 		"{% use '::blocks.html.twig' with form_input as base_input %}",
-		mkModule(newUseNode(newStringExpr("::blocks.html.twig", noPos), map[string]string{"form_input": "base_input"}, noPos)),
+		mkModule(NewUseNode(NewStringExpr("::blocks.html.twig", noPos), map[string]string{"form_input": "base_input"}, noPos)),
 	),
 	newParseTest(
 		"use statement with muiltiple aliases",
 		"{% use '::blocks.html.twig' with form_input as base_input, form_radio as base_radio %}",
-		mkModule(newUseNode(newStringExpr("::blocks.html.twig", noPos), map[string]string{"form_input": "base_input", "form_radio": "base_radio"}, noPos)),
+		mkModule(NewUseNode(NewStringExpr("::blocks.html.twig", noPos), map[string]string{"form_input": "base_input", "form_radio": "base_radio"}, noPos)),
 	),
 	newParseTest(
 		"set statement",
 		"{% set varn = 'test' %}",
-		mkModule(newSetNode("varn", newStringExpr("test", noPos), noPos)),
+		mkModule(NewSetNode("varn", NewStringExpr("test", noPos), noPos)),
 	),
 	newParseTest(
 		"do statement",
 		"{% do somefunc() %}",
-		mkModule(newDoNode(newFuncExpr("somefunc", []Expr{}, noPos), noPos)),
+		mkModule(NewDoNode(NewFuncExpr("somefunc", []Expr{}, noPos), noPos)),
 	),
 	newParseTest(
 		"filter statement",
 		"{% filter upper|escape %}Some text{% endfilter %}",
-		mkModule(NewFilterNode([]string{"upper", "escape"}, newBodyNode(noPos, newTextNode("Some text", noPos)), noPos)),
+		mkModule(NewFilterNode([]string{"upper", "escape"}, NewBodyNode(noPos, NewTextNode("Some text", noPos)), noPos)),
 	),
 	newParseTest(
 		"simple macro",
 		"{% macro thing(var1, var2) %}Hello{% endmacro %}",
-		mkModule(newMacroNode("thing", []string{"var1", "var2"}, newBodyNode(noPos, newTextNode("Hello", noPos)), noPos)),
+		mkModule(NewMacroNode("thing", []string{"var1", "var2"}, NewBodyNode(noPos, NewTextNode("Hello", noPos)), noPos)),
 	),
 	newParseTest(
 		"simple macro2",
 		"{% macro thing(var2) %}Hello{% endmacro %}",
-		mkModule(newMacroNode("thing", []string{"var2"}, newBodyNode(noPos, newTextNode("Hello", noPos)), noPos)),
+		mkModule(NewMacroNode("thing", []string{"var2"}, NewBodyNode(noPos, NewTextNode("Hello", noPos)), noPos)),
 	),
 	newParseTest(
 		"import statement",
 		"{% import '::macros.html.twig' as mac %}",
-		mkModule(newImportNode(newStringExpr("::macros.html.twig", noPos), "mac", noPos)),
+		mkModule(NewImportNode(NewStringExpr("::macros.html.twig", noPos), "mac", noPos)),
 	),
 	newParseTest(
 		"from statement",
 		"{% from '::macros.html.twig' import input as field, textarea %}",
-		mkModule(newFromNode(newStringExpr("::macros.html.twig", noPos), map[string]string{"input": "field", "textarea": "textarea"}, noPos)),
+		mkModule(NewFromNode(NewStringExpr("::macros.html.twig", noPos), map[string]string{"input": "field", "textarea": "textarea"}, noPos)),
 	),
 	newParseTest(
 		"ternary if expression",
 		"{{ test ? 'Hello' : 'World' }}",
-		mkModule(newPrintNode(newTernaryIfExpr(newNameExpr("test", noPos), newStringExpr("Hello", noPos), newStringExpr("World", noPos), noPos), noPos)),
+		mkModule(NewPrintNode(NewTernaryIfExpr(NewNameExpr("test", noPos), NewStringExpr("Hello", noPos), NewStringExpr("World", noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"for loop filter application (#3)",
+		"{% for row in items|batch(3, 'No Item') %}{% endfor %}",
+		mkModule(NewForNode("", "row", NewFilterExpr("batch", []Expr{NewNameExpr("items", noPos), NewNumberExpr("3", noPos), NewStringExpr("No Item", noPos)}, noPos), NewBodyNode(noPos), NewBodyNode(noPos), noPos)),
 	),
 }
 
@@ -291,10 +296,16 @@ func evaluateTest(t *testing.T, test parseTest) {
 	tree, err := Parse(test.input)
 	if test.err != noError && err != nil && !strings.Contains(err.Error(), test.err) {
 		t.Errorf("%s: got error\n\t%+v\nexpected error\n\t%v", test.name, err, test.err)
+		if e, ok := err.(DebugError); ok {
+			t.Errorf("%s: trace:\n%s", test.name, e.Debug())
+		}
 	} else if !nodeEqual(tree.root, test.expected) {
 		t.Errorf("%s: got\n\t%+v\nexpected\n\t%v", test.name, tree.root, test.expected)
 		if err != nil {
 			t.Errorf("%s: got error\n\t%v", test.name, err.Error())
+			if e, ok := err.(DebugError); ok {
+				t.Errorf("%s: trace:\n%s", test.name, e.Debug())
+			}
 		}
 	}
 }
