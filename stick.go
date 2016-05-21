@@ -86,7 +86,7 @@ func NewEnv(loader Loader) *Env {
 	if loader == nil {
 		loader = &StringLoader{}
 	}
-	return &Env{loader, make(map[string]Func), BuiltInFilters(), make(map[string]Test), make([]parse.NodeVisitor, 0)}
+	return &Env{loader, make(map[string]Func), builtInFilters(), make(map[string]Test), make([]parse.NodeVisitor, 0)}
 }
 
 // Register adds the given Extension to the Env.

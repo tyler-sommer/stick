@@ -5,44 +5,44 @@ import (
 	"strings"
 )
 
-func BuiltInFilters() map[string]Filter {
+func builtInFilters() map[string]Filter {
 	filters := map[string]Filter{
-		"abs": FilterAbs,
-		"default": FilterDefault,
-		"batch": FilterBatch,
-		"capitalize": FilterCapitalize,
-		"convert_encoding": FilterConvertEncoding,
-		"date": FilterDate,
-		"date_modify": FilterDateModify,
-		"escape": FilterEscape,
-		"first": FilterFirst,
-		"format": FilterFormat,
-		"join": FilterJoin,
-		"json_encode": FilterJsonEncode,
-		"keys": FilterKeys,
-		"last": FilterLast,
-		"length": FilterLength,
-		"lower": FilterLower,
-		"merge": FilterMerge,
-		"nl2br": FilterNl2Br,
-		"number_format": FilterNumberFormat,
-		"raw": FilterRaw,
-		"replace": FilterReplace,
-		"reverse": FilterReverse,
-		"round": FilterRound,
-		"slice": FilterSlice,
-		"sort": FilterSort,
-		"split": FilterSplit,
-		"striptags": FilterStripTags,
-		"title": FilterTitle,
-		"trim": FilterTrim,
-		"upper": FilterUpper,
-		"url_encode": FilterUrlEncode,
+		"abs": filterAbs,
+		"default": filterDefault,
+		"batch": filterBatch,
+		"capitalize": filterCapitalize,
+		"convert_encoding": filterConvertEncoding,
+		"date": filterDate,
+		"date_modify": filterDateModify,
+		"escape": filterEscape,
+		"first": filterFirst,
+		"format": filterFormat,
+		"join": filterJoin,
+		"json_encode": filterJsonEncode,
+		"keys": filterKeys,
+		"last": filterLast,
+		"length": filterLength,
+		"lower": filterLower,
+		"merge": filterMerge,
+		"nl2br": filterNl2Br,
+		"number_format": filterNumberFormat,
+		"raw": filterRaw,
+		"replace": filterReplace,
+		"reverse": filterReverse,
+		"round": filterRound,
+		"slice": filterSlice,
+		"sort": filterSort,
+		"split": filterSplit,
+		"striptags": filterStripTags,
+		"title": filterTitle,
+		"trim": filterTrim,
+		"upper": filterUpper,
+		"url_encode": filterUrlEncode,
 	}
 	return filters
 }
 
-func FilterAbs(ctx Context, val Value, args ...Value) Value {
+func filterAbs(ctx Context, val Value, args ...Value) Value {
 	n := CoerceNumber(val)
 	if 0 == n {
 		return val
@@ -51,7 +51,7 @@ func FilterAbs(ctx Context, val Value, args ...Value) Value {
 }
 
 // Arg1: length, Arg2: Blank Fill Item
-func FilterBatch(ctx Context, val Value, args ...Value) Value {
+func filterBatch(ctx Context, val Value, args ...Value) Value {
 	if 2 != len(args) {
 		// need 2 arguments
 		return args
@@ -87,27 +87,27 @@ func FilterBatch(ctx Context, val Value, args ...Value) Value {
 	return out
 }
 
-func FilterCapitalize(ctx Context, val Value, args ...Value) Value {
+func filterCapitalize(ctx Context, val Value, args ...Value) Value {
 	s := strings.ToLower(CoerceString(val))
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-func FilterConvertEncoding(ctx Context, val Value, args ...Value) Value {
+func filterConvertEncoding(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterDate(ctx Context, val Value, args ...Value) Value {
+func filterDate(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterDateModify(ctx Context, val Value, args ...Value) Value {
+func filterDateModify(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterDefault(ctx Context, val Value, args ...Value) Value {
+func filterDefault(ctx Context, val Value, args ...Value) Value {
 	var d Value
 	if len(args) == 0 {
 		d = nil
@@ -120,117 +120,117 @@ func FilterDefault(ctx Context, val Value, args ...Value) Value {
 	return val
 }
 
-func FilterEscape(ctx Context, val Value, args ...Value) Value {
+func filterEscape(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterFirst(ctx Context, val Value, args ...Value) Value {
+func filterFirst(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterFormat(ctx Context, val Value, args ...Value) Value {
+func filterFormat(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterJoin(ctx Context, val Value, args ...Value) Value {
+func filterJoin(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterJsonEncode(ctx Context, val Value, args ...Value) Value {
+func filterJsonEncode(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterKeys(ctx Context, val Value, args ...Value) Value {
+func filterKeys(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterLast(ctx Context, val Value, args ...Value) Value {
+func filterLast(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterLength(ctx Context, val Value, args ...Value) Value {
+func filterLength(ctx Context, val Value, args ...Value) Value {
 	return 0
 }
 
-func FilterLower(ctx Context, val Value, args ...Value) Value {
+func filterLower(ctx Context, val Value, args ...Value) Value {
 	return strings.ToLower(CoerceString(val))
 }
 
-func FilterMerge(ctx Context, val Value, args ...Value) Value {
+func filterMerge(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterNl2Br(ctx Context, val Value, args ...Value) Value {
+func filterNl2Br(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterNumberFormat(ctx Context, val Value, args ...Value) Value {
+func filterNumberFormat(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterRaw(ctx Context, val Value, args ...Value) Value {
+func filterRaw(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterReplace(ctx Context, val Value, args ...Value) Value {
+func filterReplace(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterReverse(ctx Context, val Value, args ...Value) Value {
+func filterReverse(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterRound(ctx Context, val Value, args ...Value) Value {
+func filterRound(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterSlice(ctx Context, val Value, args ...Value) Value {
+func filterSlice(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterSort(ctx Context, val Value, args ...Value) Value {
+func filterSort(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterSplit(ctx Context, val Value, args ...Value) Value {
+func filterSplit(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterStripTags(ctx Context, val Value, args ...Value) Value {
+func filterStripTags(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
 
-func FilterTitle(ctx Context, val Value, args ...Value) Value {
+func filterTitle(ctx Context, val Value, args ...Value) Value {
 	return strings.Title(CoerceString(val))
 }
 
-func FilterTrim(ctx Context, val Value, args ...Value) Value {
+func filterTrim(ctx Context, val Value, args ...Value) Value {
 	return strings.TrimSpace(CoerceString(val))
 }
 
-func FilterUpper(ctx Context, val Value, args ...Value) Value {
+func filterUpper(ctx Context, val Value, args ...Value) Value {
 	return strings.ToUpper(CoerceString(val))
 }
 
-func FilterUrlEncode(ctx Context, val Value, args ...Value) Value {
+func filterUrlEncode(ctx Context, val Value, args ...Value) Value {
 	// TODO: Implement Me
 	return val
 }
