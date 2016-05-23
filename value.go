@@ -238,20 +238,49 @@ func getMethod(v Value, name string) (reflect.Value, error) {
 	return retVal, fmt.Errorf("stick: unable to locate method \"%s\" on \"%v\"", name, v)
 }
 
-type iterator func(k Value, v Value, l loop) (brk bool, err error)
+// An Iterator is called for each step in a loop.
+type Iterator func(k Value, v Value, l Loop) (brk bool, err error)
 
-type loop struct {
+// Loop contains metadata about the current state of a loop.
+type Loop struct {
 	Last   bool
 	Index  int
 	Index0 int
 }
 
-func iterate(val Value, it iterator) (int, error) {
+// IsArray returns true if the given Value is a slice or array.
+func IsArray(val Value) bool {
+	r := reflect.Indirect(reflect.ValueOf(val))
+	switch r.Kind() {
+	case reflect.Slice, reflect.Array:
+		return true
+	}
+	return false
+}
+
+// IsMap returns true if the given Value is a map.
+func IsMap(val Value) bool {
+	r := reflect.Indirect(reflect.ValueOf(val))
+	return r.Kind() == reflect.Map
+}
+
+// IsIterable returns true if the given Value is a slice, array, or map.
+func IsIterable(val Value) bool {
+	r := reflect.Indirect(reflect.ValueOf(val))
+	switch r.Kind() {
+	case reflect.Slice, reflect.Array, reflect.Map:
+		return true
+	}
+	return false
+}
+
+// Iterate calls the Iterator func for every item in the Value.
+func Iterate(val Value, it Iterator) (int, error) {
 	r := reflect.Indirect(reflect.ValueOf(val))
 	switch r.Kind() {
 	case reflect.Slice, reflect.Array:
 		ln := r.Len()
-		l := loop{ln == 1, 1, 0}
+		l := Loop{ln == 1, 1, 0}
 		for i := 0; i < ln; i++ {
 			v := r.Index(i)
 			brk, err := it(i, v.Interface(), l)
@@ -269,7 +298,7 @@ func iterate(val Value, it iterator) (int, error) {
 	case reflect.Map:
 		keys := r.MapKeys()
 		ln := r.Len()
-		l := loop{ln == 1, 1, 0}
+		l := Loop{ln == 1, 1, 0}
 		for _, k := range keys {
 			v := r.MapIndex(k)
 			brk, err := it(k.Interface(), v.Interface(), l)
@@ -289,15 +318,17 @@ func iterate(val Value, it iterator) (int, error) {
 	}
 }
 
-func equal(left Value, right Value) bool {
+// Equal returns true if the two Values are considered equal.
+func Equal(left Value, right Value) bool {
 	// TODO: Stop-gap for now, this will need to be much more sophisticated.
 	return CoerceString(left) == CoerceString(right)
 }
 
-func contains(haystack Value, needle Value) (bool, error) {
+// Contains returns true if the haystack Value contains needle.
+func Contains(haystack Value, needle Value) (bool, error) {
 	res := false
-	_, err := iterate(haystack, func(k Value, v Value, l loop) (bool, error) {
-		if equal(v, needle) {
+	_, err := Iterate(haystack, func(k Value, v Value, l Loop) (bool, error) {
+		if Equal(v, needle) {
 			res = true
 			return true, nil // break
 		}
