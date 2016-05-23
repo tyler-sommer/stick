@@ -318,6 +318,16 @@ func Iterate(val Value, it Iterator) (int, error) {
 	}
 }
 
+// Len returns the length of Value.
+func Len(val Value) (int, error) {
+	r := reflect.Indirect(reflect.ValueOf(val))
+	switch r.Kind() {
+	case reflect.Slice, reflect.Array, reflect.Map:
+		return r.Len(), nil
+	}
+	return 0, fmt.Errorf(`stick: could not get length of %s "%v"`, r.Kind(), val)
+}
+
 // Equal returns true if the two Values are considered equal.
 func Equal(left Value, right Value) bool {
 	// TODO: Stop-gap for now, this will need to be much more sophisticated.
