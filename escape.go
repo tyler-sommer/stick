@@ -1,13 +1,9 @@
 package stick
 
 import (
-	"html"
-
-	"net/url"
-
+	"bytes"
+	"fmt"
 	"strings"
-
-	"regexp"
 
 	"github.com/tyler-sommer/stick/parse"
 )
@@ -15,30 +11,102 @@ import (
 type Escaper func(string) string
 
 func escapeHTML(in string) string {
-	return html.EscapeString(in)
+	var out = &bytes.Buffer{}
+	for _, c := range in {
+		if c == 34 {
+			// "
+			out.WriteString("&quot;")
+		} else if c == 38 {
+			// &
+			out.WriteString("&amp;")
+		} else if c == 39 {
+			// '
+			out.WriteString("&#39;")
+		} else if c == 60 {
+			// <
+			out.WriteString("&lt;")
+		} else if c == 62 {
+			// >
+			out.WriteString("&gt;")
+		} else {
+			// UTF-8
+			out.WriteRune(c)
+		}
+	}
+	return out.String()
 }
 
 func escapeHTMLAttribute(in string) string {
-	// TODO: Implementation
-	return in
+	var out = &bytes.Buffer{}
+	for _, c := range in {
+		if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || (c >= 44 && c <= 46) || c == 95 {
+			// a-zA-Z0-9,.-_
+			out.WriteRune(c)
+		} else if c == 34 {
+			// "
+			out.WriteString("&quot;")
+		} else if c == 38 {
+			// &
+			out.WriteString("&amp;")
+		} else if c == 60 {
+			// <
+			out.WriteString("&lt;")
+		} else if c == 62 {
+			// >
+			out.WriteString("&gt;")
+		} else if c <= 31 && c != 9 && c != 10 && c != 13 {
+			// Non-whitespace
+			out.WriteString("&#xFFFD;")
+		} else {
+			// UTF-8
+			fmt.Fprintf(out, "&#%d;", c)
+		}
+	}
+	return out.String()
 }
 
 func escapeJS(in string) string {
-	// TODO: Implementation
-	return in
+	var out = &bytes.Buffer{}
+	for _, c := range in {
+		if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 44 || c == 46 || c == 95 {
+			// a-zA-Z0-9,._
+			out.WriteRune(c)
+		} else {
+			// UTF-8
+			fmt.Fprintf(out, "\\u%04X", c)
+		}
+	}
+	return out.String()
 }
 
 func escapeCSS(in string) string {
-	// TODO: Implementation
-	return in
+	var out = &bytes.Buffer{}
+	for _, c := range in {
+		if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) {
+			// a-zA-Z0-9
+			out.WriteRune(c)
+		} else {
+			// UTF-8
+			fmt.Fprintf(out, "\\%04X", c)
+		}
+	}
+	return out.String()
 }
 
 func escapeURL(in string) string {
-	u, err := url.Parse(in)
-	if err != nil {
-		return ""
+	var out = &bytes.Buffer{}
+	var c byte
+	for i := 0; i < len(in); i++ {
+		c = in[i]
+		if (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 45 || c == 46 || c == 126 || c == 95 {
+			// a-zA-Z0-9-._~
+			out.WriteByte(c)
+		} else {
+			// UTF-8
+			fmt.Fprintf(out, "%%%02X", c)
+		}
 	}
-	return u.String()
+	return out.String()
 }
 
 type AutoEscapeExtension struct {
@@ -114,8 +182,6 @@ func (v *AutoEscapeVisitor) Enter(n parse.Node) {
 		v.push(v.guessTypeFromName(node.Origin))
 	case *parse.BlockNode:
 		v.push(v.guessTypeFromName(node.Origin))
-	case *parse.TextNode:
-		v.push(v.guessTypeFromData(node.Data))
 	case *parse.PrintNode:
 		ct := v.current()
 		v := node.X
@@ -130,26 +196,9 @@ func (v *AutoEscapeVisitor) Enter(n parse.Node) {
 
 func (v *AutoEscapeVisitor) Leave(n parse.Node) {
 	switch n.(type) {
-	case *parse.ModuleNode, *parse.BlockNode, *parse.TextNode:
+	case *parse.ModuleNode, *parse.BlockNode:
 		v.pop()
 	}
-}
-
-var matcher = regexp.MustCompile("([a-zA-Z]+?)=\"$")
-
-func (v *AutoEscapeVisitor) guessTypeFromData(data string) string {
-	if v.current() != "html" {
-		return v.current()
-	}
-	m := matcher.FindStringSubmatch(data)
-	if len(m) == 2 {
-		// TODO: This is extremely naive
-		if m[2] == "href" || m[2] == "src" {
-			return "url"
-		}
-		return "html_attr"
-	}
-	return v.current()
 }
 
 func (v *AutoEscapeVisitor) guessTypeFromName(name string) string {
