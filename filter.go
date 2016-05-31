@@ -54,36 +54,43 @@ func filterAbs(ctx Context, val Value, args ...Value) Value {
 func filterBatch(ctx Context, val Value, args ...Value) Value {
 	if 2 != len(args) {
 		// need 2 arguments
-		return args
-	}
-	sl, ok := val.([]Value)
-	if !ok {
-		// not a slice of Values
 		return val
 	}
-
-	numItemsPerSlice := int(CoerceNumber(args[0]))
-	if 0 == numItemsPerSlice || 1 == numItemsPerSlice {
+	if !IsIterable(val) {
 		return val
 	}
-
 	blankValue := args[1]
-
-	numSlices := int(len(sl) / numItemsPerSlice)
-
+	perSlice := int(CoerceNumber(args[0]))
+	if perSlice <= 1 {
+		return val
+	}
+	l, _ := Len(val)
+	numSlices := int(math.Ceil(float64(l) / float64(perSlice)))
 	out := make([][]Value, numSlices)
-
-	location := 0
-	for outter := 0; outter < numSlices; outter++ {
-		for inner := 0; inner < numItemsPerSlice; inner++ {
-			if location < len(sl) {
-				out[outter][inner] = sl[location]
-			} else {
-				out[outter][inner] = blankValue
-			}
-			location++
+	curr := make([]Value, perSlice)
+	i := 0
+	j := 0
+	_, err := Iterate(val, func(k, v Value, l Loop) (bool, error) {
+		curr[j] = v
+		j++
+		if j == perSlice {
+			out[i] = curr
+			curr = make([]Value, perSlice)
+			i++
+			j = 0
+		}
+		return false, nil
+	})
+	if err != nil {
+		// TODO: This is wack semantics
+		return val
+	}
+	if j != perSlice {
+		for h := j; j < perSlice; j++ {
+			curr[h] = blankValue
 		}
 	}
+	out[i] = curr
 	return out
 }
 

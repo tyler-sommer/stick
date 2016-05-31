@@ -48,19 +48,21 @@ func TestFilters(t *testing.T) {
 func TestFilterBatch(t *testing.T) {
 	data := map[string]Value{"items": []int{1, 2, 3, 4, 5, 6, 7, 8}}
 	var ctx Context
-	batched := filterBatch(ctx, data, 3, "No Item")
+	batched := filterBatch(ctx, data["items"], 3, "No Item")
 
-	bLen := len(batched)
+	bLen, _ := Len(batched)
 	if 3 != bLen {
 		t.Errorf("Expected the batched array to be 3 items long, got %d", bLen)
+		t.Fail()
 	}
 
-	for _, batchedVals := range batched {
-		bLen := len(batchedVals)
+	Iterate(batched, func(k, v Value, l Loop) (bool, error) {
+		bLen, _ := Len(v)
 		if 3 != bLen {
 			t.Errorf("Expected batched value length to be 3, got %d", bLen)
 		}
-	}
+		return false, nil
+	})
 }
 
 func TestFilterOnCmdBlock(t *testing.T) {
@@ -70,8 +72,7 @@ func TestFilterOnCmdBlock(t *testing.T) {
 	template := "{% for row in items|batch(3, 'No Item') %}{% for item in row %}{{ item }}.{% endfor %}.{% endfor %}"
 	data := map[string]Value{"items": []int{1, 2, 3, 4, 5, 6, 7, 8}}
 
-	var actual string
-	buf := bytes.NewBufferString(actual)
+	buf := &bytes.Buffer{}
 	err := env.Execute(template, buf, data)
 
 	if nil != err {
@@ -79,7 +80,8 @@ func TestFilterOnCmdBlock(t *testing.T) {
 		return
 	}
 
+	actual := buf.String()
 	if expected != actual {
-		t.Errorf("Failed to parse template. expected: %s != actual:%s", expected, actual)
+		t.Errorf("Failed to parse template.\n\texpected: %s\n\tactual:%s", expected, actual)
 	}
 }
