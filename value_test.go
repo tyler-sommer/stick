@@ -298,8 +298,9 @@ func TestIterate_breakMap(t *testing.T) {
 	if n != 1 {
 		t.Errorf("expected to iterate over 1 item, got %d", n)
 	}
-	if v := strings.Join(res, " "); v != "hello world" {
-		t.Errorf("expected 'hello world' got '%s'", v)
+	exp := []string{"hello world", "exclaim !"}
+	if v := strings.Join(res, " "); v != exp[0] && v != exp[1] {
+		t.Errorf("expected one of '%s' or '%s', got '%s'", exp[0], exp[1], v)
 	}
 }
 
