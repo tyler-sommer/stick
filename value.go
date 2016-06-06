@@ -238,8 +238,8 @@ func getMethod(v Value, name string) (reflect.Value, error) {
 	return retVal, fmt.Errorf("stick: unable to locate method \"%s\" on \"%v\"", name, v)
 }
 
-// An Iterator is called for each step in a loop.
-type Iterator func(k Value, v Value, l Loop) (brk bool, err error)
+// An Iteratee is called for each step in a loop.
+type Iteratee func(k, v Value, l Loop) (brk bool, err error)
 
 // Loop contains metadata about the current state of a loop.
 type Loop struct {
@@ -266,6 +266,9 @@ func IsMap(val Value) bool {
 
 // IsIterable returns true if the given Value is a slice, array, or map.
 func IsIterable(val Value) bool {
+	if val == nil {
+		return true
+	}
 	r := reflect.Indirect(reflect.ValueOf(val))
 	switch r.Kind() {
 	case reflect.Slice, reflect.Array, reflect.Map:
@@ -274,8 +277,11 @@ func IsIterable(val Value) bool {
 	return false
 }
 
-// Iterate calls the Iterator func for every item in the Value.
-func Iterate(val Value, it Iterator) (int, error) {
+// Iterate calls the Iteratee func for every item in the Value.
+func Iterate(val Value, it Iteratee) (int, error) {
+	if val == nil {
+		return 0, nil
+	}
 	r := reflect.Indirect(reflect.ValueOf(val))
 	switch r.Kind() {
 	case reflect.Slice, reflect.Array:
@@ -284,10 +290,8 @@ func Iterate(val Value, it Iterator) (int, error) {
 		for i := 0; i < ln; i++ {
 			v := r.Index(i)
 			brk, err := it(i, v.Interface(), l)
-			if err != nil {
-				return 0, err
-			} else if brk {
-				return ln, nil
+			if brk || err != nil {
+				return i + 1, err
 			}
 
 			l.Index++
@@ -299,13 +303,11 @@ func Iterate(val Value, it Iterator) (int, error) {
 		keys := r.MapKeys()
 		ln := r.Len()
 		l := Loop{ln == 1, 1, 0}
-		for _, k := range keys {
+		for i, k := range keys {
 			v := r.MapIndex(k)
 			brk, err := it(k.Interface(), v.Interface(), l)
-			if err != nil {
-				return 0, err
-			} else if brk {
-				return ln, nil
+			if brk || err != nil {
+				return i + 1, err
 			}
 
 			l.Index++
@@ -320,6 +322,9 @@ func Iterate(val Value, it Iterator) (int, error) {
 
 // Len returns the length of Value.
 func Len(val Value) (int, error) {
+	if val == nil {
+		return 0, nil
+	}
 	r := reflect.Indirect(reflect.ValueOf(val))
 	switch r.Kind() {
 	case reflect.Slice, reflect.Array, reflect.Map:
