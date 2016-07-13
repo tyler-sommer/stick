@@ -1,6 +1,9 @@
 package stick
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestFilters(t *testing.T) {
 	newBatchFunc := func(in Value, args ...Value) func() Value {
@@ -18,6 +21,14 @@ func TestFilters(t *testing.T) {
 			return res
 		}
 	}
+
+	tz, err := time.LoadLocation("Australia/Perth")
+	if nil != err {
+		t.Error(err)
+	}
+	testDate := time.Date(1980, 5, 31, 22, 01, 0, 0, tz)
+	testDate2 := time.Date(2018, 2, 3, 2, 1, 44, 123456000, tz)
+
 	tests := []struct {
 		name     string
 		actual   func() Value
@@ -42,11 +53,19 @@ func TestFilters(t *testing.T) {
 		{"batch full", newBatchFunc([]int{1, 2, 3, 4}, 2), "1.2..3.4.."},
 		{"batch empty", newBatchFunc([]int{}, 10), ""},
 		{"batch nil", newBatchFunc(nil, 10), ""},
+		{"first array", func() Value {return filterFirst(nil, []string{"1","2","3","4"})}, "1"},
+		{"first string", func() Value {return filterFirst(nil, "1234")}, "1"},
+
+		{"date c", func() Value {return filterDate(nil, testDate, "c")}, "1980-05-31T22:01:00+08:00"},
+		{"date r", func() Value {return filterDate(nil, testDate, "r")}, "Sat, 31 May 1980 22:01:00 +0800"},
+		{"date test", func() Value {return filterDate(nil, testDate2, "d D j l F m M n Y y a A g G h H i s O P T")}, "03 Sat 3 Saturday February 02 Feb 2 2018 18 am AM 2 02 02 02 01 44 +0800 +08:00 AWST"},
+		{"date u", func() Value {return filterDate(nil, testDate2, "s.u")}, "44.123456"},
+
 	}
 	for _, test := range tests {
 		res := test.actual()
 		if res != test.expected {
-			t.Errorf("%s:\n\texpected: %v\n\tgot: %v", test.name, test.expected, res)
+			t.Errorf("%s:\n\texpected: '%v'\n\tgot     : '%v' (%T)", test.name, test.expected, res, res)
 		}
 	}
 }
