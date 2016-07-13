@@ -1,87 +1,52 @@
 package stick
 
-import (
-	"testing"
-	"bytes"
-)
+import "testing"
 
 func TestFilters(t *testing.T) {
-
-	type test struct {
-		test, expected string
-		data           map[string]Value
-	}
-
-	values := []test{
-		{test:"Hi {{ name|default('person') }}", expected: "Hi person", data:nil},
-		{test:"{{ num|abs }}", expected:"5", data:map[string]Value{"num":-5}},
-		{test:"{{ num|abs }}", expected:"6", data:map[string]Value{"num":6}},
-		{test:"{{ pi|abs }}", expected:"3.14", data:map[string]Value{"pi":3.14}},
-		{test:"{{ pi|abs }}", expected:"3.14", data:map[string]Value{"pi":-3.14}},
-		{test:"{{ name|capitalize }}", expected:"Mr ed", data:map[string]Value{"name":"MR ED"}},
-		{test:"{{ name|lower }}", expected:"mr ed", data:map[string]Value{"name":"MR ED"}},
-		{test:"{{ name|title }}", expected:"Mr Ed", data:map[string]Value{"name":"mr ed"}},
-		{test:"{{ name|trim }}", expected:"mr ed", data:map[string]Value{"name":" mr ed "}},
-		{test:"{{ name|upper }}", expected:"MR ED", data:map[string]Value{"name":"mr ed"}},
-	}
-
-	var out string
-	buf := bytes.NewBufferString(out)
-
-	env := NewEnv(nil)
-	for _, test := range values {
-		buf.Reset()
-		t.Logf("Testing '%s' and expecting to get '%s'", test.test, test.expected)
-		out = ""
-		if err := env.Execute(test.test, buf, test.data); err != nil {
-			t.Error("Failed to Execute Template", err)
-			continue
-		}
-
-		if test.expected != buf.String() {
-			t.Errorf("Failed. Expected '%s', got '%s'", test.expected, buf.String())
-			continue
-		}
-
-	}
-}
-
-func TestFilterBatch(t *testing.T) {
-	data := map[string]Value{"items":[]int{1, 2, 3, 4, 5, 6, 7, 8}}
-	var ctx Context
-	batched := filterBatch(ctx, data, 3, "No Item")
-
-	bLen := len(batched)
-	if 3 != bLen {
-		t.Errorf("Expected the batched array to be 3 items long, got %d", bLen)
-	}
-
-	for _, batchedVals := range batched {
-		bLen := len(batchedVals)
-		if 3 != bLen {
-			t.Errorf("Expected batched value length to be 3, got %d", bLen)
+	newBatchFunc := func(in Value, args ...Value) func() Value {
+		return func() Value {
+			batched := filterBatch(nil, in, args...)
+			res := ""
+			Iterate(batched, func(k, v Value, l Loop) (bool, error) {
+				Iterate(v, func(k, v Value, l Loop) (bool, error) {
+					res += CoerceString(v) + "."
+					return false, nil
+				})
+				res += "."
+				return false, nil
+			})
+			return res
 		}
 	}
-
-}
-
-func TestFilterOnCmdBlock(t *testing.T) {
-	expected := "1.2.3..4.5.6..7.8.No Item.."
-
-	env := NewEnv(nil)
-	template := "{% for row in items|batch(3, 'No Item') %}{% for item in row %}{{ item }}.{% endfor %}.{% endfor %}"
-	data := map[string]Value{"items":[]int{1, 2, 3, 4, 5, 6, 7, 8}}
-
-	var actual string
-	buf := bytes.NewBufferString(actual)
-	err := env.Execute(template, buf, data)
-
-	if nil != err {
-		t.Error(err.Error())
-		return
+	tests := []struct {
+		name     string
+		actual   func() Value
+		expected Value
+	}{
+		{"default nil", func() Value { return filterDefault(nil, nil, "person") }, "person"},
+		{"default empty string", func() Value { return filterDefault(nil, "", "person") }, "person"},
+		{"default not empty", func() Value { return filterDefault(nil, "user", "person") }, "user"},
+		{"abs positive", func() Value { return filterAbs(nil, 5.1) }, 5.1},
+		{"abs negative", func() Value { return filterAbs(nil, -42) }, 42.0 /* note: coerced to float */},
+		{"abs invalid", func() Value { return filterAbs(nil, "invalid") }, 0.0},
+		{"len string", func() Value { return filterLength(nil, "hello") }, 5},
+		{"len nil", func() Value { return filterLength(nil, nil) }, 0},
+		{"len slice", func() Value { return filterLength(nil, []string{"h", "e"}) }, 2},
+		{"capitalize", func() Value { return filterCapitalize(nil, "word") }, "Word"},
+		{"lower", func() Value { return filterLower(nil, "HELLO, WORLD!") }, "hello, world!"},
+		{"title", func() Value { return filterTitle(nil, "hello, world!") }, "Hello, World!"},
+		{"trim", func() Value { return filterTrim(nil, " Hello   ") }, "Hello"},
+		{"upper", func() Value { return filterUpper(nil, "hello, world!") }, "HELLO, WORLD!"},
+		{"batch underfull with fill", newBatchFunc([]int{1, 2, 3, 4, 5, 6, 7, 8}, 3, "No Item"), "1.2.3..4.5.6..7.8.No Item.."},
+		{"batch underfull without fill", newBatchFunc([]int{1, 2, 3, 4, 5}, 3), "1.2.3..4.5.."},
+		{"batch full", newBatchFunc([]int{1, 2, 3, 4}, 2), "1.2..3.4.."},
+		{"batch empty", newBatchFunc([]int{}, 10), ""},
+		{"batch nil", newBatchFunc(nil, 10), ""},
 	}
-
-	if expected != actual {
-		t.Errorf("Failed to parse template. expected: %s != actual:%s", expected, actual)
+	for _, test := range tests {
+		res := test.actual()
+		if res != test.expected {
+			t.Errorf("%s:\n\texpected: %v\n\tgot: %v", test.name, test.expected, res)
+		}
 	}
 }

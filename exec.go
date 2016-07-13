@@ -316,7 +316,7 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 	}
 	kn := node.Key
 	vn := node.Val
-	ct, err := iterate(res, func(k Value, v Value, l loop) (bool, error) {
+	ct, err := Iterate(res, func(k Value, v Value, l Loop) (bool, error) {
 		s.scope.push()
 		defer s.scope.pop()
 
@@ -539,9 +539,9 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 		case parse.OpBinaryStartsWith:
 			return strings.HasPrefix(CoerceString(left), CoerceString(right)), nil
 		case parse.OpBinaryIn:
-			return contains(right, left)
+			return Contains(right, left)
 		case parse.OpBinaryNotIn:
-			res, err := contains(right, left)
+			res, err := Contains(right, left)
 			if err != nil {
 				return false, err
 			}
@@ -563,9 +563,9 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			}
 			return reg.MatchString(CoerceString(left)), nil
 		case parse.OpBinaryEqual:
-			return equal(left, right), nil
+			return Equal(left, right), nil
 		case parse.OpBinaryNotEqual:
-			return !equal(left, right), nil
+			return !Equal(left, right), nil
 		case parse.OpBinaryGreaterEqual:
 			return CoerceNumber(left) >= CoerceNumber(right), nil
 		case parse.OpBinaryGreaterThan:

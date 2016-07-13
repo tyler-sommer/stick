@@ -1,52 +1,20 @@
 package stick
 
 import (
-	"html"
-
-	"net/url"
-
 	"strings"
 
-	"regexp"
-
+	"github.com/tyler-sommer/stick/escape"
 	"github.com/tyler-sommer/stick/parse"
 )
 
-type Escaper func(string) string
-
-func escapeHTML(in string) string {
-	return html.EscapeString(in)
-}
-
-func escapeHTMLAttribute(in string) string {
-	// TODO: Implementation
-	return in
-}
-
-func escapeJS(in string) string {
-	// TODO: Implementation
-	return in
-}
-
-func escapeCSS(in string) string {
-	// TODO: Implementation
-	return in
-}
-
-func escapeURL(in string) string {
-	u, err := url.Parse(in)
-	if err != nil {
-		return ""
-	}
-	return u.String()
-}
-
+// AutoEscapeExtension provides Twig equivalent escaping for Stick templates.
 type AutoEscapeExtension struct {
-	Escapers map[string]Escaper
+	Escapers map[string]escape.Escaper
 }
 
+// Init registers the escape functionality with the given Env.
 func (e *AutoEscapeExtension) Init(env *Env) error {
-	env.Visitors = append(env.Visitors, &AutoEscapeVisitor{})
+	env.Visitors = append(env.Visitors, &autoEscapeVisitor{})
 	env.Filters["escape"] = func(ctx Context, val Value, args ...Value) Value {
 		ct := "html"
 		if len(args) > 0 {
@@ -70,37 +38,37 @@ func (e *AutoEscapeExtension) Init(env *Env) error {
 	return nil
 }
 
+// NewAutoEscapeExtension returns an AutoEscapeExtension with Twig equivalent
+// Escapers, by default.
 func NewAutoEscapeExtension() *AutoEscapeExtension {
 	return &AutoEscapeExtension{
-		Escapers: map[string]Escaper{
-			"html":      escapeHTML,
-			"html_attr": escapeHTMLAttribute,
-			"js":        escapeJS,
-			"css":       escapeCSS,
-			"url":       escapeURL,
+		Escapers: map[string]escape.Escaper{
+			"html":      escape.HTML,
+			"html_attr": escape.HTMLAttribute,
+			"js":        escape.JS,
+			"css":       escape.CSS,
+			"url":       escape.URLQueryParam,
 		},
 	}
 }
 
 // AutoEscapeVisitor can be used to automatically apply the "escape" filter
 // to any PrintNode.
-type AutoEscapeVisitor struct {
+type autoEscapeVisitor struct {
 	stack []string
 }
 
-// push adds a scope on top of the stack.
-func (v *AutoEscapeVisitor) push(name string) {
+// push adds the given name on top of the stack.
+func (v *autoEscapeVisitor) push(name string) {
 	v.stack = append(v.stack, name)
 }
 
-// pop removes the top-most scope.
-func (v *AutoEscapeVisitor) pop() string {
-	ret := v.current()
+// pop removes the top-most name on the stack.
+func (v *autoEscapeVisitor) pop() {
 	v.stack = v.stack[0 : len(v.stack)-1]
-	return ret
 }
 
-func (v *AutoEscapeVisitor) current() string {
+func (v *autoEscapeVisitor) current() string {
 	if len(v.stack) == 0 {
 		// TODO: This is an invalid state.
 		return ""
@@ -108,14 +76,12 @@ func (v *AutoEscapeVisitor) current() string {
 	return v.stack[len(v.stack)-1]
 }
 
-func (v *AutoEscapeVisitor) Enter(n parse.Node) {
+func (v *autoEscapeVisitor) Enter(n parse.Node) {
 	switch node := n.(type) {
 	case *parse.ModuleNode:
 		v.push(v.guessTypeFromName(node.Origin))
 	case *parse.BlockNode:
 		v.push(v.guessTypeFromName(node.Origin))
-	case *parse.TextNode:
-		v.push(v.guessTypeFromData(node.Data))
 	case *parse.PrintNode:
 		ct := v.current()
 		v := node.X
@@ -128,31 +94,14 @@ func (v *AutoEscapeVisitor) Enter(n parse.Node) {
 	}
 }
 
-func (v *AutoEscapeVisitor) Leave(n parse.Node) {
+func (v *autoEscapeVisitor) Leave(n parse.Node) {
 	switch n.(type) {
-	case *parse.ModuleNode, *parse.BlockNode, *parse.TextNode:
+	case *parse.ModuleNode, *parse.BlockNode:
 		v.pop()
 	}
 }
 
-var matcher = regexp.MustCompile("([a-zA-Z]+?)=\"$")
-
-func (v *AutoEscapeVisitor) guessTypeFromData(data string) string {
-	if v.current() != "html" {
-		return v.current()
-	}
-	m := matcher.FindStringSubmatch(data)
-	if len(m) == 2 {
-		// TODO: This is extremely naive
-		if m[2] == "href" || m[2] == "src" {
-			return "url"
-		}
-		return "html_attr"
-	}
-	return v.current()
-}
-
-func (v *AutoEscapeVisitor) guessTypeFromName(name string) string {
+func (v *autoEscapeVisitor) guessTypeFromName(name string) string {
 	name = strings.TrimSuffix(name, ".twig")
 	p := strings.LastIndex(name, ".")
 	if p < 0 {
