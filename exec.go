@@ -287,6 +287,8 @@ func (s *state) walk(node parse.Node) error {
 		return s.walkImportNode(node)
 	case *parse.FromNode:
 		return s.walkFromNode(node)
+	case *parse.CommentNode:
+		// Nothing.
 	default:
 		return errors.New("Unknown node " + node.String())
 	}
