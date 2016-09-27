@@ -288,3 +288,72 @@ func (exp *TernaryIfExpr) All() []Node {
 func (exp *TernaryIfExpr) String() string {
 	return fmt.Sprintf("%s ? %s : %v", exp.Cond, exp.TrueX, exp.FalseX)
 }
+
+type KeyValueExpr struct {
+	Pos
+	Key   Expr
+	Value Expr
+}
+
+// NewKeyValueExpr returns a KeyValueExpr.
+func NewKeyValueExpr(k, v Expr, pos Pos) *KeyValueExpr {
+	return &KeyValueExpr{pos, k, v}
+}
+
+// All returns all the child Nodes in a KeyValueExpr.
+func (exp *KeyValueExpr) All() []Node {
+	return []Node{exp.Key, exp.Value}
+}
+
+// String returns a string representation of a KeyValueExpr.
+func (exp *KeyValueExpr) String() string {
+	return fmt.Sprintf("%s: %s", exp.Key, exp.Value)
+}
+
+type HashExpr struct {
+	Pos
+	Elements []*KeyValueExpr
+}
+
+// NewHashExpr returns a HashExpr.
+func NewHashExpr(pos Pos, elements ...*KeyValueExpr) *HashExpr {
+	return &HashExpr{pos, elements}
+}
+
+// All returns all the child Nodes in a HashExpr.
+func (exp *HashExpr) All() []Node {
+	all := make([]Node, len(exp.Elements))
+	for i, v := range exp.Elements {
+		all[i] = v
+	}
+	return all
+}
+
+// String returns a string representation of a HashExpr.
+func (exp *HashExpr) String() string {
+	return fmt.Sprintf("HashExpr{%v}", exp.Elements)
+}
+
+type ArrayExpr struct {
+	Pos
+	Elements []Expr
+}
+
+// NewArrayExpr returns a ArrayExpr.
+func NewArrayExpr(pos Pos, els ...Expr) *ArrayExpr {
+	return &ArrayExpr{pos, els}
+}
+
+// All returns all the child Nodes in a ArrayExpr.
+func (exp *ArrayExpr) All() []Node {
+	all := make([]Node, len(exp.Elements))
+	for i, v := range exp.Elements {
+		all[i] = v
+	}
+	return all
+}
+
+// String returns a string representation of a ArrayExpr.
+func (exp *ArrayExpr) String() string {
+	return fmt.Sprintf("ArrayExpr%v", exp.Elements)
+}

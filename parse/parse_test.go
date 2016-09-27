@@ -282,6 +282,16 @@ var parseTests = []parseTest{
 		"{% for row in items|batch(3, 'No Item') %}{% endfor %}",
 		mkModule(NewForNode("", "row", NewFilterExpr("batch", []Expr{NewNameExpr("items", noPos), NewNumberExpr("3", noPos), NewStringExpr("No Item", noPos)}, noPos), NewBodyNode(noPos), NewBodyNode(noPos), noPos)),
 	),
+	newParseTest(
+		"hash literal",
+		`{% set v = {"test": 1, "bar": 10,} %}`,
+		mkModule(NewSetNode("v", NewHashExpr(noPos, NewKeyValueExpr(NewStringExpr("test", noPos), NewNumberExpr("1", noPos), noPos), NewKeyValueExpr(NewStringExpr("bar", noPos), NewNumberExpr("10", noPos), noPos)), noPos)),
+	),
+	newParseTest(
+		"array literal",
+		`{% set v = [1, "bar", 10,] %}`,
+		mkModule(NewSetNode("v", NewArrayExpr(noPos, NewNumberExpr("1", noPos), NewStringExpr("bar", noPos), NewNumberExpr("10", noPos)), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {

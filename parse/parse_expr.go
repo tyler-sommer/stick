@@ -209,6 +209,60 @@ func (t *Tree) parseInnerExpr() (Expr, error) {
 		}
 		return NewGroupExpr(inner, tok.Pos), nil
 
+	case tokenHashOpen:
+		els := []*KeyValueExpr{}
+		for {
+			nxt := t.peek()
+			if nxt.tokenType == tokenHashClose {
+				t.next()
+				break
+			}
+			keyExpr, err := t.parseExpr()
+			if err != nil {
+				return nil, err
+			}
+			_, err = t.expectValue(tokenPunctuation, delimHashKeyValue)
+			if err != nil {
+				return nil, err
+			}
+			valExpr, err := t.parseExpr()
+			if err != nil {
+				return nil, err
+			}
+			els = append(els, NewKeyValueExpr(keyExpr, valExpr, nxt.Pos))
+			nxt = t.peek()
+			if nxt.tokenType == tokenPunctuation {
+				_, err := t.expectValue(tokenPunctuation, ",")
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+		return NewHashExpr(tok.Pos, els...), nil
+
+	case tokenArrayOpen:
+		els := []Expr{}
+		for {
+			nxt := t.peek()
+			if nxt.tokenType == tokenArrayClose {
+				t.next()
+				break
+			}
+			expr, err := t.parseExpr()
+			if err != nil {
+				return nil, err
+			}
+			els = append(els, expr)
+			nxt = t.peek()
+			if nxt.tokenType == tokenPunctuation {
+				_, err := t.expectValue(tokenPunctuation, ",")
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+		return NewArrayExpr(tok.Pos, els...), nil
+
 	case tokenNumber:
 		nxt := t.peek()
 		val := tok.value

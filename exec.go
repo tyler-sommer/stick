@@ -651,6 +651,32 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			return s.evalExpr(exp.TrueX)
 		}
 		return s.evalExpr(exp.FalseX)
+
+	case *parse.HashExpr:
+		vals := make(map[interface{}]interface{})
+		for _, v := range exp.Elements {
+			key, err := s.evalExpr(v.Key)
+			if err != nil {
+				return nil, err
+			}
+			val, err := s.evalExpr(v.Value)
+			if err != nil {
+				return nil, err
+			}
+			vals[key] = val
+		}
+		return vals, nil
+
+	case *parse.ArrayExpr:
+		vals := make([]interface{}, len(exp.Elements))
+		for i, v := range exp.Elements {
+			val, err := s.evalExpr(v)
+			if err != nil {
+				return nil, err
+			}
+			vals[i] = val
+		}
+		return vals, nil
 	}
 
 	return v, nil

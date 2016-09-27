@@ -106,6 +106,18 @@ var tests = []execTest{
 		emptyCtx,
 		expect("Words"),
 	},
+	{
+		"Hash literal",
+		`{{ {"test": 1}["test"] }}`,
+		emptyCtx,
+		expect("1"),
+	},
+	{
+		"Array literal",
+		`{{ ["test", 1, "bar"][2] }}`,
+		emptyCtx,
+		expect("bar"),
+	},
 }
 
 type expectedChecker func(actual string) (string, bool)

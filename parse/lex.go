@@ -80,6 +80,7 @@ const (
 	delimOpenInterpolate  = "#{"
 	delimCloseInterpolate = "}"
 	delimTrimWhitespace   = "-"
+	delimHashKeyValue     = ":"
 )
 
 type token struct {
