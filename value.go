@@ -170,6 +170,9 @@ func CoerceString(v Value) string {
 // GetAttr attempts to access the given value and return the specified attribute.
 func GetAttr(v Value, attr string, args ...Value) (Value, error) {
 	r := reflect.Indirect(reflect.ValueOf(v))
+	if !r.IsValid() {
+		return nil, fmt.Errorf("getattr: value does not support attribute lookup: %v", v)
+	}
 	var retval reflect.Value
 	switch r.Kind() {
 	case reflect.Struct:
@@ -188,12 +191,11 @@ func GetAttr(v Value, attr string, args ...Value) (Value, error) {
 		if index >= 0 && index < r.Len() {
 			retval = r.Index(index)
 		}
-	default:
-		return nil, fmt.Errorf("getattr: type \"%s\" does not support attribute lookup", r.Type())
 	}
 	if !retval.IsValid() {
 		return nil, fmt.Errorf("getattr: unable to locate attribute \"%s\" on \"%v\"", attr, v)
-	} else if retval.Kind() == reflect.Func {
+	}
+	if retval.Kind() == reflect.Func {
 		t := retval.Type()
 		if t.NumOut() > 1 {
 			return nil, fmt.Errorf("getattr: multiple return values unsupported, called method \"%s\" on \"%v\"", attr, v)
