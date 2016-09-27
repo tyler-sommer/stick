@@ -1,3 +1,4 @@
+// Package filter provides built-in filters for Twig-compatibility.
 package filter
 
 import (

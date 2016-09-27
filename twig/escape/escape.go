@@ -1,3 +1,4 @@
+// Pacakge escape provides Twig-compatible escape functions.
 package escape
 
 import (
