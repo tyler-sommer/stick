@@ -369,7 +369,6 @@ func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[st
 			}
 		}
 	}
-	fmt.Printf("%v\n", ctx)
 	return tpl, ctx, err
 }
 
