@@ -369,6 +369,7 @@ func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[st
 			}
 		}
 	}
+	fmt.Printf("%v\n", ctx)
 	return tpl, ctx, err
 }
 
@@ -653,22 +654,28 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 		return s.evalExpr(exp.FalseX)
 
 	case *parse.HashExpr:
-		vals := make(map[interface{}]interface{})
+		vals := make(map[string]Value)
 		for _, v := range exp.Elements {
-			key, err := s.evalExpr(v.Key)
-			if err != nil {
-				return nil, err
+			var key Value
+			var err error
+			if k, ok := v.Key.(*parse.NameExpr); ok {
+				key = k.Name
+			} else {
+				key, err = s.evalExpr(v.Key)
+				if err != nil {
+					return nil, err
+				}
 			}
 			val, err := s.evalExpr(v.Value)
 			if err != nil {
 				return nil, err
 			}
-			vals[key] = val
+			vals[CoerceString(key)] = val
 		}
 		return vals, nil
 
 	case *parse.ArrayExpr:
-		vals := make([]interface{}, len(exp.Elements))
+		vals := make([]Value, len(exp.Elements))
 		for i, v := range exp.Elements {
 			val, err := s.evalExpr(v)
 			if err != nil {

@@ -53,6 +53,9 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				case *NameExpr:
 					// valid, but we want to treat the name as a string
 					attr = NewStringExpr(exp.Name, exp.Pos)
+				case *NumberExpr:
+					// Compatibility with Twig: {{ val.0 }}
+					attr = NewStringExpr(exp.Value, exp.Pos)
 				case *FuncExpr:
 					// method call
 					for _, v := range exp.Args {

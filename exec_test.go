@@ -36,6 +36,7 @@ var tests = []execTest{
 	{"Simple inheritance", `{% extends 'Hello, {% block test %}universe{% endblock %}!' %}{% block test %}world{% endblock %}`, emptyCtx, expect(`Hello, world!`)},
 	{"Simple include", `This is a test. {% include 'Hello, {{ name }}!' %} This concludes the test.`, map[string]Value{"name": "John"}, expect(`This is a test. Hello, John! This concludes the test.`)},
 	{"Include with", `{% include 'Hello, {{ name }}{{ value }}' with vars %}`, map[string]Value{"value": "!", "vars": map[string]Value{"name": "Adam"}}, expect(`Hello, Adam!`)},
+	{"Include with literal", `{% include 'Hello, {{ name }}{{ value }}' with {"name": "world", "value": "!"} only %}`, emptyCtx, expect(`Hello, world!`)},
 	{"Embed", `Well. {% embed 'Hello, {% block name %}World{% endblock %}!' %}{% block name %}Tyler{% endblock %}{% endembed %}`, emptyCtx, expect(`Well. Hello, Tyler!`)},
 	{"Constant null", `{% if test == null %}Yes{% else %}no{% endif %}`, map[string]Value{"test": nil}, expect(`Yes`)},
 	{"Constant bool", `{% if test == true %}Yes{% else %}no{% endif %}`, map[string]Value{"test": false}, expect(`no`)},
@@ -113,10 +114,22 @@ var tests = []execTest{
 		expect("1"),
 	},
 	{
+		"Another hash literal",
+		`{% set v = {quadruple: "to the power of four!", 0: "ew", "0": "it's not that bad"} %}ew? {{ v.0 }} {{ v.quadruple }}`,
+		emptyCtx,
+		expect("ew? it's not that bad to the power of four!"),
+	},
+	{
 		"Array literal",
 		`{{ ["test", 1, "bar"][2] }}`,
 		emptyCtx,
 		expect("bar"),
+	},
+	{
+		"Another Array literal",
+		`{{ ["test", 1, "bar"].1 }}`,
+		emptyCtx,
+		expect("1"),
 	},
 }
 
