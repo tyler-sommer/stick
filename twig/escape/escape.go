@@ -6,10 +6,6 @@ import (
 	"fmt"
 )
 
-// An Escaper returns the escaped input.
-// Escapers should expect to receive unescaped input.
-type Escaper func(string) string
-
 // HTML provides a Twig-compatible HTML escape function.
 func HTML(in string) string {
 	var out = &bytes.Buffer{}

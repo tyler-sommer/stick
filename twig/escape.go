@@ -8,9 +8,13 @@ import (
 	"github.com/tyler-sommer/stick/twig/escape"
 )
 
+// An Escaper returns the escaped input.
+// Escapers should expect to receive unescaped input.
+type Escaper func(string) string
+
 // AutoEscapeExtension provides Twig equivalent escaping for Stick templates.
 type AutoEscapeExtension struct {
-	Escapers map[string]escape.Escaper
+	Escapers map[string]Escaper
 }
 
 // Init registers the escape functionality with the given Env.
@@ -43,7 +47,7 @@ func (e *AutoEscapeExtension) Init(env *stick.Env) error {
 // Escapers, by default.
 func NewAutoEscapeExtension() *AutoEscapeExtension {
 	return &AutoEscapeExtension{
-		Escapers: map[string]escape.Escaper{
+		Escapers: map[string]Escaper{
 			"html":      escape.HTML,
 			"html_attr": escape.HTMLAttribute,
 			"js":        escape.JS,
