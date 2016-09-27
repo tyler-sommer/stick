@@ -15,7 +15,7 @@ import (
 // reuse (via use).
 func ExampleEnv_Execute_filesystemLoader() {
 	d, _ := os.Getwd()
-	env := stick.NewEnv(stick.NewFilesystemLoader(filepath.Join(d, "testdata")))
+	env := stick.New(stick.NewFilesystemLoader(filepath.Join(d, "testdata")))
 
 	params := map[string]stick.Value{"name": "World"}
 	err := env.Execute("main.txt.twig", os.Stdout, params)

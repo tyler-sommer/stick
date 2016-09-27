@@ -15,7 +15,7 @@ import (
 
 // An example of executing a template in the simplest possible manner.
 func ExampleEnv_Execute() {
-	env := stick.NewEnv(nil)
+	env := stick.New(nil)
 
 	params := map[string]stick.Value{"name": "World"}
 	err := env.Execute(`Hello, {{ name }}!`, os.Stdout, params)
@@ -108,7 +108,7 @@ func ExampleCoerceString() {
 
 // A simple test to check if a value is empty
 func ExampleTest() {
-	env := stick.NewEnv(nil)
+	env := stick.New(nil)
 	env.Tests["empty"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) bool {
 		return stick.CoerceBool(val) == false
 	}
@@ -126,7 +126,7 @@ func ExampleTest() {
 
 // A test made up of two words that takes an argument.
 func ExampleTest_twoWordsWithArgs() {
-	env := stick.NewEnv(nil)
+	env := stick.New(nil)
 	env.Tests["divisible by"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) bool {
 		if len(args) != 1 {
 			return false
@@ -152,7 +152,7 @@ func ExampleTest_twoWordsWithArgs() {
 
 // A contrived example of a user-defined function.
 func ExampleFunc() {
-	env := stick.NewEnv(nil)
+	env := stick.New(nil)
 	env.Functions["get_post"] = func(ctx stick.Context, args ...stick.Value) stick.Value {
 		if len(args) == 0 {
 			return nil
@@ -176,7 +176,7 @@ func ExampleFunc() {
 
 // A simple user-defined filter.
 func ExampleFilter() {
-	env := stick.NewEnv(nil)
+	env := stick.New(nil)
 	env.Filters["raw"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 		return stick.NewSafeValue(val)
 	}
@@ -194,7 +194,7 @@ func ExampleFilter() {
 
 // A simple user-defined filter that accepts a parameter.
 func ExampleFilter_withParam() {
-	env := stick.NewEnv(nil)
+	env := stick.New(nil)
 	env.Filters["number_format"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 		var d float64
 		if len(args) > 0 {
@@ -215,7 +215,7 @@ func ExampleFilter_withParam() {
 }
 
 func ExampleFunc_usingContext() {
-	env := stick.NewEnv(&stick.MemoryLoader{
+	env := stick.New(&stick.MemoryLoader{
 		Templates: map[string]string{
 			"base.html.twig": `<!doctype html>
 <html>

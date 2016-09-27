@@ -1,15 +1,17 @@
-package stick
+package filter
 
 import (
 	"math"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/tyler-sommer/stick"
 )
 
 // builtInFilters returns a map containing all built-in Twig filters,
 // with the exception of "escape", which is provided by the AutoEscapeExtension.
-func builtInFilters() map[string]Filter {
-	return map[string]Filter{
+func TwigFilters() map[string]stick.Filter {
+	return map[string]stick.Filter{
 		"abs":              filterAbs,
 		"default":          filterDefault,
 		"batch":            filterBatch,
@@ -45,8 +47,8 @@ func builtInFilters() map[string]Filter {
 
 // filterAbs takes no arguments and returns the absolute value of val.
 // Value val will be coerced into a number.
-func filterAbs(ctx Context, val Value, args ...Value) Value {
-	n := CoerceNumber(val)
+func filterAbs(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	n := stick.CoerceNumber(val)
 	if 0 == n {
 		return n
 	}
@@ -58,16 +60,16 @@ func filterAbs(ctx Context, val Value, args ...Value) Value {
 // of items per batch (defaults to 1), and the default fill value. If the
 // fill value is not specified, the last group of batched values may be smaller than
 // the number specified as items per batch.
-func filterBatch(ctx Context, val Value, args ...Value) Value {
+func filterBatch(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	perSlice := 1
-	var blankValue Value
+	var blankValue stick.Value
 	if l := len(args); l >= 1 {
-		perSlice = int(CoerceNumber(args[0]))
+		perSlice = int(stick.CoerceNumber(args[0]))
 		if l >= 2 {
 			blankValue = args[1]
 		}
 	}
-	if !IsIterable(val) {
+	if !stick.IsIterable(val) {
 		// TODO: This would trigger an E_WARNING in PHP.
 		return nil
 	}
@@ -75,20 +77,20 @@ func filterBatch(ctx Context, val Value, args ...Value) Value {
 		// TODO: This would trigger an E_WARNING in PHP.
 		return nil
 	}
-	l, _ := Len(val)
+	l, _ := stick.Len(val)
 	numSlices := int(math.Ceil(float64(l) / float64(perSlice)))
-	out := make([][]Value, numSlices)
-	curr := []Value{}
+	out := make([][]stick.Value, numSlices)
+	curr := []stick.Value{}
 	i := 0
 	j := 0
-	_, err := Iterate(val, func(k, v Value, l Loop) (bool, error) {
+	_, err := stick.Iterate(val, func(k, v stick.Value, l stick.Loop) (bool, error) {
 		// Use a variable length slice and append(). This maintains
 		// correct compatibility with Twig when the fill value is nil.
 		curr = append(curr, v)
 		j++
 		if j == perSlice {
 			out[i] = curr
-			curr = []Value{}
+			curr = []stick.Value{}
 			i++
 			j = 0
 		}
@@ -109,155 +111,155 @@ func filterBatch(ctx Context, val Value, args ...Value) Value {
 
 // filterCapitalize takes no arguments and returns val with the first
 // character capitalized.
-func filterCapitalize(ctx Context, val Value, args ...Value) Value {
-	s := CoerceString(val)
+func filterCapitalize(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	s := stick.CoerceString(val)
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-func filterConvertEncoding(ctx Context, val Value, args ...Value) Value {
+func filterConvertEncoding(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterDate(ctx Context, val Value, args ...Value) Value {
+func filterDate(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterDateModify(ctx Context, val Value, args ...Value) Value {
+func filterDateModify(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
 // filterDefault takes one argument, the default value. If val is empty,
 // the default value will be returned.
-func filterDefault(ctx Context, val Value, args ...Value) Value {
-	var d Value
+func filterDefault(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	var d stick.Value
 	if len(args) > 0 {
 		d = args[0]
 	}
-	if CoerceString(val) == "" {
+	if stick.CoerceString(val) == "" {
 		return d
 	}
 	return val
 }
 
-func filterFirst(ctx Context, val Value, args ...Value) Value {
+func filterFirst(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterFormat(ctx Context, val Value, args ...Value) Value {
+func filterFormat(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterJoin(ctx Context, val Value, args ...Value) Value {
+func filterJoin(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterJSONEncode(ctx Context, val Value, args ...Value) Value {
+func filterJSONEncode(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterKeys(ctx Context, val Value, args ...Value) Value {
+func filterKeys(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterLast(ctx Context, val Value, args ...Value) Value {
+func filterLast(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
 // filterLength returns the length of val.
-func filterLength(ctx Context, val Value, args ...Value) Value {
+func filterLength(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	if v, ok := val.(string); ok {
 		return utf8.RuneCountInString(v)
 	}
-	l, _ := Len(val)
+	l, _ := stick.Len(val)
 	// TODO: Report error
 	return l
 }
 
 // filterLower returns val transformed to lower-case.
-func filterLower(ctx Context, val Value, args ...Value) Value {
-	return strings.ToLower(CoerceString(val))
+func filterLower(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	return strings.ToLower(stick.CoerceString(val))
 }
 
-func filterMerge(ctx Context, val Value, args ...Value) Value {
+func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterNL2BR(ctx Context, val Value, args ...Value) Value {
+func filterNL2BR(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterNumberFormat(ctx Context, val Value, args ...Value) Value {
+func filterNumberFormat(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterRaw(ctx Context, val Value, args ...Value) Value {
+func filterRaw(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterReplace(ctx Context, val Value, args ...Value) Value {
+func filterReplace(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterReverse(ctx Context, val Value, args ...Value) Value {
+func filterReverse(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterRound(ctx Context, val Value, args ...Value) Value {
+func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterSlice(ctx Context, val Value, args ...Value) Value {
+func filterSlice(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterSort(ctx Context, val Value, args ...Value) Value {
+func filterSort(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterSplit(ctx Context, val Value, args ...Value) Value {
+func filterSplit(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
-func filterStripTags(ctx Context, val Value, args ...Value) Value {
+func filterStripTags(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }
 
 // filterTitle returns val with the first character of each word capitalized.
-func filterTitle(ctx Context, val Value, args ...Value) Value {
-	return strings.Title(CoerceString(val))
+func filterTitle(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	return strings.Title(stick.CoerceString(val))
 }
 
 // filterTrim returns val with whitespace trimmed on both left and ride sides.
-func filterTrim(ctx Context, val Value, args ...Value) Value {
-	return strings.TrimSpace(CoerceString(val))
+func filterTrim(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	return strings.TrimSpace(stick.CoerceString(val))
 }
 
 // filterUpper returns val in upper-case.
-func filterUpper(ctx Context, val Value, args ...Value) Value {
-	return strings.ToUpper(CoerceString(val))
+func filterUpper(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	return strings.ToUpper(stick.CoerceString(val))
 }
 
-func filterURLEncode(ctx Context, val Value, args ...Value) Value {
+func filterURLEncode(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// TODO: Implement Me
 	return val
 }

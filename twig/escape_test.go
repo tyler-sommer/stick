@@ -1,4 +1,4 @@
-package stick_test
+package twig_test
 
 import (
 	"testing"
@@ -7,15 +7,14 @@ import (
 
 	"github.com/tyler-sommer/stick"
 	"github.com/tyler-sommer/stick/parse"
+	"github.com/tyler-sommer/stick/twig"
 )
 
 // This example shows how the AutoEscapeVisitor can be used to automatically
 // sanitize input. It does this by wrapping printed expressions with a filter
 // application, which resolves to stick.EscapeFilter.
 func ExampleAutoEscapeExtension() {
-	env := stick.NewEnv(nil)
-	env.Register(stick.NewAutoEscapeExtension())
-
+	env := twig.New(nil)
 	env.Execute("<html>{{ '<script>bad stuff</script>' }}", os.Stdout, map[string]stick.Value{})
 	// Output:
 	// <html>&lt;script&gt;bad stuff&lt;/script&gt;
@@ -26,9 +25,7 @@ func ExampleAutoEscapeExtension() {
 // Note the "already_safe" value wrapped in a NewSafeValue; it is not
 // escaped.
 func ExampleAutoEscapeExtension_alreadySafe() {
-	env := stick.NewEnv(nil)
-	env.Register(stick.NewAutoEscapeExtension())
-
+	env := twig.New(nil)
 	env.Execute("<html>{{ dangerous|escape }} {{ already_safe|escape }}", os.Stdout, map[string]stick.Value{
 		"already_safe": stick.NewSafeValue("<script>good script</script>", "html"),
 		"dangerous":    "<script>bad script</script>",
@@ -38,8 +35,7 @@ func ExampleAutoEscapeExtension_alreadySafe() {
 }
 
 func TestAutoEscapeVisitor(t *testing.T) {
-	env := stick.NewEnv(nil)
-	env.Register(stick.NewAutoEscapeExtension())
+	env := twig.New(nil)
 	tree, err := env.Parse("Some {{ 'text' }}")
 	if err != nil {
 		t.Error(err)
@@ -76,6 +72,6 @@ func TestAutoEscapeVisitor(t *testing.T) {
 		return
 	}
 	if fv := fa.Text; fv != "text" {
-		t.Errorf("expected 'text'", fv)
+		t.Errorf("expected 'text', got %s", fv)
 	}
 }

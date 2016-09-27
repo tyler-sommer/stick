@@ -79,20 +79,9 @@ type Context interface {
 	noexport() // Prevent other packages from satisfying this interface.
 }
 
-// New creates a new, default Env that aims to be compatible with Twig.
+// New creates an empty Env.
 // If nil is passed as loader, a StringLoader is used.
 func New(loader Loader) *Env {
-	if loader == nil {
-		loader = &StringLoader{}
-	}
-	env := &Env{loader, make(map[string]Func), builtInFilters(), make(map[string]Test), make([]parse.NodeVisitor, 0)}
-	env.Register(NewAutoEscapeExtension())
-	return env
-}
-
-// NewEnv creates an empty Env.
-// If nil is passed as loader, a StringLoader is used.
-func NewEnv(loader Loader) *Env {
 	if loader == nil {
 		loader = &StringLoader{}
 	}

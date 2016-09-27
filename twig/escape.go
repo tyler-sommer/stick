@@ -1,10 +1,11 @@
-package stick
+package twig
 
 import (
 	"strings"
 
-	"github.com/tyler-sommer/stick/escape"
+	"github.com/tyler-sommer/stick"
 	"github.com/tyler-sommer/stick/parse"
+	"github.com/tyler-sommer/stick/twig/escape"
 )
 
 // AutoEscapeExtension provides Twig equivalent escaping for Stick templates.
@@ -13,15 +14,15 @@ type AutoEscapeExtension struct {
 }
 
 // Init registers the escape functionality with the given Env.
-func (e *AutoEscapeExtension) Init(env *Env) error {
+func (e *AutoEscapeExtension) Init(env *stick.Env) error {
 	env.Visitors = append(env.Visitors, &autoEscapeVisitor{})
-	env.Filters["escape"] = func(ctx Context, val Value, args ...Value) Value {
+	env.Filters["escape"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 		ct := "html"
 		if len(args) > 0 {
-			ct = CoerceString(args[0])
+			ct = stick.CoerceString(args[0])
 		}
 
-		if sval, ok := val.(SafeValue); ok {
+		if sval, ok := val.(stick.SafeValue); ok {
 			if sval.IsSafe(ct) {
 				return val
 			}
@@ -29,11 +30,11 @@ func (e *AutoEscapeExtension) Init(env *Env) error {
 
 		escfn, ok := e.Escapers[ct]
 		if !ok {
-			// TODO: Communicate error
-			return NewSafeValue("", ct)
+			// TODO: Communicate error, no escaper for the specified content type.
+			return val
 		}
 
-		return NewSafeValue(escfn(CoerceString(val)), ct)
+		return stick.NewSafeValue(escfn(stick.CoerceString(val)), ct)
 	}
 	return nil
 }

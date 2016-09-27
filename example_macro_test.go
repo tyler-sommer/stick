@@ -15,7 +15,7 @@ import (
 // for more information.
 func ExampleEnv_Execute_macro() {
 	d, _ := os.Getwd()
-	env := stick.NewEnv(stick.NewFilesystemLoader(filepath.Join(d, "testdata")))
+	env := stick.New(stick.NewFilesystemLoader(filepath.Join(d, "testdata")))
 
 	params := map[string]stick.Value{
 		"title_first": "Hello",

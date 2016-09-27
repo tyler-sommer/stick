@@ -199,7 +199,7 @@ func (t *testLoader) Load(name string) (Template, error) {
 }
 
 func TestExec(t *testing.T) {
-	env := NewEnv(newTestLoader(
+	env := New(newTestLoader(
 		[]Template{
 			tpl("macros.twig", `
 {% macro test(arg) %}test: {{ arg }}{% endmacro %}

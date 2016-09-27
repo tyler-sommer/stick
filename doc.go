@@ -1,16 +1,18 @@
 /*
 Package stick is a go-language port of the Twig templating engine.
 
-Twig is a powerful templating language that promotes separation of logic
-from the view.
+Stick executes Twig templates and allows users to define custom Functions,
+Filters, and Tests. The parser allows parse-time node inspection with
+NodeVisitors, and a template Loader to load named templates from any source.
 
-Stick executes Twig templates using an instance of Env. An Env contains all
-the configured Functions, Filters, and Tests as well as a Loader to load
-named templates from any source.
+Twig compatibility
+
+Stick itself is a parser and template executor. If you're looking for Twig
+compatibility, check out package https://github.com/tyler-sommer/stick/twig
 
 Obligatory "Hello, World!" example:
 
-	env := stick.NewEnv(nil); // A nil loader means stick will simply execute
+	env := stick.New(nil);    // A nil loader means stick will simply execute
 	                          // the string passed into env.Execute.
 
 	// Templates receive a map of string to any value.
@@ -26,7 +28,7 @@ Another example, using a FilesystemLoader and responding to an HTTP request:
 	// ...
 
 	fsRoot := os.Getwd() // Templates are loaded relative to this directory.
-	env := stick.NewEnv(stick.NewFilesystemLoader(fsRoot))
+	env := stick.New(stick.NewFilesystemLoader(fsRoot))
 	http.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
 		env.Execute("bar.html.twig", w, nil) // Loads "bar.html.twig" relative to fsRoot.
 	})
@@ -105,7 +107,7 @@ number of arguments, and Test names can contain up to one space.
 
 User-defined types are added to an Env after it is created. For example:
 
-	env := stick.NewEnv(nil)
+	env := stick.New(nil)
 	env.Functions["form_valid"] = func(e *stick.Env, args ...stick.Value) stick.Value {
 		// Do something useful..
 		return true

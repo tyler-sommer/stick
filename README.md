@@ -7,27 +7,33 @@ Stick
 A Go language port of the [Twig](http://twig.sensiolabs.org/) templating engine. 
 
 
-Introduction
-------------
+Overview
+--------
 
-Twig is a powerful templating language that supports macros, vertical and 
-horizontal reuse, and an easy-to-learn syntax that promotes separation of 
-logic and markup. Twig is also extremely extensible, and by default will
-autoescape content based on content type.
+This project is split over two main parts.
 
+Package
+[`github.com/tyler-sommer/stick`](https://github.com/tyler-sommer/stick)
+is a Twig template parser and executor. It provides the core
+functionality and offers many of the same extension points as Twig like
+functions, filters, node visitors, etc.
 
-**Stick brings these great features to Go projects.**
-
+Package
+[`github.com/tyler-sommer/stick/twig`](https://github.com/tyler-sommer/stick/twig)
+contains extensions to provide the most Twig-like experience for
+template writers. It aims to feature the same functions, filters, etc.
+to be closely Twig-compatible.
 
 ### Current status
 
 ##### In development
 
-Stick is currently quite usable except for a few important missing features: autoescaping,
-whitespace control, and proper error handling.
+Stick itself is mostly feature-complete, with the exception of
+whitespace control, and better error handling in places.
 
-Stick is made up of three main parts: a lexer, a parser, and a template executor. Stick's lexer and
-parser are complete. Template execution is under development, but most functionality is complete.
+Stick is made up of three main parts: a lexer, a parser, and a template
+executor. Stick's lexer and parser are complete. Template execution is
+under development, but essentially complete.
 
 See the [to do list](#to-do) for additional information.
 
@@ -56,7 +62,7 @@ import (
 )
 
 func main() {
-    env := stick.NewEnv(nil)
+	env := stick.New(nil)
 	env.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"})
 }
 ```
@@ -67,7 +73,7 @@ See [godoc for more information](https://godoc.org/github.com/tyler-sommer/stick
 To do
 -----
 
-- [ ] Autoescaping
+- [x] Autoescaping (see: https://github.com/tyler-sommer/stick/twig)
 - [ ] Whitespace control
 - [ ] Improve error reporting
 
