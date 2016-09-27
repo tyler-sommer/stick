@@ -19,7 +19,7 @@ functionality and offers many of the same extension points as Twig like
 functions, filters, node visitors, etc.
 
 Package
-[`github.com/tyler-sommer/stick/twig`](https://github.com/tyler-sommer/stick/twig)
+[`github.com/tyler-sommer/stick/twig`](https://github.com/tyler-sommer/stick/tree/master/twig)
 contains extensions to provide the most Twig-like experience for
 template writers. It aims to feature the same functions, filters, etc.
 to be closely Twig-compatible.

@@ -10,6 +10,10 @@ Twig compatibility
 Stick itself is a parser and template executor. If you're looking for Twig
 compatibility, check out package https://github.com/tyler-sommer/stick/twig
 
+For additional information on Twig, check http://twig.sensiolabs.org/
+
+Basic usage
+
 Obligatory "Hello, World!" example:
 
 	env := stick.New(nil);    // A nil loader means stick will simply execute
@@ -122,6 +126,5 @@ User-defined types are added to an Env after it is created. For example:
 		return stick.CoerceBool(val) == false
 	}
 
-For additional information on Twig, check http://twig.sensiolabs.org/
 */
 package stick
