@@ -81,4 +81,4 @@ To do
 - [ ] Improve test coverage (especially error cases)
 - [ ] Custom operators and tags
 - [ ] Sandbox
-- [ ] Generate native Go code from a given parser tree
+- [ ] Generate [native Go code from a given parser tree](https://github.com/tyler-sommer/go-stickgen)
