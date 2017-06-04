@@ -88,6 +88,22 @@ var parseTests = []parseTest{
 			noPos)),
 	),
 	newParseTest(
+		"nested if",
+		"{% if something %}Do {% if another %}something {% endif %} finally{% endif %}",
+		mkModule(NewIfNode(
+			NewNameExpr("something", noPos),
+			NewBodyNode(noPos,
+				NewTextNode("Do ", noPos),
+				NewIfNode(
+					NewNameExpr("another", noPos),
+					NewBodyNode(noPos, NewTextNode("something ", noPos)),
+					NewBodyNode(noPos),
+					noPos),
+				NewTextNode(" finally", noPos)),
+			NewBodyNode(noPos),
+			noPos)),
+	),
+	newParseTest(
 		"function expr",
 		"{{ func('arg1', arg2) }}",
 		mkModule(NewPrintNode(NewFuncExpr("func", []Expr{NewStringExpr("arg1", noPos), NewNameExpr("arg2", noPos)}, noPos), noPos)),

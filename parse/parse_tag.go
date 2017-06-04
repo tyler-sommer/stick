@@ -209,7 +209,14 @@ func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) 
 					return nil, nil, err
 				}
 			default:
-				return nil, nil, newUnclosedTagError("if", start)
+				// Some other tag nested inside the if
+				t.backup()
+				n, err := t.parseTag()
+				if err != nil {
+					return nil, nil, err
+				}
+				body.Nodes = append(body.Nodes, n)
+				continue
 			}
 			if els == nil {
 				els = NewBodyNode(start)
