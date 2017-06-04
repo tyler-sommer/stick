@@ -298,8 +298,8 @@ func (l *lexer) tryLexOperator() bool {
 		if l.input[l.pos+1:l.pos+2] == "}" {
 			return false
 		}
-	} else if op == "in" {
-		// TODO: Workaround to avoid matching "include" tags.
+	} else if op == "in" || op == "is" {
+		// Avoid matching "include" or functions like "is_currently_on"
 		if l.input[l.pos+2:l.pos+3] != " " {
 			return false
 		}
