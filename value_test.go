@@ -2,8 +2,11 @@ package stick
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
+
+	"github.com/shopspring/decimal"
 )
 
 type testType struct{}
@@ -24,10 +27,25 @@ func TestValue(t *testing.T) {
 	var stringTests = map[Value]string{
 		testType{}: "some string",
 		"string":   "string",
-		true:       "1",
-		false:      "",
-		3:          "3",
-		3.14:       "3.14",
+
+		true:  "1",
+		false: "",
+
+		int(3):   "3",
+		int8(3):  "3",
+		int32(3): "3",
+		int64(3): "3",
+
+		uint(3):   "3",
+		uint8(3):  "3",
+		uint16(3): "3",
+		uint32(3): "3",
+		uint64(3): "3",
+
+		float64(3.14): "3.14",
+		float32(3.14): "3.14",
+
+		decimal.NewFromFloat(3.1415): "3.1415",
 	}
 	for val, expected := range stringTests {
 		actual := CoerceString(val)
@@ -40,10 +58,36 @@ func TestValue(t *testing.T) {
 		testType{}: true,
 		true:       true,
 		false:      false,
-		1:          true,
-		0:          false,
-		"true":     true,
-		"":         false,
+
+		int(1):   true,
+		int(0):   false,
+		int8(1):  true,
+		int8(0):  false,
+		int16(1): true,
+		int16(0): false,
+		int32(1): true,
+		int32(0): false,
+		int64(1): true,
+		int64(0): false,
+
+		uint(1):   true,
+		uint(0):   false,
+		uint8(1):  true,
+		uint8(0):  false,
+		uint16(1): true,
+		uint16(0): false,
+		uint32(1): true,
+		uint32(0): false,
+		uint64(1): true,
+		uint64(0): false,
+
+		float32(1): true,
+		float32(0): false,
+		float64(1): true,
+		float64(0): false,
+
+		"true": true,
+		"":     false,
 	}
 	for val, expected := range boolTests {
 		actual := CoerceBool(val)
@@ -54,15 +98,30 @@ func TestValue(t *testing.T) {
 
 	var numberTests = map[Value]float64{
 		testType{}: 42,
-		3:          3.0,
 		"3":        3.0,
-		true:       1,
-		false:      0,
+
+		int(3):   3.0,
+		int8(3):  3.0,
+		int16(3): 3.0,
+		int32(3): 3.0,
+		int64(3): 3.0,
+
+		uint(3):   3.0,
+		uint8(3):  3.0,
+		uint16(3): 3.0,
+		uint32(3): 3.0,
+		uint64(3): 3.0,
+
+		float32(3.14): 3.14,
+		float64(3.14): 3.14,
+
+		true:  1,
+		false: 0,
 	}
 	for val, expected := range numberTests {
 		actual := CoerceNumber(val)
-		if actual != expected {
-			t.Errorf("CoerceNumber(%v): got \"%v\" expected \"%v\"", val, actual, expected)
+		if math.Abs(actual-expected) >= 0.000001 {
+			t.Errorf("CoerceNumber(%v) - %T: got \"%v\" expected \"%v\"", val, val, actual, expected)
 		}
 	}
 }

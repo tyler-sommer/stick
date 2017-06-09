@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+
+	"github.com/shopspring/decimal"
 )
 
 // A Value represents some value, scalar or otherwise, able to be passed into
@@ -90,12 +92,32 @@ func CoerceBool(v Value) bool {
 		return vc.Boolean()
 	case uint:
 		return vc > 0
+	case uint8:
+		return vc > 0
+	case uint16:
+		return vc > 0
+	case uint32:
+		return vc > 0
+	case uint64:
+		return vc > 0
 	case int:
+		return vc > 0
+	case int8:
+		return vc > 0
+	case int16:
+		return vc > 0
+	case int32:
+		return vc > 0
+	case int64:
+		return vc > 0
+	case float32:
 		return vc > 0
 	case float64:
 		return vc > 0
 	case string:
 		return len(vc) > 0
+	case decimal.Decimal:
+		return vc.GreaterThan(decimal.Zero)
 	case Stringer:
 		return len(vc.String()) > 0
 	case Number:
@@ -120,10 +142,33 @@ func CoerceNumber(v Value) float64 {
 		return CoerceNumber(vc.Value())
 	case Number:
 		return vc.Number()
-	case float64:
-		return vc
+	case uint:
+		return float64(vc)
+	case uint8:
+		return float64(vc)
+	case uint16:
+		return float64(vc)
+	case uint32:
+		return float64(vc)
+	case uint64:
+		return float64(vc)
 	case int:
 		return float64(vc)
+	case int8:
+		return float64(vc)
+	case int16:
+		return float64(vc)
+	case int32:
+		return float64(vc)
+	case int64:
+		return float64(vc)
+	case float32:
+		return float64(vc)
+	case float64:
+		return vc
+	case decimal.Decimal:
+		f, _ := vc.Float64()
+		return f
 	case Stringer:
 		return stringToFloat(vc.String())
 	case string:
@@ -150,7 +195,7 @@ func CoerceString(v Value) string {
 		return vc
 	case Stringer:
 		return vc.String()
-	case float64, int, uint:
+	case float32, float64, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return fmt.Sprintf("%v", vc)
 	case Number:
 		return fmt.Sprintf("%v", vc.Number())
