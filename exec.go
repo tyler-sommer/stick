@@ -622,7 +622,7 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			}
 			return nil, errors.New("undefined macro: " + CoerceString(k))
 		}
-		v, err = GetAttr(c, CoerceString(k), args...)
+		v, err = GetAttr(c, k, args...)
 		if err != nil {
 			return nil, err
 		}

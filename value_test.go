@@ -129,16 +129,16 @@ func TestValue(t *testing.T) {
 type getAttrTest struct {
 	name     string
 	cont     Value
-	attr     string
+	attr     Value
 	expected string
 	args     []Value
 }
 
-func newGetAttrTest(name string, cont Value, attr, expected string) getAttrTest {
+func newGetAttrTest(name string, cont, attr Value, expected string) getAttrTest {
 	return getAttrTest{name, cont, attr, expected, []Value{}}
 }
 
-func newGetAttrMethodTest(name string, cont Value, args []Value, attr, expected string) getAttrTest {
+func newGetAttrMethodTest(name string, cont Value, args []Value, attr Value, expected string) getAttrTest {
 	return getAttrTest{name, cont, attr, expected, args}
 }
 
@@ -164,6 +164,7 @@ type propStruct struct {
 
 func TestGetAttr(t *testing.T) {
 	var getAttrTests = []getAttrTest{
+		newGetAttrTest("map with non-string keys", map[int]string{1:"test"}, 1, "test"),
 		newGetAttrTest("anon struct property", struct{ Name string }{"Tyler"}, "Name", "Tyler"),
 		newGetAttrTest("struct property", propStruct{"Jackie"}, "Name", "Jackie"),
 		newGetAttrTest("struct method (value, ptr receiver)", testStruct{"John"}, "Name", "John"),
@@ -295,7 +296,7 @@ func TestIterate(t *testing.T) {
 	}
 	for _, test := range ts {
 		n, err := Iterate(test.input, func(k, v Value, l Loop) (bool, error) {
-			expected, err := GetAttr(test.input, CoerceString(k))
+			expected, err := GetAttr(test.input, k)
 			if err != nil {
 				return true, fmt.Errorf("%s:\n\tunexpected error: %s", test.name, err)
 			}

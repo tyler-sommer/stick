@@ -213,7 +213,7 @@ func CoerceString(v Value) string {
 }
 
 // GetAttr attempts to access the given value and return the specified attribute.
-func GetAttr(v Value, attr string, args ...Value) (Value, error) {
+func GetAttr(v Value, attr Value, args ...Value) (Value, error) {
 	r := reflect.Indirect(reflect.ValueOf(v))
 	if !r.IsValid() {
 		return nil, fmt.Errorf("getattr: value does not support attribute lookup: %v", v)
@@ -221,10 +221,11 @@ func GetAttr(v Value, attr string, args ...Value) (Value, error) {
 	var retval reflect.Value
 	switch r.Kind() {
 	case reflect.Struct:
-		retval = r.FieldByName(attr)
+		strval := CoerceString(attr)
+		retval = r.FieldByName(strval)
 		if !retval.IsValid() {
 			var err error
-			retval, err = getMethod(v, attr)
+			retval, err = getMethod(v, strval)
 			if err != nil {
 				return nil, err
 			}
