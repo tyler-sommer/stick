@@ -236,8 +236,22 @@ func filterFormat(ctx stick.Context, val stick.Value, args ...stick.Value) stick
 }
 
 func filterJoin(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if ! stick.IsIterable(val) {
+		return nil
+	}
+
+	separator := ``
+	if len(args) == 1 {
+		separator = stick.CoerceString(args[0])
+	}
+
+	var slice []string
+	stick.Iterate(val, func(k, v stick.Value, l stick.Loop) (bool, error) {
+		slice = append(slice, stick.CoerceString(v))
+		return false, nil
+	})
+
+	return strings.Join(slice, separator)
 }
 
 func filterJSONEncode(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
