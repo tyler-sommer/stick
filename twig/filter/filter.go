@@ -236,8 +236,22 @@ func filterFormat(ctx stick.Context, val stick.Value, args ...stick.Value) stick
 }
 
 func filterJoin(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if ! stick.IsIterable(val) {
+		return nil
+	}
+
+	separator := ``
+	if len(args) == 1 {
+		separator = stick.CoerceString(args[0])
+	}
+
+	var slice []string
+	stick.Iterate(val, func(k, v stick.Value, l stick.Loop) (bool, error) {
+		slice = append(slice, stick.CoerceString(v))
+		return false, nil
+	})
+
+	return strings.Join(slice, separator)
 }
 
 func filterJSONEncode(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
@@ -271,8 +285,27 @@ func filterLower(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 }
 
 func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if ! stick.IsIterable(val) {
+		return nil
+	}
+
+	if len(args) != 1 {
+		return nil
+	}
+
+	var out []stick.Value
+
+	stick.Iterate(val, func(k, v stick.Value, l stick.Loop) (bool, error) {
+		out = append(out, v)
+		return false, nil
+	})
+
+	stick.Iterate(args[0], func(k, v stick.Value, l stick.Loop) (bool, error) {
+		out = append(out, v)
+		return false, nil
+	})
+
+	return out
 }
 
 func filterNL2BR(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
