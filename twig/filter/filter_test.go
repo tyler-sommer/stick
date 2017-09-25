@@ -5,6 +5,7 @@ import (
 
 	"github.com/tyler-sommer/stick"
 	"time"
+	"strings"
 )
 
 func TestFilters(t *testing.T) {
@@ -62,6 +63,7 @@ func TestFilters(t *testing.T) {
 		{"date test", func() stick.Value { return filterDate(nil, testDate2, "d D j l F m M n Y y a A g G h H i s O P T")}, "03 Sat 3 Saturday February 02 Feb 2 2018 18 am AM 2 02 02 02 01 44 +0800 +08:00 AWST"},
 		{"date u", func() stick.Value { return filterDate(nil, testDate2, "s.u") }, "44.123456"},
 		{"join", func() stick.Value { return filterJoin(nil, []string{"a","b","c"}, "-") }, "a-b-c"},
+		{"merge", func() stick.Value { return stickSliceToString(filterMerge(nil, []string{"a","b"}, []string{"c", "d"})) }, "a.b.c.d"},
 	}
 	for _, test := range tests {
 		res := test.actual()
@@ -69,4 +71,14 @@ func TestFilters(t *testing.T) {
 			t.Errorf("%s:\n\texpected: %v\n\tgot: %v", test.name, test.expected, res)
 		}
 	}
+}
+
+func stickSliceToString(value stick.Value) (output string) {
+	var slice []string
+	stick.Iterate(value, func(k, v stick.Value, l stick.Loop) (bool, error) {
+		slice = append(slice, stick.CoerceString(v))
+		return false, nil
+	})
+
+	return strings.Join(slice, ".")
 }
