@@ -73,7 +73,7 @@ See [godoc for more information](https://godoc.org/github.com/tyler-sommer/stick
 To do
 -----
 
-- [x] Autoescaping (see: https://github.com/tyler-sommer/stick/twig)
+- [x] Autoescaping (see: https://github.com/tyler-sommer/stick/blob/master/twig)
 - [ ] Whitespace control
 - [ ] Improve error reporting
 
