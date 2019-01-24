@@ -362,6 +362,7 @@ func filterStripTags(ctx stick.Context, val stick.Value, args ...stick.Value) st
 	return val
 }
 
+// filterTimeDiff returns a humanized datetime string such as "7 hours ago" for a given timestamp time.Time reference.
 func filterTimeDiff(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	// Find out if the value is a time.Time object.
 	dt, ok := val.(time.Time)
