@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"stick"
-	"stick/parse"
-	"stick/twig"
+	"github.com/kaiaverkvist/stick/parse"
+	"github.com/kaiaverkvist/stick/twig"
 )
 
 // This example shows how the AutoEscapeVisitor can be used to automatically

@@ -27,8 +27,8 @@ package twig
 
 import (
 	"stick"
-	"stick/parse"
-	"stick/twig/filter"
+	"github.com/kaiaverkvist/stick/parse"
+	"github.com/kaiaverkvist/stick/twig/filter"
 )
 
 // New creates a new, default Env that aims to be compatible with Twig.

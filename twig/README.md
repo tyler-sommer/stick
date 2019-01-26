@@ -46,7 +46,7 @@ Execute a simple Twig template.
 package main
 
 import (
-	"stick/twig"
+	"github.com/kaiaverkvist/stick/twig"
 	"stick"
 	"os"
 )

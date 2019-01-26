@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"stick"
-	"stick/parse"
-	"stick/twig/escape"
+	"github.com/kaiaverkvist/stick/parse"
+	"github.com/kaiaverkvist/stick/twig/escape"
 )
 
 // An Escaper returns the escaped input.

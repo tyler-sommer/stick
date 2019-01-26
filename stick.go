@@ -3,7 +3,7 @@ package stick
 import (
 	"io"
 
-	"stick/parse"
+	"github.com/kaiaverkvist/stick/parse"
 )
 
 // A Template represents a named template and its contents.
