@@ -57,7 +57,7 @@ Execute a simple Stick template.
 package main
 
 import (
-	"github.com/tyler-sommer/stick"
+	"stick"
 	"os"
 )
 

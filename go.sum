@@ -1,0 +1,6 @@
+github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
+github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
+github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 h1:pntxY8Ary0t43dCZ5dqY4YTJCObLY1kIXl0uzMv+7DE=
+github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24/go.mod h1:M+9NzErvs504Cn4c5DxATwIqPbtswREoFCre64PpcG4=
+github.com/tyler-sommer/stick v0.0.0-20190102204052-770da770c5ab h1:56wJIJ5YSdA79hjVI1w9QqrD3IxwkggOkFa6g0zPFf0=
+github.com/tyler-sommer/stick v0.0.0-20190102204052-770da770c5ab/go.mod h1:PS4ru7+eTbuA9OSLy2mC+FbpnF+HzLpw/SJYM17Jj0s=

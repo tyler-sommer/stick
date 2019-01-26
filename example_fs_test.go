@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tyler-sommer/stick"
+	"stick"
 )
 
 // An example showing the use of the provided FilesystemLoader.

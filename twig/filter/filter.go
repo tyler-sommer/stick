@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/tyler-sommer/stick"
+	"stick"
 )
 
 // builtInFilters returns a map containing all built-in Twig filters,

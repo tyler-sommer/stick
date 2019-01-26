@@ -10,7 +10,7 @@ import (
 
 	"io/ioutil"
 
-	"github.com/tyler-sommer/stick"
+	"stick"
 )
 
 // An example of executing a template in the simplest possible manner.

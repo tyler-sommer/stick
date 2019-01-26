@@ -46,8 +46,8 @@ Execute a simple Twig template.
 package main
 
 import (
-	"github.com/tyler-sommer/stick/twig"
-	"github.com/tyler-sommer/stick"
+	"stick/twig"
+	"stick"
 	"os"
 )
 

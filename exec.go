@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tyler-sommer/stick/parse"
+	"stick/parse"
 )
 
 // Type state represents the internal state of a template execution.
