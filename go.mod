@@ -1,4 +1,4 @@
-module stick
+module github.com/kaiaverkvist/stick
 
 require (
 	github.com/dustin/go-humanize v1.0.0
