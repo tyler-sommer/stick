@@ -1,4 +1,4 @@
-module stick
+module stick v1.0.0
 
 require (
 	github.com/dustin/go-humanize v1.0.0
