@@ -1,5 +1,5 @@
 // Package filter provides built-in filters for Twig-compatibility.
-package filter
+package filter // import "github.com/tyler-sommer/stick/twig/filter"
 
 import (
 	"math"

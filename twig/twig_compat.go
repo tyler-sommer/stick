@@ -23,7 +23,7 @@
 //
 // Check the main package https://godoc.org/github.com/tyler-sommer/stick for
 // more information on general functionality and usage.
-package twig
+package twig // import "github.com/tyler-sommer/stick/twig"
 
 import (
 	"github.com/tyler-sommer/stick"
