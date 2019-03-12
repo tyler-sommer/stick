@@ -1,5 +1,5 @@
 // Package escape provides Twig-compatible escape functions.
-package escape
+package escape// import "github.com/tyler-sommer/stick/twig/escape"
 
 import (
 	"bytes"

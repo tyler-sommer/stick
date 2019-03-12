@@ -1,4 +1,4 @@
-package stick
+package stick // import "github.com/tyler-sommer/stick"
 
 import (
 	"io"
