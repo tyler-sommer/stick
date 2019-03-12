@@ -26,7 +26,7 @@ to be closely Twig-compatible.
 
 ### Current status
 
-##### In development
+##### Stable, mostly feature complete
 
 Stick itself is mostly feature-complete, with the exception of
 whitespace control, and better error handling in places.
@@ -57,13 +57,17 @@ Execute a simple Stick template.
 package main
 
 import (
-	"github.com/tyler-sommer/stick"
+	"log"
 	"os"
+    
+	"github.com/tyler-sommer/stick"
 )
 
 func main() {
 	env := stick.New(nil)
-	env.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"})
+	if err := env.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"}); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 

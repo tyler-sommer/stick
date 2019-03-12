@@ -11,19 +11,23 @@ templating engine.
 Overview
 --------
 
-This project is split over two main parts.
+This is the Twig compatibility subpackage for Stick.
 
-Package
-[`github.com/tyler-sommer/stick`](https://github.com/tyler-sommer/stick)
-is a Twig template parser and executor. It provides the core
-functionality and offers many of the same extension points as Twig like
-functions, filters, node visitors, etc.
+### Current status
+
+##### In development
 
 Package
 [`github.com/tyler-sommer/stick/twig`](https://github.com/tyler-sommer/stick/tree/master/twig)
 contains extensions to provide the most Twig-like experience for
 template writers. It aims to feature the same functions, filters, etc.
 to be closely Twig-compatible.
+
+Package
+[`github.com/tyler-sommer/stick`](https://github.com/tyler-sommer/stick)
+is a Twig template parser and executor. It provides the core
+functionality and offers many of the same extension points as Twig like
+functions, filters, node visitors, etc.
 
 
 Installation
@@ -46,14 +50,18 @@ Execute a simple Twig template.
 package main
 
 import (
-	"github.com/tyler-sommer/stick/twig"
-	"github.com/tyler-sommer/stick"
+	"log"
 	"os"
+	
+	"github.com/tyler-sommer/stick"
+	"github.com/tyler-sommer/stick/twig"
 )
 
 func main() {
     env := twig.New(nil)
-	env.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"})
+	if err := env.Execute("Hello, {{ name }}!", os.Stdout, map[string]stick.Value{"name": "Tyler"}); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 

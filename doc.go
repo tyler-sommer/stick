@@ -1,5 +1,5 @@
 /*
-Package stick is a go-language port of the Twig templating engine.
+Package stick is a Go language port of the Twig templating engine.
 
 Stick executes Twig templates and allows users to define custom Functions,
 Filters, and Tests. The parser allows parse-time node inspection with
