@@ -92,6 +92,15 @@ var lexTests = []lexTest{
 		tEOF,
 	}},
 
+	{"string with operator prefix", "{{ orange }}", []token{
+		tPrintOpen,
+		tSpace,
+		mkTok(tokenName, "orange"),
+		tSpace,
+		tPrintClose,
+		tEOF,
+	}},
+
 	{"power and multiply", "{{ 1 ** 10 * 5 }}", []token{
 		tPrintOpen,
 		tSpace,
