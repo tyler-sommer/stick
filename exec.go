@@ -23,6 +23,7 @@ type state struct {
 	name string    // The name of the template.
 	meta *metadata // Additional template metadata.
 
+	current *parse.BlockNode // Current block, may be nil.
 	blocks []map[string]*parse.BlockNode // Block scopes.
 	macros map[string]*parse.MacroNode   // Imported macros.
 
@@ -183,6 +184,19 @@ func (s *state) getBlock(name string) *parse.BlockNode {
 	return nil
 }
 
+func (s *state) getParentBlock(name string) *parse.BlockNode {
+	rootFound := false
+	for _, blocks := range s.blocks {
+		if block, ok := blocks[name]; ok {
+			if rootFound {
+				return block
+			}
+			rootFound = true
+		}
+	}
+	return nil
+}
+
 // Method walk is the main entry-point into template execution.
 func (s *state) walk(node parse.Node) error {
 	switch node := node.(type) {
@@ -235,6 +249,11 @@ func (s *state) walk(node parse.Node) error {
 				}(s.name)
 				s.name = block.Origin
 			}
+			prev := s.current
+			s.current = block
+			defer func() {
+				s.current = prev
+			}()
 			return s.walk(block.Body)
 		}
 		// TODO: It seems this should never occur.
@@ -691,6 +710,22 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 func (s *state) evalFunction(exp *parse.FuncExpr) (Value, error) {
 	fnName := exp.Name
 	switch fnName {
+	case "parent":
+		if s.current == nil {
+			return nil, errors.New("not inside a block!")
+		}
+		name := s.current.Name
+		if blk := s.getParentBlock(name); blk != nil {
+			pout := s.out
+			buf := &bytes.Buffer{}
+			s.out = buf
+			if err := s.walk(blk.Body); err != nil {
+				return nil, err
+			}
+			s.out = pout
+			return buf.String(), nil
+		}
+		return nil, errors.New("Unable to locate block \"" + name + "\"")
 	case "block":
 		eargs := exp.Args
 		if len(eargs) != 1 {
