@@ -131,25 +131,6 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				}
 			}
 		}
-		//
-		// ntt := t.nextNonSpace()
-		// if ntt.tokenType == tokenOperator {
-		// 	nxop, ok := binaryOperators[ntt.value]
-		// 	if !ok {
-		// 		return nil, newUnexpectedTokenError(ntt)
-		// 	}
-		// 	if nxop.precedence < op.precedence || (nxop.precedence == op.precedence && op.leftAssoc()) {
-		// 		t.backup()
-		// 		return t.parseOuterExpr(NewBinaryExpr(expr, op.Operator(), right, expr.Start()))
-		// 	}
-		// 	t.backup()
-		// 	right, err = t.parseOuterExpr(right)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// } else {
-		// 	t.backup()
-		// }
 		return NewBinaryExpr(expr, op.Operator(), right, expr.Start()), nil
 
 	default:
