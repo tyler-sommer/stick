@@ -134,6 +134,11 @@ var parseTests = []parseTest{
 		mkModule(NewPrintNode(NewBinaryExpr(NewNumberExpr("10", noPos), OpBinaryAdd, NewBinaryExpr(NewNumberExpr("5", noPos), OpBinaryDivide, NewNumberExpr("5", noPos), noPos), noPos), noPos)),
 	),
 	newParseTest(
+		"correct order of operations 2",
+		"{{ 10 / 5 + 5 }}",
+		mkModule(NewPrintNode(NewBinaryExpr(NewBinaryExpr(NewNumberExpr("10", noPos), OpBinaryDivide, NewNumberExpr("5", noPos), noPos), OpBinaryAdd, NewNumberExpr("5", noPos), noPos), noPos)),
+	),
+	newParseTest(
 		"correct ** associativity",
 		"{{ 10 ** 2 ** 5 }}",
 		mkModule(NewPrintNode(NewBinaryExpr(NewNumberExpr("10", noPos), OpBinaryPower, NewBinaryExpr(NewNumberExpr("2", noPos), OpBinaryPower, NewNumberExpr("5", noPos), noPos), noPos), noPos)),
@@ -308,6 +313,40 @@ var parseTests = []parseTest{
 		`{% set v = [1, "bar", 10,] %}`,
 		mkModule(NewSetNode("v", NewArrayExpr(noPos, NewNumberExpr("1", noPos), NewStringExpr("bar", noPos), NewNumberExpr("10", noPos)), noPos)),
 	),
+	newParseTest(
+		"property accesses in subexpression via dot",
+		`{% if obj.prop == obj2.prop %}hi{% endif %}`,
+		mkModule(NewIfNode(NewBinaryExpr(NewGetAttrExpr(NewNameExpr("obj", noPos), NewStringExpr("prop", noPos), nil, noPos), OpBinaryEqual, NewGetAttrExpr(NewNameExpr("obj2", noPos), NewStringExpr("prop", noPos), nil, noPos), noPos), NewBodyNode(noPos, NewTextNode("hi", noPos)), NewBodyNode(noPos), noPos)),
+	),
+	newParseTest(
+		"property accesses in subexpression via array",
+		`{% if obj.prop == obj2['prop'] %}hi{% endif %}`,
+		mkModule(NewIfNode(NewBinaryExpr(NewGetAttrExpr(NewNameExpr("obj", noPos), NewStringExpr("prop", noPos), nil, noPos), OpBinaryEqual, NewGetAttrExpr(NewNameExpr("obj2", noPos), NewStringExpr("prop", noPos), nil, noPos), noPos), NewBodyNode(noPos, NewTextNode("hi", noPos)), NewBodyNode(noPos), noPos)),
+	),
+	newParseTest(
+		"function call in subexpression",
+		`{% if obj.prop == obj2('arg') %}hi{% endif %}`,
+		mkModule(NewIfNode(NewBinaryExpr(NewGetAttrExpr(NewNameExpr("obj", noPos), NewStringExpr("prop", noPos), nil, noPos), OpBinaryEqual, NewFuncExpr("obj2", []Expr{NewStringExpr("arg", noPos)}, noPos), noPos), NewBodyNode(noPos, NewTextNode("hi", noPos)), NewBodyNode(noPos), noPos)),
+	),
+	newParseTest(
+		"property access inside array access",
+		`{{ prices[item.ID] }}`,
+		mkModule(NewPrintNode(NewGetAttrExpr(NewNameExpr("prices", noPos), NewGetAttrExpr(NewNameExpr("item", noPos), NewStringExpr("ID", noPos), nil, noPos), nil, noPos), noPos)),
+	),
+	newParseTest(
+		"property access inside array access",
+		`{{ get_index(item.ID, prices)*item.Quantity }}`,
+		mkModule(
+			NewPrintNode(
+				NewBinaryExpr(
+					NewFuncExpr("get_index", []Expr{
+						NewGetAttrExpr(NewNameExpr("item", noPos), NewStringExpr("ID", noPos), nil, noPos),
+						NewNameExpr("prices", noPos)}, noPos),
+					OpBinaryMultiply,
+					NewGetAttrExpr(
+						NewNameExpr("item", noPos),
+						NewStringExpr("Quantity", noPos), nil, noPos), noPos), noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {
@@ -321,14 +360,14 @@ func nodeEqual(a, b Node) bool {
 func evaluateTest(t *testing.T, test parseTest) {
 	tree, err := Parse(test.input)
 	if test.err != noError && err != nil && !strings.Contains(err.Error(), test.err) {
-		t.Errorf("%s: got error\n\t%+v\nexpected error\n\t%v", test.name, err, test.err)
+		t.Errorf("%s:\ngot error\n\t%+v\nexpected error\n\t%v", test.name, err, test.err)
 		if e, ok := err.(DebugError); ok {
-			t.Errorf("%s: trace:\n%s", test.name, e.Debug())
+			t.Errorf("%s:\ntrace:\n%s", test.name, e.Debug())
 		}
 	} else if !nodeEqual(tree.root, test.expected) {
-		t.Errorf("%s: got\n\t%+v\nexpected\n\t%v", test.name, tree.root, test.expected)
+		t.Errorf("%s:\ngot\n\t%+v\nexpected\n\t%v", test.name, tree.root, test.expected)
 		if err != nil {
-			t.Errorf("%s: got error\n\t%v", test.name, err.Error())
+			t.Errorf("%s:\ngot error\n\t%v", test.name, err.Error())
 			if e, ok := err.(DebugError); ok {
 				t.Errorf("%s: trace:\n%s", test.name, e.Debug())
 			}
