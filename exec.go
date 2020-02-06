@@ -611,7 +611,7 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 		case parse.OpBinaryAnd:
 			return CoerceBool(left) && CoerceBool(right), nil
 		case parse.OpBinaryOr:
-			return CoerceBool(left) && CoerceBool(right), nil
+			return CoerceBool(left) || CoerceBool(right), nil
 		}
 	case *parse.FuncExpr:
 		return s.evalFunction(exp)

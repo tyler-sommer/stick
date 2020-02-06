@@ -131,6 +131,12 @@ var tests = []execTest{
 		emptyCtx,
 		expect("1"),
 	},
+	{
+		"Comparison with or",
+		`{% if item1 == "banana" or item2 == "apple" %}At least one item is correct{% else %}neither item is correct{% endif %}`,
+		map[string]Value{"item1": "orange", "item2": "apple"},
+		expect("At least one item is correct"),
+	},
 }
 
 type expectedChecker func(actual string) (string, bool)
