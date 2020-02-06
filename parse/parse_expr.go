@@ -72,6 +72,20 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				return nil, err
 			}
 			switch n := nx.(type) {
+			case *BinaryExpr:
+				switch b := n.Left.(type) {
+				case *NameExpr:
+					v := NewFilterExpr(b.Name, []Expr{expr}, nt.Pos)
+					n.Left = v
+					return n, nil
+				case *FuncExpr:
+					b.Args = append([]Expr{expr}, b.Args...)
+					v := NewFilterExpr(b.Name, b.Args, nt.Pos)
+					n.Left = v
+					return n, nil
+				default:
+					return nil, newUnexpectedTokenError(nt)
+				}
 			case *NameExpr:
 				return NewFilterExpr(n.Name, []Expr{expr}, nt.Pos), nil
 

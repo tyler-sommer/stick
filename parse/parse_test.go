@@ -334,6 +334,16 @@ var parseTests = []parseTest{
 		mkModule(NewPrintNode(NewGetAttrExpr(NewNameExpr("prices", noPos), NewGetAttrExpr(NewNameExpr("item", noPos), NewStringExpr("ID", noPos), nil, noPos), nil, noPos), noPos)),
 	),
 	newParseTest(
+		"filter application inside a binary expression",
+		`{% if name|default(1) >= 0 %}{% endif %}`,
+		mkModule(NewIfNode(NewBinaryExpr(NewFilterExpr("default", []Expr{NewNameExpr("name", noPos), NewNumberExpr("1", noPos)}, noPos), OpBinaryGreaterEqual, NewNumberExpr("0", noPos), noPos), NewBodyNode(noPos), NewBodyNode(noPos), noPos)),
+	),
+	newParseTest(
+		"simple filter application inside a binary expression",
+		`{% if name|keys > 0 %}{% endif %}`,
+		mkModule(NewIfNode(NewBinaryExpr(NewFilterExpr("keys", []Expr{NewNameExpr("name", noPos)}, noPos), OpBinaryGreaterThan, NewNumberExpr("0", noPos), noPos), NewBodyNode(noPos), NewBodyNode(noPos), noPos)),
+	),
+	newParseTest(
 		"property access inside array access",
 		`{{ get_index(item.ID, prices)*item.Quantity }}`,
 		mkModule(
