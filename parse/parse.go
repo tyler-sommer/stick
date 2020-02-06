@@ -144,7 +144,7 @@ func (t *Tree) nextNonSpace() token {
 	var next token
 	for {
 		next = t.next()
-		if next.tokenType != tokenWhitespace || next.tokenType == tokenEOF {
+		if next.tokenType != tokenWhitespace {
 			return next
 		}
 	}
