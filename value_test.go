@@ -45,7 +45,7 @@ func TestValue(t *testing.T) {
 		float64(3.14): "3.14",
 		float32(3.14): "3.14",
 
-		decimal.NewFromFloat(3.1415): "3.1415",
+		decimal.NewFromFloatWithExponent(3.1415, -4): "3.1415",
 	}
 	for val, expected := range stringTests {
 		actual := CoerceString(val)

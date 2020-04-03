@@ -90,12 +90,15 @@ func (v *autoEscapeVisitor) Enter(n parse.Node) {
 	case *parse.PrintNode:
 		ct := v.current()
 		v := node.X
-		r := parse.NewFilterExpr(
-			"escape",
-			[]parse.Expr{v, parse.NewStringExpr(ct, v.Start())},
-			v.Start(),
-		)
-		node.X = r
+		// if we pass a param that utilises the raw filter then we exlude it from the escaper
+		if !strings.Contains(v.String(), "raw") {
+			r := parse.NewFilterExpr(
+				"escape",
+				[]parse.Expr{v, parse.NewStringExpr(ct, v.Start())},
+				v.Start(),
+			)
+			node.X = r
+		}
 	}
 }
 

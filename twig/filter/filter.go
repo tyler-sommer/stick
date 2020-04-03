@@ -2,16 +2,18 @@
 package filter // import "github.com/tyler-sommer/stick/twig/filter"
 
 import (
+	"html"
 	"math"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/tyler-sommer/stick"
 	"reflect"
 	"time"
+
+	"github.com/tyler-sommer/stick"
 )
 
-// builtInFilters returns a map containing all built-in Twig filters,
+// TwigFilters returns a map containing all built-in Twig filters,
 // with the exception of "escape", which is provided by the AutoEscapeExtension.
 func TwigFilters() map[string]stick.Filter {
 	return map[string]stick.Filter{
@@ -319,7 +321,9 @@ func filterNumberFormat(ctx stick.Context, val stick.Value, args ...stick.Value)
 }
 
 func filterRaw(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
+	if v, ok := val.(string); ok {
+		return html.UnescapeString(v)
+	}
 	return val
 }
 
