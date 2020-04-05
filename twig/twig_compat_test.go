@@ -9,7 +9,7 @@ import (
 	"github.com/tyler-sommer/stick"
 )
 
-func Test_EscapingShane(t *testing.T) {
+func Test_Escaping(t *testing.T) {
 	var buf bytes.Buffer
 	var env = New(nil)
 
@@ -23,11 +23,16 @@ func Test_EscapingShane(t *testing.T) {
 			values:     map[string]stick.Value{},
 		},
 		{ // escape a value indirectly injected into the content
-			htmlString: "<html>{{ bad }}",
-			expString:  "<html>&lt;script&gt;bad stuff&lt;/script&gt;",
+			htmlString: "<html><p>{{ bad }}</p>",
+			expString:  "<html><p>&lt;script&gt;bad stuff&lt;/script&gt;</p>",
 			values: map[string]stick.Value{
 				"bad": "<script>bad stuff</script>",
 			},
+		},
+		{ // ensure that we we dont provide a value it doesnt break the engine
+			htmlString: "<html>{{ bad }}",
+			expString:  "<html>",
+			values:     map[string]stick.Value{},
 		},
 		{ // unescape a value indirectly injected into the content
 			htmlString: "<html>{{ bad|raw }}",
@@ -41,6 +46,24 @@ func Test_EscapingShane(t *testing.T) {
 			expString:  "<html><script>bad stuff</script>&lt;script&gt;bad stuff&lt;/script&gt;",
 			values: map[string]stick.Value{
 				"bad": "<script>bad stuff</script>",
+			},
+		},
+		{ // nested vars
+			htmlString: "{{ test.bad }}",
+			expString:  "&lt;script&gt;test bad stuff&lt;/script&gt;",
+			values: map[string]stick.Value{
+				"test": map[string]stick.Value{
+					"bad": "<script>test bad stuff</script>",
+				},
+			},
+		},
+		{ // nested vars
+			htmlString: "{{ test.bad }}{{ test1.bad }}",
+			expString:  "&lt;script&gt;test bad stuff&lt;/script&gt;",
+			values: map[string]stick.Value{
+				"test": map[string]stick.Value{
+					"bad": "<script>test bad stuff</script>",
+				},
 			},
 		},
 	}

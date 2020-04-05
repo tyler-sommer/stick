@@ -1,6 +1,8 @@
 package parse
 
-import "errors"
+import (
+	"errors"
+)
 
 // A tagParser can parse the body of a tag, returning the resulting Node or an error.
 // TODO: This will be used to implement user-defined tags.

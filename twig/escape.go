@@ -22,10 +22,11 @@ func (e *AutoEscapeExtension) Init(env *stick.Env) error {
 	env.Visitors = append(env.Visitors, &autoEscapeVisitor{})
 	env.Filters["escape"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 		ct := "html"
-		if len(args) > 0 {
-			ct = stick.CoerceString(args[0])
-		}
 
+		// TODO we are not using the given arguments to define the escape type so alway revert to html, this is defined by the position given on line 99
+		// if len(args) > 0 {
+		// 	ct = stick.CoerceString(args[0])
+		// }
 		if sval, ok := val.(stick.SafeValue); ok {
 			if sval.IsSafe(ct) {
 				return val

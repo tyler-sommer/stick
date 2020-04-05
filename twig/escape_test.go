@@ -1,9 +1,8 @@
 package twig_test
 
 import (
-	"testing"
-
 	"os"
+	"testing"
 
 	"github.com/tyler-sommer/stick"
 	"github.com/tyler-sommer/stick/parse"
