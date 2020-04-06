@@ -1,0 +1,17 @@
+{% extends 'base.txt.twig' %}
+
+{% use 'parts.txt.twig' %}
+
+{% block title %}Not {{ parent() }}{% endblock %}
+
+{% block intro %}Testing parent(){% endblock %}
+
+{% block body %}This is a test{% endblock %}
+
+{% block secondary_title %}{{ parent() }}{% endblock %}
+
+{% block secondary_body %}{{ parent() }}{% endblock %}
+
+{% block conclusion %}{% endblock %}
+
+{% block footer %}{% endblock %}
