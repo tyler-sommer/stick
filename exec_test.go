@@ -58,7 +58,9 @@ var tests = []execTest{
 	},
 	{"In and not in", `{{ 5 in set and 4 not in set }}`, map[string]Value{"set": []int{5, 10}}, expect(`1`)},
 	{"Function call", `{{ multiply(num, 5) }}`, map[string]Value{"num": 10}, expect(`50`)},
+	{"Filter call", `Welcome, {{ name }}`, emptyCtx, expect(`Welcome, `)},
 	{"Filter call", `Welcome, {{ name|default('User') }}`, map[string]Value{"name": nil}, expect(`Welcome, User`)},
+	{"Filter call", `Welcome, {{ surname|default('User') }}`, map[string]Value{"name": nil}, expect(`Welcome, User`)},
 	{
 		"Basic use statement",
 		`{% extends '{% block message %}{% endblock %}' %}{% use '{% block message %}Hello{% endblock %}' %}`,
@@ -136,6 +138,18 @@ var tests = []execTest{
 		`{% if item1 == "banana" or item2 == "apple" %}At least one item is correct{% else %}neither item is correct{% endif %}`,
 		map[string]Value{"item1": "orange", "item2": "apple"},
 		expect("At least one item is correct"),
+	},
+	{
+		"Non-existent map element without default",
+		`{{ data.A }} {{ data.NotThere }} {{ data.B }}`,
+		map[string]Value{"data": map[string]string{"A": "Foo", "B": "Bar"}},
+		expect("Foo  Bar"),
+	},
+	{
+		"Non-existent map element with default",
+		`{{ data.A }} {{ data.NotThere|default("default value") }} {{ data.B }}`,
+		map[string]Value{"data": map[string]string{"A": "Foo", "B": "Bar"}},
+		expect("Foo default value Bar"),
 	},
 }
 
