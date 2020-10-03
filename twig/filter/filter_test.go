@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/tyler-sommer/stick"
-	"time"
 	"strings"
+	"time"
 )
 
 func TestFilters(t *testing.T) {
@@ -56,14 +56,19 @@ func TestFilters(t *testing.T) {
 		{"batch full", newBatchFunc([]int{1, 2, 3, 4}, 2), "1.2..3.4.."},
 		{"batch empty", newBatchFunc([]int{}, 10), ""},
 		{"batch nil", newBatchFunc(nil, 10), ""},
-		{"first array", func() stick.Value { return filterFirst(nil, []string{"1","2","3","4"}) }, "1"},
+		{"first array", func() stick.Value { return filterFirst(nil, []string{"1", "2", "3", "4"}) }, "1"},
 		{"first string", func() stick.Value { return filterFirst(nil, "1234") }, "1"},
 		{"date c", func() stick.Value { return filterDate(nil, testDate, "c") }, "1980-05-31T22:01:00+08:00"},
 		{"date r", func() stick.Value { return filterDate(nil, testDate, "r") }, "Sat, 31 May 1980 22:01:00 +0800"},
-		{"date test", func() stick.Value { return filterDate(nil, testDate2, "d D j l F m M n Y y a A g G h H i s O P T")}, "03 Sat 3 Saturday February 02 Feb 2 2018 18 am AM 2 02 02 02 01 44 +0800 +08:00 AWST"},
+		{"date test", func() stick.Value { return filterDate(nil, testDate2, "d D j l F m M n Y y a A g G h H i s O P T") }, "03 Sat 3 Saturday February 02 Feb 2 2018 18 am AM 2 02 02 02 01 44 +0800 +08:00 AWST"},
 		{"date u", func() stick.Value { return filterDate(nil, testDate2, "s.u") }, "44.123456"},
-		{"join", func() stick.Value { return filterJoin(nil, []string{"a","b","c"}, "-") }, "a-b-c"},
-		{"merge", func() stick.Value { return stickSliceToString(filterMerge(nil, []string{"a","b"}, []string{"c", "d"})) }, "a.b.c.d"},
+		{"join", func() stick.Value { return filterJoin(nil, []string{"a", "b", "c"}, "-") }, "a-b-c"},
+		{"merge", func() stick.Value {
+			return stickSliceToString(filterMerge(nil, []string{"a", "b"}, []string{"c", "d"}))
+		}, "a.b.c.d"},
+		{"reverse array", func() stick.Value { return stickSliceToString(filterReverse(nil, []string{"1", "2", "3", "4"})) }, "4.3.2.1"},
+		{"reverse string", func() stick.Value { return filterReverse(nil, "1234") }, "4321"},
+		{"reverse string utf8", func() stick.Value { return filterReverse(nil, "東京") }, "京東"},
 	}
 	for _, test := range tests {
 		res := test.actual()
