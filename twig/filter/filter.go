@@ -138,53 +138,53 @@ func filterDate(ctx stick.Context, val stick.Value, args ...stick.Value) stick.V
 
 	// build a golang date string
 	table := map[string]string{
-		"d" : "02",
-		"D" : "Mon",
-		"j" : "2",
-		"l" : "Monday",
-		"N" : "", // TODO: ISO-8601 numeric representation of the day of the week (added in PHP 5.1.0)
-		"S" : "", // TODO: English ordinal suffix for the day of the month, 2 characters
-		"w" : "", // TODO: Numeric representation of the day of the week
-		"z" : "", // TODO: The day of the year (starting from 0)
-		"W" : "", // TODO: ISO-8601 week number of year, weeks starting on Monday (added in PHP 4.1.0)
-		"F" : "January",
-		"m" : "01",
-		"M" : "Jan",
-		"n" : "1",
-		"t" : "", // TODO: Number of days in the given month
-		"L" : "", // TODO: Whether it's a leap year
-		"o" : "", // TODO: ISO-8601 year number. This has the same value as Y, except that if the ISO week number (W) belongs to the previous or next year, that year is used instead. (added in PHP 5.1.0)
-		"Y" : "2006",
-		"y" : "06",
-		"a" : "pm",
-		"A" : "PM",
-		"B" : "", // TODO: Swatch Internet time (is this even still a thing?!)
-		"g" : "3",
-		"G" : "15",
-		"h" : "03",
-		"H" : "15",
-		"i" : "04",
-		"s" : "05",
-		"u" : "000000",
-		"e" : "", // TODO: Timezone identifier (added in PHP 5.1.0)
-		"I" : "", // TODO: Whether or not the date is in daylight saving time
-		"O" : "-0700",
-		"P" : "-07:00",
-		"T" : "MST",
-		"c" : "2006-01-02T15:04:05-07:00",
-		"r" : "Mon, 02 Jan 2006 15:04:05 -0700",
-		"U" : "", // TODO: Seconds since the Unix Epoch (January 1 1970 00:00:00 GMT)
+		"d": "02",
+		"D": "Mon",
+		"j": "2",
+		"l": "Monday",
+		"N": "", // TODO: ISO-8601 numeric representation of the day of the week (added in PHP 5.1.0)
+		"S": "", // TODO: English ordinal suffix for the day of the month, 2 characters
+		"w": "", // TODO: Numeric representation of the day of the week
+		"z": "", // TODO: The day of the year (starting from 0)
+		"W": "", // TODO: ISO-8601 week number of year, weeks starting on Monday (added in PHP 4.1.0)
+		"F": "January",
+		"m": "01",
+		"M": "Jan",
+		"n": "1",
+		"t": "", // TODO: Number of days in the given month
+		"L": "", // TODO: Whether it's a leap year
+		"o": "", // TODO: ISO-8601 year number. This has the same value as Y, except that if the ISO week number (W) belongs to the previous or next year, that year is used instead. (added in PHP 5.1.0)
+		"Y": "2006",
+		"y": "06",
+		"a": "pm",
+		"A": "PM",
+		"B": "", // TODO: Swatch Internet time (is this even still a thing?!)
+		"g": "3",
+		"G": "15",
+		"h": "03",
+		"H": "15",
+		"i": "04",
+		"s": "05",
+		"u": "000000",
+		"e": "", // TODO: Timezone identifier (added in PHP 5.1.0)
+		"I": "", // TODO: Whether or not the date is in daylight saving time
+		"O": "-0700",
+		"P": "-07:00",
+		"T": "MST",
+		"c": "2006-01-02T15:04:05-07:00",
+		"r": "Mon, 02 Jan 2006 15:04:05 -0700",
+		"U": "", // TODO: Seconds since the Unix Epoch (January 1 1970 00:00:00 GMT)
 	}
 	var layout string
 
-	maxLen := len(requestedLayout);
+	maxLen := len(requestedLayout)
 	for i := 0; i < maxLen; i++ {
 		char := string(requestedLayout[i])
 		if t, ok := table[char]; ok {
 			layout += t
 			continue
 		}
-		if "\\" == char && i < maxLen-1{
+		if "\\" == char && i < maxLen-1 {
 			layout += string(requestedLayout[i+1])
 			continue
 		}
@@ -224,7 +224,8 @@ func filterFirst(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	}
 
 	if s := stick.CoerceString(val); s != "" {
-		return string(s[0])
+		runes := []rune(s)
+		return string(runes[0])
 	}
 
 	return nil
@@ -236,7 +237,7 @@ func filterFormat(ctx stick.Context, val stick.Value, args ...stick.Value) stick
 }
 
 func filterJoin(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	if ! stick.IsIterable(val) {
+	if !stick.IsIterable(val) {
 		return nil
 	}
 
@@ -265,8 +266,22 @@ func filterKeys(ctx stick.Context, val stick.Value, args ...stick.Value) stick.V
 }
 
 func filterLast(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if stick.IsArray(val) {
+		arr := reflect.ValueOf(val)
+		return arr.Index(arr.Len() - 1).Interface()
+	}
+
+	if stick.IsMap(val) {
+		// TODO: Trigger runtime error, Golang randomises map keys so getting the "Last" does not make sense
+		return nil
+	}
+
+	if s := stick.CoerceString(val); s != "" {
+		runes := []rune(s)
+		return string(runes[len(runes)-1])
+	}
+
+	return nil
 }
 
 // filterLength returns the length of val.
@@ -285,7 +300,7 @@ func filterLower(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 }
 
 func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	if ! stick.IsIterable(val) {
+	if !stick.IsIterable(val) {
 		return nil
 	}
 
