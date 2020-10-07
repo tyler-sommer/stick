@@ -413,8 +413,28 @@ func filterReverse(ctx stick.Context, val stick.Value, args ...stick.Value) stic
 }
 
 func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	input := stick.CoerceNumber(val)
+	precision := 0
+	algo := ""
+	if len(args) > 0 {
+		precision = int(math.Round(stick.CoerceNumber(args[0])))
+	}
+	if precision < 0 {
+		precision = 0
+	}
+	if len(args) > 1 {
+		algo = stick.CoerceString(args[1])
+	}
+
+	mult := math.Pow10(precision)
+	switch algo {
+	case "ceil":
+		return math.Ceil(input*mult) / mult
+	case "floor":
+		return math.Floor(input*mult) / mult
+	default:
+		return math.Round(input*mult) / mult
+	}
 }
 
 func filterSlice(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
