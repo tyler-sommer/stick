@@ -23,9 +23,9 @@ type state struct {
 	name string    // The name of the template.
 	meta *metadata // Additional template metadata.
 
-	current *parse.BlockNode // Current block, may be nil.
-	blocks []map[string]*parse.BlockNode // Block scopes.
-	macros map[string]*parse.MacroNode   // Imported macros.
+	current *parse.BlockNode              // Current block, may be nil.
+	blocks  []map[string]*parse.BlockNode // Block scopes.
+	macros  map[string]*parse.MacroNode   // Imported macros.
 
 	env   *Env        // The configured Stick environment.
 	scope *scopeStack // Handles execution scope.
@@ -643,7 +643,7 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 		}
 		v, err = GetAttr(c, k, args...)
 		if err != nil {
-			return nil, err
+			e = err
 		}
 	case *parse.TestExpr:
 		if tfn, ok := s.env.Tests[exp.Name]; ok {
