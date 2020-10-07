@@ -2,7 +2,10 @@
 package filter // import "github.com/tyler-sommer/stick/twig/filter"
 
 import (
+  "encoding/json"
+	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -224,7 +227,8 @@ func filterFirst(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	}
 
 	if s := stick.CoerceString(val); s != "" {
-		return string(s[0])
+		runes := []rune(s)
+		return string(runes[0])
 	}
 
 	return nil
@@ -255,18 +259,56 @@ func filterJoin(ctx stick.Context, val stick.Value, args ...stick.Value) stick.V
 }
 
 func filterJSONEncode(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	// TODO: implement flags
+	jsonData, err := json.Marshal(val)
+	if err != nil {
+		// TODO: Report error
+		return nil
+	}
+
+	return string(jsonData)
 }
 
 func filterKeys(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	r := reflect.Indirect(reflect.ValueOf(val))
+	switch r.Kind() {
+	case reflect.Slice, reflect.Array:
+		ln := r.Len()
+		res := make([]int, 0)
+		for i := 0; i < ln; i++ {
+			res = append(res, i)
+		}
+		return res
+	case reflect.Map:
+		keys := r.MapKeys()
+		res := make([]string, 0)
+		for _, k := range keys {
+			res = append(res, fmt.Sprintf("%v", k))
+		}
+		sort.Strings(res)
+		return res
+	default:
+		return []string{}
+	}
 }
 
 func filterLast(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if stick.IsArray(val) {
+		arr := reflect.ValueOf(val)
+		return arr.Index(arr.Len() - 1).Interface()
+	}
+
+	if stick.IsMap(val) {
+		// TODO: Trigger runtime error, Golang randomises map keys so getting the "Last" does not make sense
+		return nil
+	}
+
+	if s := stick.CoerceString(val); s != "" {
+		runes := []rune(s)
+		return string(runes[len(runes)-1])
+	}
+
+	return nil
 }
 
 // filterLength returns the length of val.
@@ -324,13 +366,50 @@ func filterRaw(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Va
 }
 
 func filterReplace(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if len(args) != 1 {
+		return val
+	}
+
+	res := stick.CoerceString(val)
+
+	if stick.IsMap(args[0]) {
+		replaces := make([]string, 0)
+		stick.Iterate(args[0], func(k, v stick.Value, l stick.Loop) (bool, error) {
+			replaces = append(replaces, stick.CoerceString(k))
+			replaces = append(replaces, stick.CoerceString(v))
+			return false, nil
+		})
+
+		replacer := strings.NewReplacer(replaces...)
+		res = replacer.Replace(res)
+	}
+
+	return res
 }
 
 func filterReverse(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if stick.IsArray(val) {
+		arr := reflect.ValueOf(val)
+		res := make([]interface{}, 0)
+		for i := arr.Len() - 1; i >= 0; i-- {
+			res = append(res, arr.Index(i).Interface())
+		}
+		return res
+	}
+
+	if stick.IsMap(val) {
+		return val
+	}
+
+	if s := stick.CoerceString(val); s != "" {
+		runes := []rune(s)
+		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+			runes[i], runes[j] = runes[j], runes[i]
+		}
+		return string(runes)
+	}
+
+	return nil
 }
 
 func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
