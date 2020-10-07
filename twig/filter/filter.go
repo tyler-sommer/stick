@@ -2,6 +2,7 @@
 package filter // import "github.com/tyler-sommer/stick/twig/filter"
 
 import (
+	"encoding/json"
 	"math"
 	"strings"
 	"unicode/utf8"
@@ -256,8 +257,14 @@ func filterJoin(ctx stick.Context, val stick.Value, args ...stick.Value) stick.V
 }
 
 func filterJSONEncode(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	// TODO: implement flags
+	jsonData, err := json.Marshal(val)
+	if err != nil {
+		// TODO: Report error
+		return nil
+	}
+
+	return string(jsonData)
 }
 
 func filterKeys(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {

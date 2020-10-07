@@ -70,6 +70,13 @@ func TestFilters(t *testing.T) {
 		{"merge", func() stick.Value {
 			return stickSliceToString(filterMerge(nil, []string{"a", "b"}, []string{"c", "d"}))
 		}, "a.b.c.d"},
+		{
+			"json encode",
+			func() stick.Value {
+				return filterJSONEncode(nil, map[string]interface{}{"a": 1, "b": true, "c": 3.14, "d": "a string", "e": []string{"one", "two"}, "f": map[string]interface{}{"alpha": "foo", "beta": nil}})
+			},
+			`{"a":1,"b":true,"c":3.14,"d":"a string","e":["one","two"],"f":{"alpha":"foo","beta":null}}`,
+		},
 	}
 	for _, test := range tests {
 		res := test.actual()
