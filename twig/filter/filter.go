@@ -366,8 +366,25 @@ func filterRaw(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Va
 }
 
 func filterReplace(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if len(args) != 1 {
+		return val
+	}
+
+	res := stick.CoerceString(val)
+
+	if stick.IsMap(args[0]) {
+		replaces := make([]string, 0)
+		stick.Iterate(args[0], func(k, v stick.Value, l stick.Loop) (bool, error) {
+			replaces = append(replaces, stick.CoerceString(k))
+			replaces = append(replaces, stick.CoerceString(v))
+			return false, nil
+		})
+
+		replacer := strings.NewReplacer(replaces...)
+		res = replacer.Replace(res)
+	}
+
+	return res
 }
 
 func filterReverse(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
