@@ -388,8 +388,28 @@ func filterReplace(ctx stick.Context, val stick.Value, args ...stick.Value) stic
 }
 
 func filterReverse(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if stick.IsArray(val) {
+		arr := reflect.ValueOf(val)
+		res := make([]interface{}, 0)
+		for i := arr.Len() - 1; i >= 0; i-- {
+			res = append(res, arr.Index(i).Interface())
+		}
+		return res
+	}
+
+	if stick.IsMap(val) {
+		return val
+	}
+
+	if s := stick.CoerceString(val); s != "" {
+		runes := []rune(s)
+		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+			runes[i], runes[j] = runes[j], runes[i]
+		}
+		return string(runes)
+	}
+
+	return nil
 }
 
 func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
