@@ -164,7 +164,7 @@ type propStruct struct {
 
 func TestGetAttr(t *testing.T) {
 	var getAttrTests = []getAttrTest{
-		newGetAttrTest("map with non-string keys", map[int]string{1:"test"}, 1, "test"),
+		newGetAttrTest("map with non-string keys", map[int]string{1: "test"}, 1, "test"),
 		newGetAttrTest("anon struct property", struct{ Name string }{"Tyler"}, "Name", "Tyler"),
 		newGetAttrTest("struct property", propStruct{"Jackie"}, "Name", "Jackie"),
 		newGetAttrTest("struct method (value, ptr receiver)", testStruct{"John"}, "Name", "John"),
