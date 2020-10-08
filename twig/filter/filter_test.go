@@ -3,9 +3,10 @@ package filter
 import (
 	"testing"
 
-	"github.com/tyler-sommer/stick"
 	"strings"
 	"time"
+
+	"github.com/tyler-sommer/stick"
 )
 
 func TestFilters(t *testing.T) {
@@ -93,8 +94,8 @@ func TestFilters(t *testing.T) {
 				return filterReplace(nil, "I like %this% and %that%.", map[string]string{"%this%": "foo", "%that%": "bar"})
 			},
 			"I like foo and bar.",
-    },
-    {
+		},
+		{
 			"json encode",
 			func() stick.Value {
 				return filterJSONEncode(nil, map[string]interface{}{"a": 1, "b": true, "c": 3.14, "d": "a string", "e": []string{"one", "two"}, "f": map[string]interface{}{"alpha": "foo", "beta": nil}})
