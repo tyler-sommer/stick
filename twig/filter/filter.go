@@ -2,16 +2,17 @@
 package filter // import "github.com/tyler-sommer/stick/twig/filter"
 
 import (
-  "encoding/json"
+	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/tyler-sommer/stick"
 	"reflect"
 	"time"
+
+	"github.com/tyler-sommer/stick"
 )
 
 // builtInFilters returns a map containing all built-in Twig filters,
@@ -417,7 +418,7 @@ func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	precision := 0
 	algo := ""
 	if len(args) > 0 {
-		precision = int(math.Round(stick.CoerceNumber(args[0])))
+		precision = int(mathRound(stick.CoerceNumber(args[0])))
 	}
 	if precision < 0 {
 		precision = 0
@@ -433,7 +434,7 @@ func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	case "floor":
 		return math.Floor(input*mult) / mult
 	default:
-		return math.Round(input*mult) / mult
+		return mathRound(input*mult) / mult
 	}
 }
 
