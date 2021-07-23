@@ -70,7 +70,9 @@ func (v *autoEscapeVisitor) push(name string) {
 
 // pop removes the top-most name on the stack.
 func (v *autoEscapeVisitor) pop() {
-	v.stack = v.stack[0 : len(v.stack)-1]
+	if len(v.stack) > 0 {
+		v.stack = v.stack[0 : len(v.stack)-1]
+	}
 }
 
 func (v *autoEscapeVisitor) current() string {
