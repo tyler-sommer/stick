@@ -336,19 +336,33 @@ func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 		return nil
 	}
 
-	var out []stick.Value
+	outMap, isObject := val.(map[string]stick.Value)
 
-	stick.Iterate(val, func(k, v stick.Value, l stick.Loop) (bool, error) {
-		out = append(out, v)
-		return false, nil
-	})
+	if isObject {
+		argMap, ok := args[0].(map[string]stick.Value)
 
-	stick.Iterate(args[0], func(k, v stick.Value, l stick.Loop) (bool, error) {
-		out = append(out, v)
-		return false, nil
-	})
+		if ok {
+			for k,v := range argMap {
+				outMap[k] = v
+			}
+		}
 
-	return out
+		return outMap
+	} else {
+		var out []stick.Value
+
+		stick.Iterate(val, func(k, v stick.Value, l stick.Loop) (bool, error) {
+			out = append(out, v)
+			return false, nil
+		})
+
+		stick.Iterate(args[0], func(k, v stick.Value, l stick.Loop) (bool, error) {
+			out = append(out, v)
+			return false, nil
+		})
+
+		return out
+	}
 }
 
 func filterNL2BR(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
