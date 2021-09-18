@@ -21,7 +21,7 @@ jobs:
           command: go get -v ./...
       - when:
           condition:
-            - equal: [ latest, << parameters.version >> ]
+            equal: [ latest, << parameters.version >> ]
           steps:
             - run:
                 name: "Run go vet"
