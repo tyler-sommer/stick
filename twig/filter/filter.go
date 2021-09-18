@@ -147,7 +147,7 @@ func filterDate(ctx stick.Context, val stick.Value, args ...stick.Value) stick.V
 		"j": "2",
 		"l": "Monday",
 		"N": "", // TODO: ISO-8601 numeric representation of the day of the week (added in PHP 5.1.0)
-		"S": "", // TODO: English ordinal suffix for the day of the month, 2 characters
+		"S": "ZZZ",
 		"w": "", // TODO: Numeric representation of the day of the week
 		"z": "", // TODO: The day of the year (starting from 0)
 		"W": "", // TODO: ISO-8601 week number of year, weeks starting on Monday (added in PHP 4.1.0)
@@ -195,7 +195,22 @@ func filterDate(ctx stick.Context, val stick.Value, args ...stick.Value) stick.V
 		layout += char
 	}
 
-	return dt.Format(layout)
+	toReturn := dt.Format(layout)
+
+	if strings.Contains(toReturn, "ZZZ") {
+		replace := "th"
+		dayIs := dt.Format("02")
+		if dayIs == "01" || dayIs == "21" || dayIs == "31" {
+			replace = "st"
+		} else if dayIs == "02" || dayIs == "22" {
+			replace = "nd"
+		} else if dayIs == "03" || dayIs == "23" {
+			replace = "rd"
+		}
+		toReturn = strings.Replace(toReturn, "ZZZ", replace, 1)
+	}
+
+	return toReturn
 }
 
 func filterDateModify(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
