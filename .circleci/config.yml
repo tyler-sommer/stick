@@ -1,0 +1,44 @@
+version: 2.1
+
+jobs:
+  "test":
+    parameters:
+      version:
+        type: string
+        default: "latest"
+    docker:
+      - image: "circleci/golang:<< parameters.version >>"
+    working_directory: /go/src/github.com/tyler-sommer/stick
+    environment:
+      GO111MODULE: "on"
+    steps:
+      - checkout
+      - run:
+          name: "Print Go version"
+          command: go version
+      - run:
+          name: "Install dependencies"
+          command: go get -v ./...
+      - when:
+          condition:
+            equal: [ latest, << parameters.version >> ]
+          steps:
+            - run:
+                name: "Run go vet"
+                command: go vet -v ./...
+            - run:
+                name: "Run goimports"
+                command: |
+                  go install golang.org/x/tools/cmd/goimports@latest
+                  diff -u <(echo -n) <(goimports -d -e .)
+      - run:
+          name: "Run go test"
+          command: go test -v -race ./...
+
+workflows:
+  tests:
+    jobs:
+      - test:
+          matrix:
+            parameters:
+              version: ["latest", "1.17", "1.16", "1.15", "1.14", "1.13", "1.12", "1.11", "1.10", "1.9", "1.8", "1.7"]
