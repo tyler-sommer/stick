@@ -342,7 +342,7 @@ func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 		argMap, ok := args[0].(map[string]stick.Value)
 
 		if ok {
-			for k,v := range argMap {
+			for k, v := range argMap {
 				outMap[k] = v
 			}
 		}
