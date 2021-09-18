@@ -19,14 +19,18 @@ jobs:
       - run:
           name: "Install dependencies"
           command: go get -v ./...
-      - run:
-          name: "Run goimports"
-          command: |
-            go install golang.org/x/tools/cmd/goimports
-            diff -u <(echo -n) <(goimports -d -e .)
-      - run:
-          name: "Run go vet"
-          command: go vet -v ./...
+      - when:
+          condition:
+            - equal: [ latest, << parameters.version >> ]
+          steps:
+            - run:
+                name: "Run go vet"
+                command: go vet -v ./...
+            - run:
+                name: "Run goimports"
+                command: |
+                  go install golang.org/x/tools/cmd/goimports@latest
+                  diff -u <(echo -n) <(goimports -d -e .)
       - run:
           name: "Run go test"
           command: go test -v -race ./...
