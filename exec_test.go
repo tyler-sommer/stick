@@ -47,7 +47,7 @@ var tests = []execTest{
 		"For loop with inner loop",
 		`{% for i in test %}{% for j in i %}{{ j }}{{ loop.index }}{{ loop.parent.index }}{% if loop.first %},{% endif %}{% if loop.last %};{% endif %}{% endfor %}{% if loop.first %}f{% endif %}{% if loop.last %}l{% endif %}:{% endfor %}`,
 		emptyCtx,
-		expect(`110323f221213332103l`),
+		expect(`111,221331;f:412,522632;:713,823933;l:`),
 	},
 	{
 		"For loop variables",
@@ -58,7 +58,7 @@ var tests = []execTest{
 				{4,5,6},
 				{7,8,9}},
 		},
-		expect(`111,221331;f:412,522632;:713,823933;l:`),
+		expect(`110323f221213332103l`),
 	},
 	{"For else", `{% for i in emptySet %}{{ i }}{% else %}No results.{% endfor %}`, map[string]Value{"emptySet": []int{}}, expect(`No results.`)},
 	{
