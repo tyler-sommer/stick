@@ -63,7 +63,7 @@ var tests = []execTest{
 	{"For else", `{% for i in emptySet %}{{ i }}{% else %}No results.{% endfor %}`, map[string]Value{"emptySet": []int{}}, expect(`No results.`)},
 	{
 		"For map",
-		`{% for k, v in data %}Record {{ loop.Index }}: {{ k }}: {{ v }}{% if not loop.Last %} - {% endif %}{% endfor %}`,
+		`{% for k, v in data %}Record {{ loop.index }}: {{ k }}: {{ v }}{% if not loop.last %} - {% endif %}{% endfor %}`,
 		map[string]Value{"data": map[string]float64{"Group A": 5.12, "Group B": 5.09}},
 		optionExpect(`Record 1: Group A: 5.12 - Record 2: Group B: 5.09`, `Record 1: Group B: 5.09 - Record 2: Group A: 5.12`),
 	},
