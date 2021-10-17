@@ -291,9 +291,13 @@ type Iteratee func(k, v Value, l Loop) (brk bool, err error)
 
 // Loop contains metadata about the current state of a loop.
 type Loop struct {
-	Last   bool
-	Index  int
-	Index0 int
+	Last      bool
+	Index     int
+	Index0    int
+	Revindex  int
+	Revindex0 int
+	First     bool
+	Length    int
 }
 
 // IsArray returns true if the given Value is a slice or array.
@@ -334,7 +338,15 @@ func Iterate(val Value, it Iteratee) (int, error) {
 	switch r.Kind() {
 	case reflect.Slice, reflect.Array:
 		ln := r.Len()
-		l := Loop{ln == 1, 1, 0}
+		l := Loop{
+			ln == 1,
+			1,
+			0,
+			ln,
+			ln-1,
+			true,
+			ln,
+		}
 		for i := 0; i < ln; i++ {
 			v := r.Index(i)
 			brk, err := it(i, v.Interface(), l)
@@ -345,12 +357,23 @@ func Iterate(val Value, it Iteratee) (int, error) {
 			l.Index++
 			l.Index0++
 			l.Last = ln == l.Index
+			l.Revindex--
+			l.Revindex0--
+			l.First = false
 		}
 		return ln, nil
 	case reflect.Map:
 		keys := r.MapKeys()
 		ln := r.Len()
-		l := Loop{ln == 1, 1, 0}
+		l := Loop{
+			ln == 1,
+			1,
+			0,
+			ln,
+			ln-1,
+			true,
+			ln,
+		}
 		for i, k := range keys {
 			v := r.MapIndex(k)
 			brk, err := it(k.Interface(), v.Interface(), l)
@@ -361,6 +384,9 @@ func Iterate(val Value, it Iteratee) (int, error) {
 			l.Index++
 			l.Index0++
 			l.Last = ln == l.Index
+			l.Revindex--
+			l.Revindex0--
+			l.First = false
 		}
 		return ln, nil
 	default:
@@ -368,7 +394,7 @@ func Iterate(val Value, it Iteratee) (int, error) {
 	}
 }
 
-// Len returns the length of Value.
+// Len returns the Length of Value.
 func Len(val Value) (int, error) {
 	if val == nil {
 		return 0, nil
@@ -378,7 +404,7 @@ func Len(val Value) (int, error) {
 	case reflect.Slice, reflect.Array, reflect.Map:
 		return r.Len(), nil
 	}
-	return 0, fmt.Errorf(`stick: could not get length of %s "%v"`, r.Kind(), val)
+	return 0, fmt.Errorf(`stick: could not get Length of %s "%v"`, r.Kind(), val)
 }
 
 // Equal returns true if the two Values are considered equal.
