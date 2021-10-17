@@ -48,9 +48,9 @@ var tests = []execTest{
 		`{% for i in test %}{% for j in i %}{{ j }}{{ loop.index }}{{ loop.parent.index }}{% if loop.first %},{% endif %}{% if loop.last %};{% endif %}{% endfor %}{% if loop.first %}f{% endif %}{% if loop.last %}l{% endif %}:{% endfor %}`,
 		map[string]Value{
 			"test": [][]int{
-				{1,2,3},
-				{4,5,6},
-				{7,8,9}},
+				{1, 2, 3},
+				{4, 5, 6},
+				{7, 8, 9}},
 		},
 		expect(`111,221331;f:412,522632;:713,823933;l:`),
 	},
