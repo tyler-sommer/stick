@@ -343,7 +343,7 @@ func Iterate(val Value, it Iteratee) (int, error) {
 			1,
 			0,
 			ln,
-			ln-1,
+			ln - 1,
 			true,
 			ln,
 		}
@@ -370,7 +370,7 @@ func Iterate(val Value, it Iteratee) (int, error) {
 			1,
 			0,
 			ln,
-			ln-1,
+			ln - 1,
 			true,
 			ln,
 		}
