@@ -346,6 +346,9 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 		}
 		s.scope.setLocal(vn, v)
 		loopValue := map[string]Value{
+			"Last":      l.Last,
+			"Index":     l.Index,
+			"Index0":    l.Index0,
 			"last":      l.Last,
 			"index":     l.Index,
 			"index0":    l.Index0,
