@@ -43,10 +43,27 @@ var tests = []execTest{
 	{"Chained attributes", `{{ entity.attr.Name }}`, map[string]Value{"entity": map[string]Value{"attr": struct{ Name string }{"Tyler"}}}, expect(`Tyler`)},
 	{"Attribute method call", `{{ entity.Name('lower') }}`, map[string]Value{"entity": &testPerson{"Johnny"}}, expect(`lowerJohnny`)},
 	{"For loop", `{% for i in 1..3 %}{{ i }}{% endfor %}`, emptyCtx, expect(`123`)},
+	{
+		"For loop with inner loop",
+		`{% for i in test %}{% for j in i %}{{ j }}{{ loop.index }}{{ loop.parent.index }}{% if loop.first %},{% endif %}{% if loop.last %};{% endif %}{% endfor %}{% if loop.first %}f{% endif %}{% if loop.last %}l{% endif %}:{% endfor %}`,
+		map[string]Value{
+			"test": [][]int{
+				{1, 2, 3},
+				{4, 5, 6},
+				{7, 8, 9}},
+		},
+		expect(`111,221331;f:412,522632;:713,823933;l:`),
+	},
+	{
+		"For loop variables",
+		`{% for i in 1..3 %}{{ i }}{{ loop.index }}{{ loop.index0 }}{{ loop.revindex }}{{ loop.revindex0 }}{{ loop.length }}{% if loop.first %}f{% endif %}{% if loop.last %}l{% endif %}{% endfor %}`,
+		emptyCtx,
+		expect(`110323f221213332103l`),
+	},
 	{"For else", `{% for i in emptySet %}{{ i }}{% else %}No results.{% endfor %}`, map[string]Value{"emptySet": []int{}}, expect(`No results.`)},
 	{
 		"For map",
-		`{% for k, v in data %}Record {{ loop.Index }}: {{ k }}: {{ v }}{% if not loop.Last %} - {% endif %}{% endfor %}`,
+		`{% for k, v in data %}Record {{ loop.index }}: {{ k }}: {{ v }}{% if not loop.last %} - {% endif %}{% endfor %}`,
 		map[string]Value{"data": map[string]float64{"Group A": 5.12, "Group B": 5.09}},
 		optionExpect(`Record 1: Group A: 5.12 - Record 2: Group B: 5.09`, `Record 1: Group B: 5.09 - Record 2: Group A: 5.12`),
 	},
