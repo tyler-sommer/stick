@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/url"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -503,6 +504,5 @@ func filterUpper(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 }
 
 func filterURLEncode(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	return url.QueryEscape(stick.CoerceString(val))
 }

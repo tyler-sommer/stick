@@ -129,6 +129,7 @@ func TestFilters(t *testing.T) {
 				return
 			},
 		},
+		{"urlencode", func() stick.Value { return filterURLEncode(nil, "http://test.com/dude?sweet=33&1=2") }, "http%3A%2F%2Ftest.com%2Fdude%3Fsweet%3D33%261%3D2"},
 	}
 	for _, test := range tests {
 		matches := false
