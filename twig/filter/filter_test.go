@@ -1,9 +1,9 @@
 package filter
 
 import (
-	"testing"
-
+	"fmt"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/tyler-sommer/stick"
@@ -104,11 +104,53 @@ func TestFilters(t *testing.T) {
 			},
 			`{"a":1,"b":true,"c":3.14,"d":"a string","e":["one","two"],"f":{"alpha":"foo","beta":null}}`,
 		},
+		{
+			"merge array",
+			func() stick.Value {
+				return filterMerge(nil, []string{"test", "foo"}, []string{"baz"})
+			},
+			`[test foo baz]`,
+		},
+		{
+			"merge object",
+			func() stick.Value {
+				return filterMerge(nil, map[string]stick.Value{"test": "wot"}, map[string]stick.Value{"foo": "bar"})
+			},
+			func(actual stick.Value) (ex string, ok bool) {
+				ex = "map[foo:bar test:wot]"
+				ok = false
+				if v, ok := actual.(map[string]stick.Value); ok {
+					// elaborate check is needed here because map order is not guaranteed; a simple string
+					// comparison will not reliably pass.
+					if len(v) == 2 && v["test"] == "wot" && v["foo"] == "bar" {
+						return ex, true
+					}
+				}
+				return
+			},
+		},
 	}
 	for _, test := range tests {
+		matches := false
 		res := test.actual()
-		if res != test.expected {
-			t.Errorf("%s:\n\texpected: %v\n\tgot: %v", test.name, test.expected, res)
+		expected := test.expected
+		if fn, ok := expected.(func(actual stick.Value) (string, bool)); ok {
+			if expected, ok = fn(res); ok {
+				matches = true
+			}
+		} else {
+			res = test.actual()
+			if res != expected {
+				if v := fmt.Sprintf("%v", res); v == expected {
+					// the Go representation of the value matches expected
+					matches = true
+				}
+			} else {
+				matches = true
+			}
+		}
+		if !matches {
+			t.Errorf("%s:\n\texpected: %v\n\tgot: %v", test.name, expected, res)
 		}
 	}
 }

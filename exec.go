@@ -342,10 +342,28 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 		defer s.scope.pop()
 
 		if kn != "" {
-			s.scope.Set(kn, k)
+			s.scope.setLocal(kn, k)
 		}
-		s.scope.Set(vn, v)
-		s.scope.Set("loop", l)
+		s.scope.setLocal(vn, v)
+		loopValue := map[string]Value{
+			"Last":      l.Last,
+			"Index":     l.Index,
+			"Index0":    l.Index0,
+			"last":      l.Last,
+			"index":     l.Index,
+			"index0":    l.Index0,
+			"revindex":  l.Revindex,
+			"revindex0": l.Revindex0,
+			"first":     l.First,
+			"length":    l.Length,
+		}
+
+		parent, hasParent := s.scope.Get("loop")
+		if hasParent {
+			loopValue["parent"] = parent
+		}
+
+		s.scope.setLocal("loop", loopValue)
 
 		err := s.walk(node.Body)
 		if err != nil {
