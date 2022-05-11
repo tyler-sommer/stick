@@ -8,7 +8,7 @@ NodeVisitors, and a template Loader to load named templates from any source.
 Twig compatibility
 
 Stick itself is a parser and template executor. If you're looking for Twig
-compatibility, check out package https://godoc.org/github.com/tyler-sommer/stick/twig
+compatibility, check out package https://pkg.go.dev/github.com/tyler-sommer/stick/twig
 
 For additional information on Twig, check http://twig.sensiolabs.org/
 

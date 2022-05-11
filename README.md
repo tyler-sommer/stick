@@ -37,6 +37,11 @@ under development, but essentially complete.
 
 See the [to do list](#to-do) for additional information.
 
+### Alternatives
+
+- [`text/template`](https://pkg.go.dev/text/template) and [`html/template`](https://pkg.go.dev/html/template) from the Go standard library.
+- [`pongo2`](https://pkg.go.dev/github.com/flosch/pongo2/v5) is a full-featured Go language port of Django's templating language.
+
 
 Installation
 ------------
@@ -71,13 +76,13 @@ func main() {
 }
 ```
 
-See [godoc for more information](https://godoc.org/github.com/tyler-sommer/stick).
+See [godoc for more information](https://pkg.go.dev/github.com/tyler-sommer/stick).
 
 
 To do
 -----
 
-- [x] Autoescaping (see: https://github.com/tyler-sommer/stick/blob/master/twig)
+- [x] Autoescaping (see: [Twig compatibility](https://github.com/tyler-sommer/stick/blob/master/twig))
 - [ ] Whitespace control
 - [ ] Improve error reporting
 

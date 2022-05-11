@@ -65,5 +65,5 @@ func main() {
 }
 ```
 
-See [godoc for more information](https://godoc.org/github.com/tyler-sommer/stick/twig).
+See [godoc for more information](https://pkg.go.dev/github.com/tyler-sommer/stick/twig).
 

@@ -21,7 +21,7 @@
 // 	// Substitute os.Stdout with any io.Writer.
 // 	env.Execute("Hello, {{ name }}!", os.Stdout, p)
 //
-// Check the main package https://godoc.org/github.com/tyler-sommer/stick for
+// Check the main package https://pkg.go.dev/github.com/tyler-sommer/stick for
 // more information on general functionality and usage.
 package twig // import "github.com/tyler-sommer/stick/twig"
 
