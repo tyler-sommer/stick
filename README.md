@@ -39,6 +39,8 @@ See the [to do list](#to-do) for additional information.
 
 ### Alternatives
 
+These alternatives are worth checking out if you're considering using Stick.
+
 - [`text/template`](https://pkg.go.dev/text/template) and [`html/template`](https://pkg.go.dev/html/template) from the Go standard library.
 - [`pongo2`](https://pkg.go.dev/github.com/flosch/pongo2/v5) is a full-featured Go language port of Django's templating language.
 
