@@ -9,7 +9,8 @@ commands:
             GO_LATEST=$(curl https://go.dev/dl/?mode=json | jq -r '.[0].version')
             go install golang.org/dl/$GO_LATEST@latest
             $GO_LATEST download
-            alias go=$GO_LATEST
+            sudo mv /usr/local/go/bin/go{,.old}
+            sudo mv /home/circleci/go/bin/$GO_LATEST /usr/local/go/bin/go
   setup_project:
     steps:
       - checkout
