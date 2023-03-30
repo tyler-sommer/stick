@@ -64,7 +64,7 @@ func ExampleCoerceBool() {
 // This demonstrates how a type can be coerced to a number.
 // The struct in this example has the Number method implemented.
 //
-// 	func (e exampleType) Number() float64 {
+//	func (e exampleType) Number() float64 {
 //		return 3.14
 //	}
 func ExampleNumber() {

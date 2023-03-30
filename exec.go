@@ -165,7 +165,7 @@ func (s *scopeStack) Set(name string, val Value) {
 // without destroying the value in the parent scope.
 //
 //	fnParam := // an function argument's name
-// 	s.scope.push()
+//	s.scope.push()
 //	defer s.scope.pop()
 //	s.scope.setLocal(fnParam, "some value")
 func (s *scopeStack) setLocal(name string, val Value) {

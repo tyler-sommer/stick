@@ -155,6 +155,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 
 // parseIsRightOperand handles "is" and "is not" tests, which can
 // themselves be two words, such as "divisible by":
+//
 //	{% if 10 is divisible by(3) %}
 func (t *Tree) parseRightTestOperand(prev *NameExpr) (*TestExpr, error) {
 	right, err := t.parseInnerExpr()

@@ -280,6 +280,7 @@ func (t *EmbedNode) All() []Node {
 
 // A UseNode represents the inclusion of blocks from another template.
 // It is also possible to specify aliases for the imported blocks to avoid naming conflicts.
+//
 //	{% use '::blocks.html.twig' with main as base_main, left as base_left %}
 type UseNode struct {
 	Pos

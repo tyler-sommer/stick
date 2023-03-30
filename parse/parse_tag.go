@@ -108,7 +108,7 @@ func (t *Tree) parseUntilTag(start Pos, names ...string) (*BodyNode, error) {
 
 // parseExtends parses an extends tag.
 //
-//   {% extends <expr> %}
+//	{% extends <expr> %}
 func parseExtends(t *Tree, start Pos) (Node, error) {
 	if t.Root().Parent != nil {
 		return nil, newMultipleExtendsError(start)
@@ -129,8 +129,8 @@ func parseExtends(t *Tree, start Pos) (Node, error) {
 // parseBlock parses a block and any body it may contain.
 // TODO: {% endblock <name> %} support
 //
-//   {% block <name> %}
-//   {% endblock %}
+//	{% block <name> %}
+//	{% endblock %}
 func parseBlock(t *Tree, start Pos) (Node, error) {
 	blockName, err := t.expect(tokenName)
 	if err != nil {
@@ -152,8 +152,8 @@ func parseBlock(t *Tree, start Pos) (Node, error) {
 
 // parseIf parses the opening tag and conditional expression in an if-statement.
 //
-//   {% if <expr> %}
-//   {% elseif <expr> %}
+//	{% if <expr> %}
+//	{% elseif <expr> %}
 func parseIf(t *Tree, start Pos) (Node, error) {
 	cond, err := t.parseExpr()
 	if err != nil {
@@ -172,8 +172,8 @@ func parseIf(t *Tree, start Pos) (Node, error) {
 
 // parseIfBody parses the body of an if statement.
 //
-//   {% else %}
-//   {% endif %}
+//	{% else %}
+//	{% endif %}
 func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) {
 	body = NewBodyNode(start)
 	for {
@@ -235,10 +235,10 @@ func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) 
 // parseFor parses a for loop construct.
 // TODO: This needs proper error reporting.
 //
-//   {% for <name, [name]> in <expr> %}
-//   {% for <name, [name]> in <expr> if <expr> %}
-//   {% else %}
-//   {% endfor %}
+//	{% for <name, [name]> in <expr> %}
+//	{% for <name, [name]> in <expr> if <expr> %}
+//	{% else %}
+//	{% endfor %}
 func parseFor(t *Tree, start Pos) (*ForNode, error) {
 	var kn, vn string
 	nam, err := t.parseInnerExpr()
@@ -370,10 +370,10 @@ func parseEmbed(t *Tree, start Pos) (Node, error) {
 // parseIncludeOrEmbed parses an include or embed tag's parameters.
 // TODO: Implement "ignore missing" support
 //
-//   {% include <expr> %}
-//   {% include <expr> with <expr> %}
-//   {% include <expr> with <expr> only %}
-//   {% include <expr> only %}
+//	{% include <expr> %}
+//	{% include <expr> with <expr> %}
+//	{% include <expr> with <expr> only %}
+//	{% include <expr> only %}
 func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
 	expr, err = t.parseExpr()
 	if err != nil {
@@ -475,7 +475,7 @@ func parseUse(t *Tree, start Pos) (Node, error) {
 
 // parseSet parses a set statement.
 //
-//   {% set <var> = <expr> %}
+//	{% set <var> = <expr> %}
 func parseSet(t *Tree, start Pos) (Node, error) {
 	tok, err := t.expect(tokenName)
 	if err != nil {
@@ -498,7 +498,7 @@ func parseSet(t *Tree, start Pos) (Node, error) {
 
 // parseDo parses a do statement.
 //
-//   {% do <expr> %}
+//	{% do <expr> %}
 func parseDo(t *Tree, start Pos) (Node, error) {
 	expr, err := t.parseExpr()
 	if err != nil {
@@ -513,11 +513,11 @@ func parseDo(t *Tree, start Pos) (Node, error) {
 
 // parseFilter parses a filter statement.
 //
-// 	{% filter <name> %}
+//	{% filter <name> %}
 //
 // Multiple filters can be applied to a block:
 //
-// 	{% filter <name>|<name>|<name> %}
+//	{% filter <name>|<name>|<name> %}
 func parseFilter(t *Tree, start Pos) (Node, error) {
 	var filters []string
 	for {
@@ -550,7 +550,7 @@ body:
 
 // parseMacro parses a macro definition.
 //
-// 	{% macro <name>([ arg [ , arg]) %}
+//	{% macro <name>([ arg [ , arg]) %}
 //	Macro body
 //	{% endmacro %}
 func parseMacro(t *Tree, start Pos) (Node, error) {
@@ -598,7 +598,7 @@ body:
 
 // parseImport parses an import statement.
 //
-// 	{% import <name> as <alias> %}
+//	{% import <name> as <alias> %}
 func parseImport(t *Tree, start Pos) (Node, error) {
 	name, err := t.parseExpr()
 	if err != nil {
@@ -621,7 +621,7 @@ func parseImport(t *Tree, start Pos) (Node, error) {
 
 // parseImport parses an import statement.
 //
-// 	{% from <name> import <name>[ as <alias>[ , <name... ] ] %}
+//	{% from <name> import <name>[ as <alias>[ , <name... ] ] %}
 func parseFrom(t *Tree, start Pos) (Node, error) {
 	name, err := t.parseExpr()
 	if err != nil {
