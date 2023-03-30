@@ -672,7 +672,7 @@ func parseFrom(t *Tree, start Pos) (Node, error) {
 
 // parseVerbatim pulls body content within verbatim tag.
 //
-// 	{% verbatim %} body {% endverbatim %}
+//	{% verbatim %} body {% endverbatim %}
 func parseVerbatim(t *Tree, start Pos) (Node, error) {
 	tagName := "verbatim"
 
