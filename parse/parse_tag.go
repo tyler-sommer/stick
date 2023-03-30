@@ -1,6 +1,9 @@
 package parse
 
-import "errors"
+import (
+	"bytes"
+	"errors"
+)
 
 // A tagParser can parse the body of a tag, returning the resulting Node or an error.
 // TODO: This will be used to implement user-defined tags.
@@ -40,6 +43,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseImport(t, name.Pos)
 	case "from":
 		return parseFrom(t, name.Pos)
+	case "verbatim":
+		return parseVerbatim(t, name.Pos)
 	default:
 		return nil, newUnexpectedTokenError(name)
 	}
@@ -661,6 +666,36 @@ func parseFrom(t *Tree, start Pos) (Node, error) {
 			return NewFromNode(name, imports, start), nil
 		default:
 			return nil, newUnexpectedTokenError(tok)
+		}
+	}
+}
+
+// parseVerbatim pulls body content within verbatim tag.
+//
+// 	{% verbatim %} body {% endverbatim %}
+func parseVerbatim(t *Tree, start Pos) (Node, error) {
+	tagName := "verbatim"
+
+	body := bytes.Buffer{}
+
+	t.expect(tokenTagClose)
+	for {
+		switch tok := t.peek(); tok.tokenType {
+		case tokenEOF:
+			return nil, newUnexpectedEOFError(tok)
+		case tokenTagOpen:
+			tok := t.next()
+			tok, err := t.expect(tokenName)
+			if err != nil {
+				return nil, err
+			}
+			if tok.value == "end"+tagName {
+				t.expect(tokenTagClose)
+				return NewTextNode(body.String(), start), nil
+			}
+		default:
+			tok := t.next()
+			body.WriteString(tok.value)
 		}
 	}
 }

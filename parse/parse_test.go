@@ -357,6 +357,11 @@ var parseTests = []parseTest{
 						NewNameExpr("item", noPos),
 						NewStringExpr("Quantity", noPos), nil, noPos), noPos), noPos)),
 	),
+	newParseTest(
+		"verbatim tag",
+		"{% verbatim %}{{as is}}{% endverbatim %}",
+		mkModule(NewTextNode("{{as is}}", noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {
