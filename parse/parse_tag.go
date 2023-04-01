@@ -481,18 +481,28 @@ func parseUse(t *Tree, start Pos) (Node, error) {
 // parseSet parses a set statement.
 //
 //	{% set <var> = <expr> %}
+//	{% set <var> %}
+//	some value
+//	{% endset %}
 func parseSet(t *Tree, start Pos) (Node, error) {
 	tok, err := t.expect(tokenName)
 	if err != nil {
 		return nil, err
 	}
-	_, err = t.expectValue(tokenPunctuation, "=")
-	if err != nil {
-		return nil, err
-	}
-	expr, err := t.parseExpr()
-	if err != nil {
-		return nil, err
+	var expr Expr
+	switch tok := t.nextNonSpace(); tok.tokenType {
+	case tokenPunctuation:
+		expr, err = t.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+	case tokenTagClose:
+		expr, err = t.parseUntilTag(tok.Pos, "endset")
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, newUnexpectedTokenError(tok)
 	}
 	_, err = t.expect(tokenTagClose)
 	if err != nil {

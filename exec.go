@@ -245,15 +245,18 @@ func (s *state) walk(node parse.Node) error {
 			}
 		}
 	case *parse.MacroNode:
-		return s.walkMacroNode(node)
+		s.localMacros[node.Name] = node
+		return nil
 	case *parse.TextNode:
-		io.WriteString(s.out, node.Data)
+		_, err := io.WriteString(s.out, node.Data)
+		return err
 	case *parse.PrintNode:
 		v, err := s.evalExpr(node.X)
 		if err != nil {
 			return err
 		}
-		io.WriteString(s.out, CoerceString(v))
+		_, err = io.WriteString(s.out, CoerceString(v))
+		return err
 	case *parse.BlockNode:
 		name := node.Name
 		if block := s.getBlock(name); block != nil {
@@ -278,9 +281,9 @@ func (s *state) walk(node parse.Node) error {
 			return err
 		}
 		if CoerceBool(v) {
-			s.walk(node.Body)
+			return s.walk(node.Body)
 		} else {
-			s.walk(node.Else)
+			return s.walk(node.Else)
 		}
 	case *parse.IncludeNode:
 		tpl, ctx, err := s.walkIncludeNode(node)
@@ -448,10 +451,34 @@ func (s *state) walkUseNode(node *parse.UseNode) error {
 }
 
 func (s *state) walkSetNode(node *parse.SetNode) error {
-	v, err := s.evalExpr(node.X)
-	if err != nil {
-		return err
+	var v Value
+	switch node.X.(type) {
+	case *parse.BodyNode:
+		// when setting a variable with a body, it may contain any number
+		// of any type of node or expression. because of this, the value is
+		// always converted to a string which is stored in the variable name.
+		prevBuf := s.out
+		defer func() {
+			s.out = prevBuf
+		}()
+		buf := &bytes.Buffer{}
+		s.out = buf
+		err := s.walk(node.X)
+		if err != nil {
+			return err
+		}
+		v = string(buf.Bytes())
+	case parse.Expr:
+		// evaluates the right side of a basic set statement
+		var err error
+		v, err = s.evalExpr(node.X)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unsupported expression type in set statement: %T (bug?)", node.X)
 	}
+
 	s.scope.Set(node.Name, v)
 	return nil
 }
@@ -501,11 +528,6 @@ func (s *state) walkImportNode(node *parse.ImportNode) error {
 		macros[name] = macroDef{def}
 	}
 	s.scope.Set(node.Alias, macroSet{macros})
-	return nil
-}
-
-func (s *state) walkMacroNode(node *parse.MacroNode) error {
-	s.localMacros[node.Name] = node
 	return nil
 }
 
@@ -752,6 +774,9 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			vals[i] = val
 		}
 		return vals, nil
+
+	default:
+		return nil, fmt.Errorf("unable to evaluate unsupported Expr type: %T (bug?)", exp)
 	}
 
 	return v, nil

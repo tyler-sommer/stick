@@ -323,11 +323,11 @@ type SetNode struct {
 	Pos
 	TrimmableNode
 	Name string // Name of the var to set.
-	X    Expr   // Value of the var.
+	X    Node   // Value of the var.
 }
 
 // NewSetNode returns a SetNode.
-func NewSetNode(varName string, expr Expr, pos Pos) *SetNode {
+func NewSetNode(varName string, expr Node, pos Pos) *SetNode {
 	return &SetNode{pos, TrimmableNode{}, varName, expr}
 }
 

@@ -119,6 +119,36 @@ var tests = []execTest{
 		expect("a value"),
 	),
 	newExecTest(
+		"Set statement with body",
+		`{% set var1 = 'Hello,' %}{% set var2 %}{{ var1 }} World!{% endset %}{{ var2 }}`,
+		nil,
+		expect("Hello, World!"),
+	),
+	newExecTest(
+		"Set statement evaluates once",
+		`{% set var0 = 0 %}{% set var1 = 'Hello,' %}
+{% macro tester(var0, var1) %}
+{% set var0 = var0 + 1 %}
+{% endmacro %}
+{% set var2 %}{{ _self.tester(var0, var1) }}{{ var1 }} World!{% endset %}
+{{ var2 }}
+{{ var0 }}
+{{ var2 }}
+{{ var0 }}`,
+		nil,
+		expectContains("Hello, World!\n1\n\n\nHello, World!\n1"),
+	),
+	withPatch(newExecTest(
+		"Set statement invalid expr type",
+		`{% set v = 10 %}`,
+		nil,
+		expectErrorContains("unable to evaluate unsupported Expr type: *parse.TextNode"),
+	), func(n parse.Node) {
+		if sn, ok := n.(*parse.SetNode); ok {
+			sn.X = parse.NewTextNode("Hello", sn.X.Start())
+		}
+	}),
+	newExecTest(
 		"Do statement",
 		`{% do p.Name('Mister ') %}{{ p.Name('') }}`,
 		map[string]Value{"p": &fakePerson{"Meeseeks"}},
@@ -251,7 +281,11 @@ func (err *expectErrorMismatchError) Error() string {
 		}
 		return fmt.Sprintf("unexpected error %#v", err.actual.Error())
 	}
-	return fmt.Sprintf("%#v is not the expected error %s", err.actual, joinExpected(err.expected))
+	ex := "<nil>"
+	if err.actual != nil {
+		ex = fmt.Sprintf("%#v", err.actual.Error())
+	}
+	return fmt.Sprintf("%s is not the expected error %s", ex, joinExpected(err.expected))
 }
 
 func newExpectErrorMismatchError(actual error, expected ...string) error {
@@ -302,10 +336,13 @@ func expectNoError() expectedChecker {
 
 func expectErrorContains(expected ...string) expectedChecker {
 	return func(_ string, err error) error {
-		if err == nil {
+		if err == nil && len(expected) == 0 {
 			return nil
 		}
-		actual := err.Error()
+		actual := "<nil>"
+		if err != nil {
+			actual = err.Error()
+		}
 		for _, e := range expected {
 			if strings.Contains(actual, e) {
 				// actual error matches one of the expected values
@@ -377,7 +414,6 @@ func (v *nodeMonkeyPatcher) Leave(n parse.Node) {
 		v.patch(n)
 	}
 }
-
 
 func TestExec(t *testing.T) {
 	env := New(newTestLoader(
