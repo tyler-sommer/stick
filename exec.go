@@ -27,6 +27,8 @@ type state struct {
 	blocks  []map[string]*parse.BlockNode // Block scopes.
 	macros  map[string]*parse.MacroNode   // Imported macros.
 
+	localMacros map[string]*parse.MacroNode // Macros defined in the current template.
+
 	env   *Env        // The configured Stick environment.
 	scope *scopeStack // Handles execution scope.
 }
@@ -43,8 +45,20 @@ func newState(name string, out io.Writer, ctx map[string]Value, env *Env) *state
 		blocks: make([]map[string]*parse.BlockNode, 0),
 		macros: make(map[string]*parse.MacroNode),
 
+		localMacros: make(map[string]*parse.MacroNode),
+
 		env:   env,
 		scope: &scopeStack{[]map[string]Value{ctx}},
+	}
+}
+
+// A selfValue represents the special `_self` variable.
+type selfValue map[string]Value
+
+func (s *state) self() selfValue {
+	return selfValue{
+		"templateName": s.name,
+		"TemplateName": s.name,
 	}
 }
 
@@ -231,7 +245,7 @@ func (s *state) walk(node parse.Node) error {
 			}
 		}
 	case *parse.MacroNode:
-		return nil
+		return s.walkMacroNode(node)
 	case *parse.TextNode:
 		io.WriteString(s.out, node.Data)
 	case *parse.PrintNode:
@@ -490,6 +504,11 @@ func (s *state) walkImportNode(node *parse.ImportNode) error {
 	return nil
 }
 
+func (s *state) walkMacroNode(node *parse.MacroNode) error {
+	s.localMacros[node.Name] = node
+	return nil
+}
+
 func (s *state) walkFromNode(node *parse.FromNode) error {
 	tpl, err := s.evalExpr(node.Tpl)
 	if err != nil {
@@ -518,6 +537,9 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	case *parse.BoolExpr:
 		return exp.Value, nil
 	case *parse.NameExpr:
+		if exp.Name == "_self" {
+			return s.self(), nil
+		}
 		if val, ok := s.scope.Get(exp.Name); ok {
 			v = val
 		} else {
@@ -652,6 +674,14 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 				return nil, err
 			}
 			args[k] = v
+		}
+		if _, ok := c.(selfValue); ok {
+			if macro, ok := s.localMacros[CoerceString(k)]; ok {
+				return s.callMacro(macroDef{macro}, args...)
+			}
+			// no locally-defined macro defined with the given name, but the
+			// `_self` variable contains other special values such as `templateName`.
+			// this will be handled below by the main call to GetAttr.
 		}
 		if set, ok := c.(macroSet); ok {
 			if macro, ok := set.defs[CoerceString(k)]; ok {

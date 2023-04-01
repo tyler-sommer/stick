@@ -168,6 +168,12 @@ var tests = []execTest{
 		map[string]Value{"data": map[string]string{"A": "Foo", "B": "Bar"}},
 		expect("Foo default value Bar"),
 	},
+	{
+		"Accessing templateName on _self",
+		`Template: {{ _self.templateName }}`,
+		emptyCtx,
+		expect("Template: Template: {{ _self.templateName }}"),
+	},
 }
 
 type expectedChecker func(actual string) (string, bool)
