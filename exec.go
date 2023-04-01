@@ -652,6 +652,8 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			return CoerceBool(left) && CoerceBool(right), nil
 		case parse.OpBinaryOr:
 			return CoerceBool(left) || CoerceBool(right), nil
+		default:
+			return nil, fmt.Errorf("unsupported binary operator: %s (bug?)", exp.Op)
 		}
 	case *parse.FuncExpr:
 		return s.evalFunction(exp)

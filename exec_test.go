@@ -6,45 +6,66 @@ import (
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/tyler-sommer/stick/parse"
 )
 
-type execTest struct {
-	name     string
-	tpl      string
-	ctx      map[string]Value
-	expected expectedChecker
+// execTest is an extensible template execution test.
+type execTest interface {
+	name() string
+	tpl() string
+	ctx() map[string]Value
+	expected() expectedChecker
 }
 
-func tpl(name, content string) *testTemplate {
-	return &testTemplate{name, content}
+// _execTest is the standard implementation of execTest.
+type _execTest struct {
+	_name     string
+	_tpl      string
+	_ctx      map[string]Value
+	_expected expectedChecker
 }
 
-var emptyCtx = map[string]Value{}
+func (t _execTest) name() string              { return t._name }
+func (t _execTest) tpl() string               { return t._tpl }
+func (t _execTest) ctx() map[string]Value     { return t._ctx }
+func (t _execTest) expected() expectedChecker { return t._expected }
 
-type testPerson struct {
-	name string
+func newExecTest(name string, tpl string, ctx map[string]Value, expected expectedChecker) execTest {
+	return _execTest{name, tpl, ctx, expected}
 }
 
-func (p *testPerson) Name(prefix string) string {
-	p.name = prefix + p.name
-	return p.name
+// execTestWithPatch is an execTest with a monkey patch function defined.
+type execTestWithPatch struct {
+	execTest
+
+	patchNode func(parse.Node) // When patchNode is set, it will be called during parsing after each node is parsed.
+}
+
+// withPatch enhances a test with the ability to monkey patch the parsed nodes.
+//
+// Patching is used when a test needs to create alter the internal structure of a template.
+// This can be used to create an invalid tree that would not normally be parsed, but may be
+// necessary to test a certain error condition.
+func withPatch(t execTest, patch func(parse.Node)) execTestWithPatch {
+	return execTestWithPatch{t, patch}
 }
 
 var tests = []execTest{
-	{"Hello, World", "Hello, World!", emptyCtx, expect("Hello, World!")},
-	{"Hello, Tyler!", "Hello, {{ name }}!", map[string]Value{"name": "Tyler"}, expect("Hello, Tyler!")},
-	{"Simple if", `<li class="{% if active %}active{% endif %}">`, map[string]Value{"active": true}, expect(`<li class="active">`)},
-	{"Simple inheritance", `{% extends 'Hello, {% block test %}universe{% endblock %}!' %}{% block test %}world{% endblock %}`, emptyCtx, expect(`Hello, world!`)},
-	{"Simple include", `This is a test. {% include 'Hello, {{ name }}!' %} This concludes the test.`, map[string]Value{"name": "John"}, expect(`This is a test. Hello, John! This concludes the test.`)},
-	{"Include with", `{% include 'Hello, {{ name }}{{ value }}' with vars %}`, map[string]Value{"value": "!", "vars": map[string]Value{"name": "Adam"}}, expect(`Hello, Adam!`)},
-	{"Include with literal", `{% include 'Hello, {{ name }}{{ value }}' with {"name": "world", "value": "!"} only %}`, emptyCtx, expect(`Hello, world!`)},
-	{"Embed", `Well. {% embed 'Hello, {% block name %}World{% endblock %}!' %}{% block name %}Tyler{% endblock %}{% endembed %}`, emptyCtx, expect(`Well. Hello, Tyler!`)},
-	{"Constant null", `{% if test == null %}Yes{% else %}no{% endif %}`, map[string]Value{"test": nil}, expect(`Yes`)},
-	{"Constant bool", `{% if test == true %}Yes{% else %}no{% endif %}`, map[string]Value{"test": false}, expect(`no`)},
-	{"Chained attributes", `{{ entity.attr.Name }}`, map[string]Value{"entity": map[string]Value{"attr": struct{ Name string }{"Tyler"}}}, expect(`Tyler`)},
-	{"Attribute method call", `{{ entity.Name('lower') }}`, map[string]Value{"entity": &testPerson{"Johnny"}}, expect(`lowerJohnny`)},
-	{"For loop", `{% for i in 1..3 %}{{ i }}{% endfor %}`, emptyCtx, expect(`123`)},
-	{
+	newExecTest("Hello, World", "Hello, World!", nil, expect("Hello, World!")),
+	newExecTest("Hello, Tyler!", "Hello, {{ name }}!", map[string]Value{"name": "Tyler"}, expect("Hello, Tyler!")),
+	newExecTest("Simple if", `<li class="{% if active %}active{% endif %}">`, map[string]Value{"active": true}, expect(`<li class="active">`)),
+	newExecTest("Simple inheritance", `{% extends 'Hello, {% block test %}universe{% endblock %}!' %}{% block test %}world{% endblock %}`, nil, expect(`Hello, world!`)),
+	newExecTest("Simple include", `This is a test. {% include 'Hello, {{ name }}!' %} This concludes the test.`, map[string]Value{"name": "John"}, expect(`This is a test. Hello, John! This concludes the test.`)),
+	newExecTest("Include with", `{% include 'Hello, {{ name }}{{ value }}' with vars %}`, map[string]Value{"value": "!", "vars": map[string]Value{"name": "Adam"}}, expect(`Hello, Adam!`)),
+	newExecTest("Include with literal", `{% include 'Hello, {{ name }}{{ value }}' with {"name": "world", "value": "!"} only %}`, nil, expect(`Hello, world!`)),
+	newExecTest("Embed", `Well. {% embed 'Hello, {% block name %}World{% endblock %}!' %}{% block name %}Tyler{% endblock %}{% endembed %}`, nil, expect(`Well. Hello, Tyler!`)),
+	newExecTest("Constant null", `{% if test == null %}Yes{% else %}no{% endif %}`, map[string]Value{"test": nil}, expect(`Yes`)),
+	newExecTest("Constant bool", `{% if test == true %}Yes{% else %}no{% endif %}`, map[string]Value{"test": false}, expect(`no`)),
+	newExecTest("Chained attributes", `{{ entity.attr.Name }}`, map[string]Value{"entity": map[string]Value{"attr": struct{ Name string }{"Tyler"}}}, expect(`Tyler`)),
+	newExecTest("Attribute method call", `{{ entity.Name('lower') }}`, map[string]Value{"entity": &fakePerson{"Johnny"}}, expect(`lowerJohnny`)),
+	newExecTest("For loop", `{% for i in 1..3 %}{{ i }}{% endfor %}`, nil, expect(`123`)),
+	newExecTest(
 		"For loop with inner loop",
 		`{% for i in test %}{% for j in i %}{{ j }}{{ loop.index }}{{ loop.parent.index }}{% if loop.first %},{% endif %}{% if loop.last %};{% endif %}{% endfor %}{% if loop.first %}f{% endif %}{% if loop.last %}l{% endif %}:{% endfor %}`,
 		map[string]Value{
@@ -54,127 +75,137 @@ var tests = []execTest{
 				{7, 8, 9}},
 		},
 		expect(`111,221331;f:412,522632;:713,823933;l:`),
-	},
-	{
+	),
+	newExecTest(
 		"For loop variables",
 		`{% for i in 1..3 %}{{ i }}{{ loop.index }}{{ loop.index0 }}{{ loop.revindex }}{{ loop.revindex0 }}{{ loop.length }}{% if loop.first %}f{% endif %}{% if loop.last %}l{% endif %}{% endfor %}`,
-		emptyCtx,
+		nil,
 		expect(`110323f221213332103l`),
-	},
-	{"For else", `{% for i in emptySet %}{{ i }}{% else %}No results.{% endfor %}`, map[string]Value{"emptySet": []int{}}, expect(`No results.`)},
-	{
+	),
+	newExecTest("For else", `{% for i in emptySet %}{{ i }}{% else %}No results.{% endfor %}`, map[string]Value{"emptySet": []int{}}, expect(`No results.`)),
+	newExecTest(
 		"For map",
 		`{% for k, v in data %}Record {{ loop.index }}: {{ k }}: {{ v }}{% if not loop.last %} - {% endif %}{% endfor %}`,
 		map[string]Value{"data": map[string]float64{"Group A": 5.12, "Group B": 5.09}},
 		expect(`Record 1: Group A: 5.12 - Record 2: Group B: 5.09`, `Record 1: Group B: 5.09 - Record 2: Group A: 5.12`),
-	},
-	{
+	),
+	newExecTest(
 		"Some operators",
 		`{{ 4.5 * 10 }} - {{ 3 + true }} - {{ 3 + 4 == 7.0 }} - {{ 10 % 2 == 0 }} - {{ 10 ** 2 > 99.9 and 10 ** 2 <= 100 }}`,
-		emptyCtx,
+		nil,
 		expect(`45 - 4 - 1 - 1 - 1`),
-	},
-	{"In and not in", `{{ 5 in set and 4 not in set }}`, map[string]Value{"set": []int{5, 10}}, expect(`1`)},
-	{"Function call", `{{ multiply(num, 5) }}`, map[string]Value{"num": 10}, expect(`50`)},
-	{"Filter call", `Welcome, {{ name }}`, emptyCtx, expect(`Welcome, `)},
-	{"Filter call", `Welcome, {{ name|default('User') }}`, map[string]Value{"name": nil}, expect(`Welcome, User`)},
-	{"Filter call", `Welcome, {{ surname|default('User') }}`, map[string]Value{"name": nil}, expect(`Welcome, User`)},
-	{
+	),
+	newExecTest("In and not in", `{{ 5 in set and 4 not in set }}`, map[string]Value{"set": []int{5, 10}}, expect(`1`)),
+	newExecTest("Function call", `{{ multiply(num, 5) }}`, map[string]Value{"num": 10}, expect(`50`)),
+	newExecTest("Filter call", `Welcome, {{ name }}`, nil, expect(`Welcome, `)),
+	newExecTest("Filter call", `Welcome, {{ name|default('User') }}`, map[string]Value{"name": nil}, expect(`Welcome, User`)),
+	newExecTest("Filter call", `Welcome, {{ surname|default('User') }}`, map[string]Value{"name": nil}, expect(`Welcome, User`)),
+	newExecTest(
 		"Basic use statement",
 		`{% extends '{% block message %}{% endblock %}' %}{% use '{% block message %}Hello{% endblock %}' %}`,
-		emptyCtx,
+		nil,
 		expect("Hello"),
-	},
-	{
+	),
+	newExecTest(
 		"Extended use statement",
 		`{% extends '{% block message %}{% endblock %}' %}{% use '{% block message %}Hello{% endblock %}' with message as base_message %}{% block message %}{{ block('base_message') }}, World!{% endblock %}`,
-		emptyCtx,
+		nil,
 		expect("Hello, World!"),
-	},
-	{
+	),
+	newExecTest(
 		"Set statement",
 		`{% set val = 'a value' %}{{ val }}`,
-		emptyCtx,
+		nil,
 		expect("a value"),
-	},
-	{
+	),
+	newExecTest(
 		"Do statement",
 		`{% do p.Name('Mister ') %}{{ p.Name('') }}`,
-		map[string]Value{"p": &testPerson{"Meeseeks"}},
+		map[string]Value{"p": &fakePerson{"Meeseeks"}},
 		expect("Mister Meeseeks"),
-	},
-	{
+	),
+	newExecTest(
 		"Filter statement",
 		`{% filter upper %}hello, world!{% endfilter %}`,
-		emptyCtx,
+		nil,
 		expect("HELLO, WORLD!"),
-	},
-	{
+	),
+	newExecTest(
 		"Import statement",
 		`{% import 'macros.twig' as mac %}{{ mac.test("hi") }}`,
-		emptyCtx,
+		nil,
 		expect("test: hi"),
-	},
-	{
+	),
+	newExecTest(
 		"From statement",
 		`{% from 'macros.twig' import test, def as other %}{{ other("", "HI!") }}`,
-		emptyCtx,
+		nil,
 		expect("HI!"),
-	},
-	{
+	),
+	newExecTest(
 		"Ternary if",
 		`{{ false ? (true ? "Hello" : "World") : "Words" }}`,
-		emptyCtx,
+		nil,
 		expect("Words"),
-	},
-	{
+	),
+	newExecTest(
 		"Hash literal",
 		`{{ {"test": 1}["test"] }}`,
-		emptyCtx,
+		nil,
 		expect("1"),
-	},
-	{
+	),
+	newExecTest(
 		"Another hash literal",
 		`{% set v = {quadruple: "to the power of four!", 0: "ew", "0": "it's not that bad"} %}ew? {{ v.0 }} {{ v.quadruple }}`,
-		emptyCtx,
+		nil,
 		expect("ew? it's not that bad to the power of four!"),
-	},
-	{
+	),
+	newExecTest(
 		"Array literal",
 		`{{ ["test", 1, "bar"][2] }}`,
-		emptyCtx,
+		nil,
 		expect("bar"),
-	},
-	{
+	),
+	newExecTest(
 		"Another Array literal",
 		`{{ ["test", 1, "bar"].1 }}`,
-		emptyCtx,
+		nil,
 		expect("1"),
-	},
-	{
+	),
+	newExecTest(
 		"Comparison with or",
 		`{% if item1 == "banana" or item2 == "apple" %}At least one item is correct{% else %}neither item is correct{% endif %}`,
 		map[string]Value{"item1": "orange", "item2": "apple"},
 		expect("At least one item is correct"),
-	},
-	{
+	),
+	newExecTest(
 		"Non-existent map element without default",
 		`{{ data.A }} {{ data.NotThere }} {{ data.B }}`,
 		map[string]Value{"data": map[string]string{"A": "Foo", "B": "Bar"}},
 		expect("Foo  Bar"),
-	},
-	{
+	),
+	newExecTest(
 		"Non-existent map element with default",
 		`{{ data.A }} {{ data.NotThere|default("default value") }} {{ data.B }}`,
 		map[string]Value{"data": map[string]string{"A": "Foo", "B": "Bar"}},
 		expect("Foo default value Bar"),
-	},
-	{
+	),
+	newExecTest(
 		"Accessing templateName on _self",
 		`Template: {{ _self.templateName }}`,
-		emptyCtx,
+		nil,
 		expect("Template: Template: {{ _self.templateName }}"),
-	},
+	),
+	withPatch(_execTest{
+		"Unsupported binary operator",
+		`{{ 1 + 2 }}`,
+		nil,
+		expectErrorContains("unsupported binary operator: _"),
+	}, func(n parse.Node) {
+		if bn, ok := n.(*parse.BinaryExpr); ok {
+			bn.Op = "_"
+		}
+	}),
 }
 
 func joinExpected(expected []string) string {
@@ -269,13 +300,31 @@ func expectNoError() expectedChecker {
 	}
 }
 
+func expectErrorContains(expected ...string) expectedChecker {
+	return func(_ string, err error) error {
+		if err == nil {
+			return nil
+		}
+		actual := err.Error()
+		for _, e := range expected {
+			if strings.Contains(actual, e) {
+				// actual error matches one of the expected values
+				return nil
+			}
+		}
+		// no match was found for actual error
+		return newExpectErrorMismatchError(err, expected...)
+	}
+}
+
 func evaluateTest(t *testing.T, env *Env, test execTest) {
 	w := &bytes.Buffer{}
-	err := execute(test.tpl, w, test.ctx, env)
+	err := execute(test.tpl(), w, test.ctx(), env)
+	check := test.expected()
 
 	out := w.String()
-	if err := test.expected(out, err); err != nil {
-		t.Errorf("%s: %s", test.name, err)
+	if err := check(out, err); err != nil {
+		t.Errorf("%s: %s", test.name(), err)
 	}
 }
 
@@ -305,12 +354,30 @@ func (t *testTemplate) Contents() io.Reader {
 	return bytes.NewReader([]byte(t.contents))
 }
 
+func tpl(name, content string) *testTemplate {
+	return &testTemplate{name, content}
+}
+
 func (t *testLoader) Load(name string) (Template, error) {
 	if b, ok := t.templates[name]; ok {
 		return b, nil
 	}
 	return tpl(name, name), nil
 }
+
+// nodeMonkeyPatcher is a parse.NodeVisitor to enable tests to arbitrarily modify a parsed tree.
+type nodeMonkeyPatcher struct {
+	patch func(parse.Node)
+}
+
+func (v *nodeMonkeyPatcher) Enter(parse.Node) {}
+
+func (v *nodeMonkeyPatcher) Leave(n parse.Node) {
+	if v.patch != nil {
+		v.patch(n)
+	}
+}
+
 
 func TestExec(t *testing.T) {
 	env := New(newTestLoader(
@@ -343,7 +410,22 @@ func TestExec(t *testing.T) {
 		}
 		return val
 	}
+	patcher := &nodeMonkeyPatcher{}
+	env.Visitors = append(env.Visitors, patcher)
 	for _, test := range tests {
+		patcher.patch = nil
+		if t, ok := test.(execTestWithPatch); ok {
+			patcher.patch = t.patchNode
+		}
 		evaluateTest(t, env, test)
 	}
+}
+
+type fakePerson struct {
+	name string
+}
+
+func (p *fakePerson) Name(prefix string) string {
+	p.name = prefix + p.name
+	return p.name
 }
