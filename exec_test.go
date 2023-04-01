@@ -2,6 +2,7 @@ package stick
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -65,7 +66,7 @@ var tests = []execTest{
 		"For map",
 		`{% for k, v in data %}Record {{ loop.index }}: {{ k }}: {{ v }}{% if not loop.last %} - {% endif %}{% endfor %}`,
 		map[string]Value{"data": map[string]float64{"Group A": 5.12, "Group B": 5.09}},
-		optionExpect(`Record 1: Group A: 5.12 - Record 2: Group B: 5.09`, `Record 1: Group B: 5.09 - Record 2: Group A: 5.12`),
+		expect(`Record 1: Group A: 5.12 - Record 2: Group B: 5.09`, `Record 1: Group B: 5.09 - Record 2: Group A: 5.12`),
 	},
 	{
 		"Some operators",
@@ -176,35 +177,105 @@ var tests = []execTest{
 	},
 }
 
-type expectedChecker func(actual string) (string, bool)
+func joinExpected(expected []string) string {
+	res := ""
+	for i, e := range expected {
+		if i != 0 {
+			res = res + " or "
+		}
+		res = res + fmt.Sprintf("%#v", e)
+	}
+	return res
+}
 
-func expect(expected string) expectedChecker {
-	return func(actual string) (string, bool) {
-		return expected, expected == actual
+// expectMismatchError is an error that describes a test output that does not match what is expected.
+type expectMismatchError struct {
+	actual   string
+	expected []string
+	loose    bool
+}
+
+func (err *expectMismatchError) Error() string {
+	if err.loose {
+		return fmt.Sprintf("%#v does not contain %s", err.actual, joinExpected(err.expected))
+	}
+	return fmt.Sprintf("%#v does not equal %s", err.actual, joinExpected(err.expected))
+}
+
+func newExpectFailedError(loose bool, actual string, expected ...string) error {
+	return &expectMismatchError{actual, expected, loose}
+}
+
+// expectErrorMismatchError is an error that describes a test that does not result in the expected error.
+type expectErrorMismatchError struct {
+	actual   error
+	expected []string
+}
+
+func (err *expectErrorMismatchError) Error() string {
+	if len(err.expected) == 0 {
+		if err.actual == nil {
+			// shouldn't happen in practice, but technically possible
+			return fmt.Sprint("expected error mismatch but there was no actual error and no error was expected! (bug?)")
+		}
+		return fmt.Sprintf("unexpected error %#v", err.actual.Error())
+	}
+	return fmt.Sprintf("%#v is not the expected error %s", err.actual, joinExpected(err.expected))
+}
+
+func newExpectErrorMismatchError(actual error, expected ...string) error {
+	return &expectErrorMismatchError{actual, expected}
+}
+
+type expectedChecker func(actual string, err error) error
+
+func expectChained(expects ...expectedChecker) expectedChecker {
+	return func(actual string, err error) error {
+		for _, expect := range expects {
+			if e := expect(actual, err); e != nil {
+				return e
+			}
+		}
+		return nil
 	}
 }
 
-func optionExpect(expected ...string) expectedChecker {
-	return func(actual string) (string, bool) {
+func expect(expected ...string) expectedChecker {
+	return expectChained(expectNoError(), func(actual string, err error) error {
 		for _, exp := range expected {
 			if actual == exp {
-				return exp, true
+				return nil
 			}
 		}
-		return strings.Join(expected, "\n\tor:\n"), false
+		return newExpectFailedError(false, actual, expected...)
+	})
+}
+
+func expectContains(matches string) expectedChecker {
+	return expectChained(expectNoError(), func(actual string, err error) error {
+		if !strings.Contains(actual, matches) {
+			return newExpectFailedError(true, actual, matches)
+		}
+		return nil
+	})
+}
+
+func expectNoError() expectedChecker {
+	return func(actual string, err error) error {
+		if err != nil {
+			return newExpectErrorMismatchError(err)
+		}
+		return nil
 	}
 }
 
 func evaluateTest(t *testing.T, env *Env, test execTest) {
 	w := &bytes.Buffer{}
 	err := execute(test.tpl, w, test.ctx, env)
-	if err != nil {
-		t.Errorf("%s: unexpected error: %s", test.name, err.Error())
-		return
-	}
+
 	out := w.String()
-	if expected, ok := test.expected(out); !ok {
-		t.Errorf("%s: got:\n%s\n\texpected:\n%s", test.name, out, expected)
+	if err := test.expected(out, err); err != nil {
+		t.Errorf("%s: %s", test.name, err)
 	}
 }
 

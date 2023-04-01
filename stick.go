@@ -85,7 +85,13 @@ func New(loader Loader) *Env {
 	if loader == nil {
 		loader = &StringLoader{}
 	}
-	return &Env{loader, make(map[string]Func), make(map[string]Filter), make(map[string]Test), make([]parse.NodeVisitor, 0)}
+	return &Env{
+		Loader:    loader,
+		Functions: make(map[string]Func),
+		Filters:   make(map[string]Filter),
+		Tests:     make(map[string]Test),
+		Visitors:  make([]parse.NodeVisitor, 0),
+	}
 }
 
 // Register adds the given Extension to the Env.
