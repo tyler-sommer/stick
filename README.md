@@ -1,7 +1,7 @@
 Stick
 =====
 
-[![CircleCI](https://circleci.com/gh/tyler-sommer/stick/tree/master.svg?style=shield)](https://circleci.com/gh/tyler-sommer/stick/tree/master)
+[![CircleCI](https://circleci.com/gh/tyler-sommer/stick/tree/main.svg?style=shield)](https://circleci.com/gh/tyler-sommer/stick/tree/main)
 [![GoDoc](https://godoc.org/github.com/tyler-sommer/stick?status.svg)](https://godoc.org/github.com/tyler-sommer/stick)
 
 A Go language port of the [Twig](http://twig.sensiolabs.org/) templating engine. 
@@ -10,7 +10,7 @@ A Go language port of the [Twig](http://twig.sensiolabs.org/) templating engine.
 Overview
 --------
 
-This project is split over two main parts.
+This project is split across two parts.
 
 Package
 [`github.com/tyler-sommer/stick`](https://github.com/tyler-sommer/stick)
