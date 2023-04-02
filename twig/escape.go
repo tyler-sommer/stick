@@ -115,5 +115,5 @@ func (v *autoEscapeVisitor) guessTypeFromName(name string) string {
 		// Default to html
 		return "html"
 	}
-	return name[p:]
+	return name[p+1:]
 }
