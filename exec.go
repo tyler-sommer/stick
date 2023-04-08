@@ -343,6 +343,8 @@ func (s *state) walkChild(node parse.Node) error {
 		}
 	case *parse.UseNode:
 		return s.walkUseNode(node)
+	default:
+		return fmt.Errorf("walkChild: unsupported Node type: %T (bug?)", node)
 	}
 	return nil
 }

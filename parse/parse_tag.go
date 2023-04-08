@@ -688,7 +688,9 @@ func parseVerbatim(t *Tree, start Pos) (Node, error) {
 
 	body := bytes.Buffer{}
 
-	t.expect(tokenTagClose)
+	if _, err := t.expect(tokenTagClose); err != nil {
+		return nil, err
+	}
 	for {
 		switch tok := t.peek(); tok.tokenType {
 		case tokenEOF:
@@ -700,7 +702,9 @@ func parseVerbatim(t *Tree, start Pos) (Node, error) {
 				return nil, err
 			}
 			if tok.value == "end"+tagName {
-				t.expect(tokenTagClose)
+				if _, err := t.expect(tokenTagClose); err != nil {
+					return nil, err
+				}
 				return NewTextNode(body.String(), start), nil
 			}
 		default:
