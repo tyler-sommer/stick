@@ -1,16 +1,17 @@
 version: 2.1
 
-jobs:
-  "test":
-    parameters:
-      version:
-        type: string
-        default: "latest"
-    docker:
-      - image: "circleci/golang:<< parameters.version >>"
-    working_directory: /go/src/github.com/tyler-sommer/stick
-    environment:
-      GO111MODULE: "on"
+commands:
+  setup_go:
+    steps:
+      - run:
+          name: "Install latest version of Go"
+          command: |
+            GO_LATEST=$(curl https://go.dev/dl/?mode=json | jq -r '.[0].version')
+            go install golang.org/dl/$GO_LATEST@latest
+            $GO_LATEST download
+            sudo mv /usr/local/go/bin/go{,.old}
+            sudo mv /home/circleci/go/bin/$GO_LATEST /usr/local/go/bin/go
+  setup_project:
     steps:
       - checkout
       - run:
@@ -19,26 +20,70 @@ jobs:
       - run:
           name: "Install dependencies"
           command: go get -v ./...
-      - when:
-          condition:
-            equal: [ latest, << parameters.version >> ]
-          steps:
-            - run:
-                name: "Run go vet"
-                command: go vet -v ./...
-            - run:
-                name: "Run goimports"
-                command: |
-                  go install golang.org/x/tools/cmd/goimports@latest
-                  diff -u <(echo -n) <(goimports -d -e .)
+  vet_project:
+    steps:
+      - run:
+          name: "Run go vet"
+          command: go vet -v ./...
+      - run:
+          name: "Run goimports"
+          command: |
+            go install golang.org/x/tools/cmd/goimports@latest
+            diff -u <(echo -n) <(goimports -d -e .)
+  test_project:
+    steps:
       - run:
           name: "Run go test"
           command: go test -v -race ./...
 
+jobs:
+  build_legacy:
+    parameters:
+      version:
+        type: string
+        default: "1.9"
+    docker:
+      - image: "circleci/golang:<< parameters.version >>"
+    working_directory: "/go/src/github.com/tyler-sommer/stick"
+    environment:
+      GO111MODULE: "on"
+    steps:
+      - setup_project
+      - test_project
+  build:
+    parameters:
+      version:
+        type: string
+        default: "1.18"
+    docker:
+      - image: "cimg/go:<< parameters.version >>"
+    working_directory: "/home/circleci/go/src/github.com/tyler-sommer/stick"
+    environment:
+      GO111MODULE: "on"
+    steps:
+      - setup_project
+      - test_project
+  build_latest:
+    docker:
+      - image: "cimg/go:1.18"
+    working_directory: "/home/circleci/go/src/github.com/tyler-sommer/stick"
+    environment:
+      GO111MODULE: "on"
+    steps:
+      - setup_go
+      - setup_project
+      - vet_project
+      - test_project
+
 workflows:
   tests:
     jobs:
-      - test:
+      - build:
           matrix:
             parameters:
-              version: ["latest", "1.17", "1.16", "1.15", "1.14", "1.13", "1.12", "1.11", "1.10", "1.9", "1.8", "1.7"]
+              version: [ "1.20", "1.19", "1.18", "1.17", "1.16", "1.15", "1.14", "1.13", "1.12", "1.11", "1.10" ]
+      - build_legacy:
+          matrix:
+            parameters:
+              version: [ "1.9", "1.8", "1.7" ]
+      - build_latest

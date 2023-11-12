@@ -1,6 +1,9 @@
 package parse
 
-import "errors"
+import (
+	"bytes"
+	"errors"
+)
 
 // A tagParser can parse the body of a tag, returning the resulting Node or an error.
 // TODO: This will be used to implement user-defined tags.
@@ -40,6 +43,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseImport(t, name.Pos)
 	case "from":
 		return parseFrom(t, name.Pos)
+	case "verbatim":
+		return parseVerbatim(t, name.Pos)
 	default:
 		return nil, newUnexpectedTokenError(name)
 	}
@@ -108,7 +113,7 @@ func (t *Tree) parseUntilTag(start Pos, names ...string) (*BodyNode, error) {
 
 // parseExtends parses an extends tag.
 //
-//   {% extends <expr> %}
+//	{% extends <expr> %}
 func parseExtends(t *Tree, start Pos) (Node, error) {
 	if t.Root().Parent != nil {
 		return nil, newMultipleExtendsError(start)
@@ -129,8 +134,8 @@ func parseExtends(t *Tree, start Pos) (Node, error) {
 // parseBlock parses a block and any body it may contain.
 // TODO: {% endblock <name> %} support
 //
-//   {% block <name> %}
-//   {% endblock %}
+//	{% block <name> %}
+//	{% endblock %}
 func parseBlock(t *Tree, start Pos) (Node, error) {
 	blockName, err := t.expect(tokenName)
 	if err != nil {
@@ -152,8 +157,8 @@ func parseBlock(t *Tree, start Pos) (Node, error) {
 
 // parseIf parses the opening tag and conditional expression in an if-statement.
 //
-//   {% if <expr> %}
-//   {% elseif <expr> %}
+//	{% if <expr> %}
+//	{% elseif <expr> %}
 func parseIf(t *Tree, start Pos) (Node, error) {
 	cond, err := t.parseExpr()
 	if err != nil {
@@ -172,8 +177,8 @@ func parseIf(t *Tree, start Pos) (Node, error) {
 
 // parseIfBody parses the body of an if statement.
 //
-//   {% else %}
-//   {% endif %}
+//	{% else %}
+//	{% endif %}
 func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) {
 	body = NewBodyNode(start)
 	for {
@@ -235,10 +240,10 @@ func parseIfBody(t *Tree, start Pos) (body *BodyNode, els *BodyNode, err error) 
 // parseFor parses a for loop construct.
 // TODO: This needs proper error reporting.
 //
-//   {% for <name, [name]> in <expr> %}
-//   {% for <name, [name]> in <expr> if <expr> %}
-//   {% else %}
-//   {% endfor %}
+//	{% for <name, [name]> in <expr> %}
+//	{% for <name, [name]> in <expr> if <expr> %}
+//	{% else %}
+//	{% endfor %}
 func parseFor(t *Tree, start Pos) (*ForNode, error) {
 	var kn, vn string
 	nam, err := t.parseInnerExpr()
@@ -370,10 +375,10 @@ func parseEmbed(t *Tree, start Pos) (Node, error) {
 // parseIncludeOrEmbed parses an include or embed tag's parameters.
 // TODO: Implement "ignore missing" support
 //
-//   {% include <expr> %}
-//   {% include <expr> with <expr> %}
-//   {% include <expr> with <expr> only %}
-//   {% include <expr> only %}
+//	{% include <expr> %}
+//	{% include <expr> with <expr> %}
+//	{% include <expr> with <expr> only %}
+//	{% include <expr> only %}
 func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
 	expr, err = t.parseExpr()
 	if err != nil {
@@ -475,19 +480,29 @@ func parseUse(t *Tree, start Pos) (Node, error) {
 
 // parseSet parses a set statement.
 //
-//   {% set <var> = <expr> %}
+//	{% set <var> = <expr> %}
+//	{% set <var> %}
+//	some value
+//	{% endset %}
 func parseSet(t *Tree, start Pos) (Node, error) {
 	tok, err := t.expect(tokenName)
 	if err != nil {
 		return nil, err
 	}
-	_, err = t.expectValue(tokenPunctuation, "=")
-	if err != nil {
-		return nil, err
-	}
-	expr, err := t.parseExpr()
-	if err != nil {
-		return nil, err
+	var expr Expr
+	switch tok := t.nextNonSpace(); tok.tokenType {
+	case tokenPunctuation:
+		expr, err = t.parseExpr()
+		if err != nil {
+			return nil, err
+		}
+	case tokenTagClose:
+		expr, err = t.parseUntilTag(tok.Pos, "endset")
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, newUnexpectedTokenError(tok)
 	}
 	_, err = t.expect(tokenTagClose)
 	if err != nil {
@@ -498,7 +513,7 @@ func parseSet(t *Tree, start Pos) (Node, error) {
 
 // parseDo parses a do statement.
 //
-//   {% do <expr> %}
+//	{% do <expr> %}
 func parseDo(t *Tree, start Pos) (Node, error) {
 	expr, err := t.parseExpr()
 	if err != nil {
@@ -513,11 +528,11 @@ func parseDo(t *Tree, start Pos) (Node, error) {
 
 // parseFilter parses a filter statement.
 //
-// 	{% filter <name> %}
+//	{% filter <name> %}
 //
 // Multiple filters can be applied to a block:
 //
-// 	{% filter <name>|<name>|<name> %}
+//	{% filter <name>|<name>|<name> %}
 func parseFilter(t *Tree, start Pos) (Node, error) {
 	var filters []string
 	for {
@@ -550,7 +565,7 @@ body:
 
 // parseMacro parses a macro definition.
 //
-// 	{% macro <name>([ arg [ , arg]) %}
+//	{% macro <name>([ arg [ , arg]) %}
 //	Macro body
 //	{% endmacro %}
 func parseMacro(t *Tree, start Pos) (Node, error) {
@@ -598,7 +613,7 @@ body:
 
 // parseImport parses an import statement.
 //
-// 	{% import <name> as <alias> %}
+//	{% import <name> as <alias> %}
 func parseImport(t *Tree, start Pos) (Node, error) {
 	name, err := t.parseExpr()
 	if err != nil {
@@ -621,7 +636,7 @@ func parseImport(t *Tree, start Pos) (Node, error) {
 
 // parseImport parses an import statement.
 //
-// 	{% from <name> import <name>[ as <alias>[ , <name... ] ] %}
+//	{% from <name> import <name>[ as <alias>[ , <name... ] ] %}
 func parseFrom(t *Tree, start Pos) (Node, error) {
 	name, err := t.parseExpr()
 	if err != nil {
@@ -661,6 +676,40 @@ func parseFrom(t *Tree, start Pos) (Node, error) {
 			return NewFromNode(name, imports, start), nil
 		default:
 			return nil, newUnexpectedTokenError(tok)
+		}
+	}
+}
+
+// parseVerbatim pulls body content within verbatim tag.
+//
+//	{% verbatim %} body {% endverbatim %}
+func parseVerbatim(t *Tree, start Pos) (Node, error) {
+	tagName := "verbatim"
+
+	body := bytes.Buffer{}
+
+	if _, err := t.expect(tokenTagClose); err != nil {
+		return nil, err
+	}
+	for {
+		switch tok := t.peek(); tok.tokenType {
+		case tokenEOF:
+			return nil, newUnexpectedEOFError(tok)
+		case tokenTagOpen:
+			tok := t.next()
+			tok, err := t.expect(tokenName)
+			if err != nil {
+				return nil, err
+			}
+			if tok.value == "end"+tagName {
+				if _, err := t.expect(tokenTagClose); err != nil {
+					return nil, err
+				}
+				return NewTextNode(body.String(), start), nil
+			}
+		default:
+			tok := t.next()
+			body.WriteString(tok.value)
 		}
 	}
 }

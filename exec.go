@@ -27,6 +27,8 @@ type state struct {
 	blocks  []map[string]*parse.BlockNode // Block scopes.
 	macros  map[string]*parse.MacroNode   // Imported macros.
 
+	localMacros map[string]*parse.MacroNode // Macros defined in the current template.
+
 	env   *Env        // The configured Stick environment.
 	scope *scopeStack // Handles execution scope.
 }
@@ -43,8 +45,20 @@ func newState(name string, out io.Writer, ctx map[string]Value, env *Env) *state
 		blocks: make([]map[string]*parse.BlockNode, 0),
 		macros: make(map[string]*parse.MacroNode),
 
+		localMacros: make(map[string]*parse.MacroNode),
+
 		env:   env,
 		scope: &scopeStack{[]map[string]Value{ctx}},
+	}
+}
+
+// A selfValue represents the special `_self` variable.
+type selfValue map[string]Value
+
+func (s *state) self() selfValue {
+	return selfValue{
+		"templateName": s.name,
+		"TemplateName": s.name,
 	}
 }
 
@@ -165,7 +179,7 @@ func (s *scopeStack) Set(name string, val Value) {
 // without destroying the value in the parent scope.
 //
 //	fnParam := // an function argument's name
-// 	s.scope.push()
+//	s.scope.push()
 //	defer s.scope.pop()
 //	s.scope.setLocal(fnParam, "some value")
 func (s *scopeStack) setLocal(name string, val Value) {
@@ -231,15 +245,18 @@ func (s *state) walk(node parse.Node) error {
 			}
 		}
 	case *parse.MacroNode:
+		s.localMacros[node.Name] = node
 		return nil
 	case *parse.TextNode:
-		io.WriteString(s.out, node.Data)
+		_, err := io.WriteString(s.out, node.Data)
+		return err
 	case *parse.PrintNode:
 		v, err := s.evalExpr(node.X)
 		if err != nil {
 			return err
 		}
-		io.WriteString(s.out, CoerceString(v))
+		_, err = io.WriteString(s.out, CoerceString(v))
+		return err
 	case *parse.BlockNode:
 		name := node.Name
 		if block := s.getBlock(name); block != nil {
@@ -264,9 +281,9 @@ func (s *state) walk(node parse.Node) error {
 			return err
 		}
 		if CoerceBool(v) {
-			s.walk(node.Body)
+			return s.walk(node.Body)
 		} else {
-			s.walk(node.Else)
+			return s.walk(node.Else)
 		}
 	case *parse.IncludeNode:
 		tpl, ctx, err := s.walkIncludeNode(node)
@@ -326,6 +343,9 @@ func (s *state) walkChild(node parse.Node) error {
 		}
 	case *parse.UseNode:
 		return s.walkUseNode(node)
+	default:
+		// No need to handle other nodes. This function only populates blocks from a
+		// referenced template (in a use statement) and does not actually execute anything.
 	}
 	return nil
 }
@@ -434,10 +454,34 @@ func (s *state) walkUseNode(node *parse.UseNode) error {
 }
 
 func (s *state) walkSetNode(node *parse.SetNode) error {
-	v, err := s.evalExpr(node.X)
-	if err != nil {
-		return err
+	var v Value
+	switch node.X.(type) {
+	case *parse.BodyNode:
+		// when setting a variable with a body, it may contain any number
+		// of any type of node or expression. because of this, the value is
+		// always converted to a string which is stored in the variable name.
+		prevBuf := s.out
+		defer func() {
+			s.out = prevBuf
+		}()
+		buf := &bytes.Buffer{}
+		s.out = buf
+		err := s.walk(node.X)
+		if err != nil {
+			return err
+		}
+		v = string(buf.Bytes())
+	case parse.Expr:
+		// evaluates the right side of a basic set statement
+		var err error
+		v, err = s.evalExpr(node.X)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unsupported expression type in set statement: %T (bug?)", node.X)
 	}
+
 	s.scope.Set(node.Name, v)
 	return nil
 }
@@ -518,6 +562,9 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	case *parse.BoolExpr:
 		return exp.Value, nil
 	case *parse.NameExpr:
+		if exp.Name == "_self" {
+			return s.self(), nil
+		}
 		if val, ok := s.scope.Get(exp.Name); ok {
 			v = val
 		} else {
@@ -630,6 +677,8 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			return CoerceBool(left) && CoerceBool(right), nil
 		case parse.OpBinaryOr:
 			return CoerceBool(left) || CoerceBool(right), nil
+		default:
+			return nil, fmt.Errorf("unsupported binary operator: %s (bug?)", exp.Op)
 		}
 	case *parse.FuncExpr:
 		return s.evalFunction(exp)
@@ -652,6 +701,14 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 				return nil, err
 			}
 			args[k] = v
+		}
+		if _, ok := c.(selfValue); ok {
+			if macro, ok := s.localMacros[CoerceString(k)]; ok {
+				return s.callMacro(macroDef{macro}, args...)
+			}
+			// no locally-defined macro defined with the given name, but the
+			// `_self` variable contains other special values such as `templateName`.
+			// this will be handled below by the main call to GetAttr.
 		}
 		if set, ok := c.(macroSet); ok {
 			if macro, ok := set.defs[CoerceString(k)]; ok {
@@ -720,6 +777,9 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			vals[i] = val
 		}
 		return vals, nil
+
+	default:
+		return nil, fmt.Errorf("unable to evaluate unsupported Expr type: %T (bug?)", exp)
 	}
 
 	return v, nil

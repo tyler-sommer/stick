@@ -5,14 +5,14 @@ Stick executes Twig templates and allows users to define custom Functions,
 Filters, and Tests. The parser allows parse-time node inspection with
 NodeVisitors, and a template Loader to load named templates from any source.
 
-Twig compatibility
+# Twig compatibility
 
 Stick itself is a parser and template executor. If you're looking for Twig
-compatibility, check out package https://godoc.org/github.com/tyler-sommer/stick/twig
+compatibility, check out package https://pkg.go.dev/github.com/tyler-sommer/stick/twig
 
 For additional information on Twig, check http://twig.sensiolabs.org/
 
-Basic usage
+# Basic usage
 
 Obligatory "Hello, World!" example:
 
@@ -38,8 +38,7 @@ Another example, using a FilesystemLoader and responding to an HTTP request:
 	})
 	http.ListenAndServe(":80", nil)
 
-
-Types and values
+# Types and values
 
 Any user value in Stick is represented by a stick.Value. There are three main types
 in Stick when it comes to built-in operations: strings, numbers, and booleans. Of note,
@@ -81,8 +80,7 @@ number, or boolean, respectively.
 	// Coerce any vale to a boolean
 	b := stick.CoerceBool(anything)
 
-
-User defined helpers
+# User defined helpers
 
 It is possible to define custom Filters, Functions, and boolean Tests available to
 your Stick templates. Each user-defined type is simply a function with a specific
@@ -125,6 +123,5 @@ User-defined types are added to an Env after it is created. For example:
 		// Probably not that useful.
 		return stick.CoerceBool(val) == false
 	}
-
 */
 package stick

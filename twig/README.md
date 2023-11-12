@@ -1,7 +1,7 @@
 Twig
 ====
 
-[![Build Status](https://travis-ci.org/tyler-sommer/stick.svg?branch=master)](https://travis-ci.org/tyler-sommer/stick)
+[![CircleCI](https://circleci.com/gh/tyler-sommer/stick/tree/main.svg?style=shield)](https://circleci.com/gh/tyler-sommer/stick/tree/main)
 [![GoDoc](https://godoc.org/github.com/tyler-sommer/stick/twig?status.svg)](https://godoc.org/github.com/tyler-sommer/stick/twig)
 
 Provides [Twig-compatibility](http://twig.sensiolabs.org/) for the stick
@@ -65,5 +65,5 @@ func main() {
 }
 ```
 
-See [godoc for more information](https://godoc.org/github.com/tyler-sommer/stick/twig).
+See [godoc for more information](https://pkg.go.dev/github.com/tyler-sommer/stick/twig).
 

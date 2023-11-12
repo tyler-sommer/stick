@@ -1,6 +1,7 @@
 package stick // import "github.com/tyler-sommer/stick"
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/tyler-sommer/stick/parse"
@@ -85,7 +86,13 @@ func New(loader Loader) *Env {
 	if loader == nil {
 		loader = &StringLoader{}
 	}
-	return &Env{loader, make(map[string]Func), make(map[string]Filter), make(map[string]Test), make([]parse.NodeVisitor, 0)}
+	return &Env{
+		Loader:    loader,
+		Functions: make(map[string]Func),
+		Filters:   make(map[string]Filter),
+		Tests:     make(map[string]Test),
+		Visitors:  make([]parse.NodeVisitor, 0),
+	}
 }
 
 // Register adds the given Extension to the Env.
@@ -96,6 +103,16 @@ func (env *Env) Register(e Extension) error {
 // Execute parses and executes the given template.
 func (env *Env) Execute(tpl string, out io.Writer, ctx map[string]Value) error {
 	return execute(tpl, out, ctx, env)
+}
+
+// ExecuteSafe executes the template but does not output anything if an error occurs.
+func (env *Env) ExecuteSafe(tpl string, out io.Writer, ctx map[string]Value) error {
+	buf := &bytes.Buffer{}
+	if err := env.Execute(tpl, buf, ctx); err != nil {
+		return err
+	}
+	_, err := io.Copy(out, buf)
+	return err
 }
 
 // Parse loads and parses the given template.

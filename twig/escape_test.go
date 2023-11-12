@@ -1,9 +1,9 @@
 package twig_test
 
 import (
-	"testing"
-
+	"bytes"
 	"os"
+	"testing"
 
 	"github.com/tyler-sommer/stick"
 	"github.com/tyler-sommer/stick/parse"
@@ -73,5 +73,25 @@ func TestAutoEscapeVisitor(t *testing.T) {
 	}
 	if fv := fa.Text; fv != "text" {
 		t.Errorf("expected 'text', got %s", fv)
+	}
+}
+
+func TestAutoEscapeExtension(t *testing.T) {
+	env := twig.New(&stick.MemoryLoader{Templates: map[string]string{
+		"index.html.twig": "<html><script>{% include 'utils.js.twig' %}</script><body>Hello, {{ user }}!</body></html>",
+		"utils.js.twig":   `console.log("{{ message }}");`,
+	}})
+	buf := bytes.Buffer{}
+	err := env.Execute("index.html.twig", &buf, map[string]stick.Value{
+		"user":    "<a href='bad'>tyler-sommer</a>",
+		"message": "bad '\" message",
+	})
+	if err != nil {
+		t.Errorf("unexpected error executing template: %s", err)
+	}
+	expected := "<html><script>console.log(\"bad\\u0020\\u0027\\u0022\\u0020message\");</script><body>Hello, &lt;a href=&#39;bad&#39;&gt;tyler-sommer&lt;/a&gt;!</body></html>"
+	actual := buf.String()
+	if actual != expected {
+		t.Errorf("expected output to be escaped, but got: %s", actual)
 	}
 }

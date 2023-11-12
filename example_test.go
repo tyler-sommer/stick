@@ -1,14 +1,11 @@
 package stick_test
 
 import (
-	"fmt"
-	"os"
-
-	"strconv"
-
 	"bytes"
-
+	"fmt"
 	"io/ioutil"
+	"os"
+	"strconv"
 
 	"github.com/tyler-sommer/stick"
 )
@@ -23,6 +20,18 @@ func ExampleEnv_Execute() {
 		fmt.Println(err)
 	}
 	// Output: Hello, World!
+}
+
+// An example of executing a template that avoids writing any output if an error occurs.
+func ExampleEnv_ExecuteSafe() {
+	env := stick.New(nil)
+
+	params := map[string]stick.Value{"name": "World"}
+	err := env.ExecuteSafe(`Hello, {{ 'world' | fakefilter }}!`, os.Stdout, params)
+	if err != nil {
+		fmt.Println(err)
+	}
+	// Output: Undeclared filter "fakefilter"
 }
 
 type exampleType struct{}
@@ -64,7 +73,7 @@ func ExampleCoerceBool() {
 // This demonstrates how a type can be coerced to a number.
 // The struct in this example has the Number method implemented.
 //
-// 	func (e exampleType) Number() float64 {
+//	func (e exampleType) Number() float64 {
 //		return 3.14
 //	}
 func ExampleNumber() {

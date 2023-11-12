@@ -264,6 +264,11 @@ var parseTests = []parseTest{
 		mkModule(NewSetNode("varn", NewStringExpr("test", noPos), noPos)),
 	),
 	newParseTest(
+		"set statement with a body",
+		"{% set varg %}some value{% endset %}",
+		mkModule(NewSetNode("varg", NewBodyNode(noPos, NewTextNode("some value", noPos)), noPos)),
+	),
+	newParseTest(
 		"do statement",
 		"{% do somefunc() %}",
 		mkModule(NewDoNode(NewFuncExpr("somefunc", []Expr{}, noPos), noPos)),
@@ -356,6 +361,11 @@ var parseTests = []parseTest{
 					NewGetAttrExpr(
 						NewNameExpr("item", noPos),
 						NewStringExpr("Quantity", noPos), nil, noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"verbatim tag",
+		"{% verbatim %}{{as is}}{% endverbatim %}",
+		mkModule(NewTextNode("{{as is}}", noPos)),
 	),
 }
 
