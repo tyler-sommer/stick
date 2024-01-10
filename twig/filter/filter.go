@@ -392,8 +392,7 @@ func filterNumberFormat(ctx stick.Context, val stick.Value, args ...stick.Value)
 }
 
 func filterRaw(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	return stick.NewSafeValue(stick.CoerceString(val), "html", "html_attr", "js", "css", "url")
 }
 
 func filterReplace(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {

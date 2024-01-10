@@ -130,6 +130,13 @@ func TestFilters(t *testing.T) {
 			},
 		},
 		{"urlencode", func() stick.Value { return filterURLEncode(nil, "http://test.com/dude?sweet=33&1=2") }, "http%3A%2F%2Ftest.com%2Fdude%3Fsweet%3D33%261%3D2"},
+		{"raw", func() stick.Value {
+			safeVal, ok := filterRaw(nil, "<p>test</p>").(stick.SafeValue)
+			if !ok {
+				t.Errorf("Expected filterRaw to return a SafeValue")
+			}
+			return safeVal.Value()
+		}, "<p>test</p>"},
 	}
 	for _, test := range tests {
 		matches := false
