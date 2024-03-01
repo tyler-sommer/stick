@@ -133,8 +133,15 @@ func filterDate(ctx stick.Context, val stick.Value, args ...stick.Value) stick.V
 	var requestedLayout string
 	dt, ok := val.(time.Time)
 	if !ok {
-		// TODO: trigger runtime error
-		return nil
+		// if the value is a string of "now" then we can use the current time
+		// @doc https://twig.symfony.com/doc/3.x/filters/date.html
+		valString := stick.CoerceString(val)
+		if strings.ToLower(valString) == "now" {
+			dt = time.Now()
+		} else {
+			// TODO: trigger runtime error
+			return nil
+		}
 	}
 
 	if l := len(args); l >= 1 {

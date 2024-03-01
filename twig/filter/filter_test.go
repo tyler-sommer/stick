@@ -69,6 +69,7 @@ func TestFilters(t *testing.T) {
 		{"date u", func() stick.Value { return filterDate(nil, testDate2, "s.u") }, "44.123456"},
 		{"date S", func() stick.Value { return filterDate(nil, testDate, "S") }, "st"},
 		{"date S 2", func() stick.Value { return filterDate(nil, testDate2, "S") }, "rd"},
+		{"date now", func() stick.Value { return filterDate(nil, "now", "Y-m-d") }, time.Now().Format("2006-01-02")},
 		{"join", func() stick.Value { return filterJoin(nil, []string{"a", "b", "c"}, "-") }, "a-b-c"},
 		{"round common down", func() stick.Value { return filterRound(nil, 3.4) }, 3.0},
 		{"round common up", func() stick.Value { return filterRound(nil, 3.6) }, 4.0},
