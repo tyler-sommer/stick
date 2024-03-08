@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/shopspring/decimal"
 )
@@ -207,7 +208,12 @@ func CoerceString(v Value) string {
 		if vc == true {
 			return "1" // Twig compatibility (aka PHP compatibility)
 		}
-
+	case []interface{}:
+		var stringSlice []string
+		for _, element := range vc {
+			stringSlice = append(stringSlice, fmt.Sprintf("%v", element))
+		}
+		return strings.Join(stringSlice, ", ")
 	}
 	return ""
 }
