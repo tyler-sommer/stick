@@ -1,6 +1,7 @@
 package stick
 
 import (
+	"github.com/tyler-sommer/stick/testdata"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -17,6 +18,23 @@ func TestFilesystemLoader(t *testing.T) {
 	}
 
 	_, e = l.Load("testdata/doesnt_exists.txt.twig")
+	if e == nil {
+		t.Error("expected error, got nil")
+	} else if !os.IsNotExist(e) {
+		t.Errorf("expected os.NotExist error, got %s", e)
+	}
+}
+
+func TestEmbedLoader(t *testing.T) {
+	l := NewEmbedLoader(testdata.EmbedFS)
+	f, e := l.Load("base.txt.twig")
+	if e != nil {
+		t.Errorf("expected load to succeed. %s", e)
+	} else if f.Name() != "base.txt.twig" {
+		t.Errorf("unexpected template name: %s", f.Name())
+	}
+
+	_, e = l.Load("doesnt_exists.txt.twig")
 	if e == nil {
 		t.Error("expected error, got nil")
 	} else if !os.IsNotExist(e) {
