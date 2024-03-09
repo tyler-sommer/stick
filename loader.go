@@ -2,6 +2,7 @@ package stick
 
 import (
 	"bytes"
+	"embed"
 	"io"
 	"os"
 	"path/filepath"
@@ -76,6 +77,23 @@ func NewFilesystemLoader(rootDir string) *FilesystemLoader {
 func (l *FilesystemLoader) Load(name string) (Template, error) {
 	path := filepath.Join(l.rootDir, name)
 	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	return &fileTemplate{name, f}, nil
+}
+
+type EmbedLoader struct {
+	fs embed.FS
+}
+
+// NewEmbedLoader creates a new EmbedLoader.
+func NewEmbedLoader(fs embed.FS) *EmbedLoader {
+	return &EmbedLoader{fs: fs}
+}
+
+func (l *EmbedLoader) Load(name string) (Template, error) {
+	f, err := l.fs.Open(name)
 	if err != nil {
 		return nil, err
 	}
