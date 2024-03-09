@@ -511,7 +511,11 @@ func (s *state) walkFilterNode(node *parse.FilterNode) error {
 		if !ok {
 			return errors.New("undefined filter \"" + v + "\".")
 		}
-		val = CoerceString(f(s, val))
+		res, err := s.callUserFilter(f, val)
+		if err != nil {
+			return err
+		}
+		val = CoerceString(res)
 	}
 	io.WriteString(prevBuf, val)
 	return nil
@@ -633,13 +637,17 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			}
 			return !res, nil
 		case parse.OpBinaryIs:
-			if fn, ok := right.(func(v Value) bool); ok {
-				return fn(left), nil
+			if fn, ok := right.(func(v Value) (bool, error)); ok {
+				return fn(left)
 			}
 			return nil, errors.New("right operand was of unexpected type")
 		case parse.OpBinaryIsNot:
-			if fn, ok := right.(func(v Value) bool); ok {
-				return !fn(left), nil
+			if fn, ok := right.(func(v Value) (bool, error)); ok {
+				v, err := fn(left)
+				if err != nil {
+					return false, err
+				}
+				return !v, nil
 			}
 			return nil, errors.New("right operand was of unexpected type")
 		case parse.OpBinaryMatches:
@@ -731,8 +739,9 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 				}
 				args[i] = v
 			}
-			return func(v Value) bool {
-				return tfn(s, v, args...)
+			// This will be invoked inside the Binary "is" or "is not" evaluation.
+			return func(v Value) (bool, error) {
+				return s.callUserTest(tfn, v, args...)
 			}, nil
 		}
 		return nil, fmt.Errorf(`unknown test "%v"`, exp.Name)
@@ -849,9 +858,61 @@ func (s *state) evalFunction(exp *parse.FuncExpr) (Value, error) {
 			}
 			args[i] = v
 		}
-		return fn(s, args...), nil
+		return s.callUserFunc(fn, args...)
 	}
 	return nil, errors.New("Undeclared function \"" + fnName + "\"")
+}
+
+func recoverUserPanic(rv interface{}) error {
+	if e, ok := rv.(error); ok {
+		return e
+	}
+	return fmt.Errorf("recovered non-error panic: %s", rv)
+}
+
+// callUserTest calls the given Test with args and recovers any panic within.
+//
+// User-defined tests may panic to signal that an error has occurred and template
+// execution should be halted. This will be removed in v2 of stick in favor of Tests
+// returning a bool or an error.
+func (s *state) callUserTest(fn Test, val Value, args ...Value) (v bool, err error) {
+	defer func() {
+		if rv := recover(); rv != nil {
+			err = recoverUserPanic(rv)
+			v = false
+		}
+	}()
+	return fn(s, val, args...), nil
+}
+
+// callUserFunc calls the given Func with args and recovers any panic within.
+//
+// User-defined functions may panic to signal that an error has occurred and template
+// execution should be halted. This will be removed in v2 of stick in favor of Funcs
+// returning a Value or an error.
+func (s *state) callUserFunc(fn Func, args ...Value) (v Value, err error) {
+	defer func() {
+		if rv := recover(); rv != nil {
+			err = recoverUserPanic(rv)
+			v = nil
+		}
+	}()
+	return fn(s, args...), nil
+}
+
+// callUserFilter calls the given Filter with args and recovers any panic within.
+//
+// User-defined filters may panic to signal that an error has occurred and template
+// execution should be halted. This will be removed in v2 of stick in favor of Filters
+// returning a Value or an error.
+func (s *state) callUserFilter(fn Filter, val Value, args ...Value) (v Value, err error) {
+	defer func() {
+		if rv := recover(); rv != nil {
+			err = recoverUserPanic(rv)
+			v = nil
+		}
+	}()
+	return fn(s, val, args...), nil
 }
 
 func (s *state) evalFilter(exp *parse.FilterExpr) (Value, error) {
@@ -869,7 +930,7 @@ func (s *state) evalFilter(exp *parse.FilterExpr) (Value, error) {
 			}
 			args[i] = v
 		}
-		return fn(s, args[0], args[1:]...), nil
+		return s.callUserFilter(fn, args[0], args[1:]...)
 	}
 	return nil, errors.New("Undeclared filter \"" + ftName + "\"")
 }

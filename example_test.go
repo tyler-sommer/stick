@@ -2,6 +2,7 @@ package stick_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -159,6 +160,26 @@ func ExampleTest_twoWordsWithArgs() {
 	// Output: yep, 'something' evals to 0 - sure - nope
 }
 
+// A test that stops template execution by panicking.
+func ExampleTest_panic() {
+	env := stick.New(nil)
+	env.Tests["panicked"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) bool {
+		panic(errors.New("very much so"))
+	}
+
+	err := env.Execute(
+		`{{ ('veonik' is panicked) ? 'yep' : 'nope'  }}`,
+		os.Stdout,
+		nil,
+	)
+	if err == nil {
+		fmt.Println("Expected error but didn't get one")
+		return
+	}
+	fmt.Println("Error executing template:", err)
+	// Output: Error executing template: very much so
+}
+
 // A contrived example of a user-defined function.
 func ExampleFunc() {
 	env := stick.New(nil)
@@ -181,6 +202,26 @@ func ExampleFunc() {
 		fmt.Println(err)
 	}
 	// Output: A post (# 123)
+}
+
+// A user-defined function that panics to prevent template execution from continuing.
+func ExampleFunc_panic() {
+	env := stick.New(nil)
+	env.Functions["explode"] = func(ctx stick.Context, args ...stick.Value) stick.Value {
+		panic(errors.New("boom"))
+	}
+
+	err := env.Execute(
+		`{% set val = explode() %}`,
+		os.Stdout,
+		nil,
+	)
+	if err == nil {
+		fmt.Println("Expected error but didn't get one")
+		return
+	}
+	fmt.Println("Error executing template:", err)
+	// Output: Error executing template: boom
 }
 
 // A simple user-defined filter.
@@ -221,6 +262,26 @@ func ExampleFilter_withParam() {
 		fmt.Println(err)
 	}
 	// Output: $4.99
+}
+
+// A simple user-defined filter that panics to stop template execution.
+func ExampleFilter_panic() {
+	env := stick.New(nil)
+	env.Filters["stop"] = func(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+		panic(errors.New("bang"))
+	}
+
+	err := env.Execute(
+		`{{ 'dont'|stop }}`,
+		os.Stdout,
+		nil,
+	)
+	if err == nil {
+		fmt.Println("Expected error but didn't get one")
+		return
+	}
+	fmt.Println("Error executing template:", err)
+	// Output: Error executing template: bang
 }
 
 func ExampleFunc_usingContext() {
