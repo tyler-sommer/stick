@@ -1,10 +1,11 @@
 package stick
 
 import (
-	"github.com/tyler-sommer/stick/testdata"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/tyler-sommer/stick/testdata"
 )
 
 func TestFilesystemLoader(t *testing.T) {
