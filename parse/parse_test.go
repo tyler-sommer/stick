@@ -367,6 +367,11 @@ var parseTests = []parseTest{
 		"{% verbatim %}{{as is}}{% endverbatim %}",
 		mkModule(NewTextNode("{{as is}}", noPos)),
 	),
+	newParseTest(
+		"raw tag",
+		"{% raw %}{{as is}}{% endraw %}",
+		mkModule(NewTextNode("{{as is}}", noPos)),
+	),
 }
 
 func nodeEqual(a, b Node) bool {
