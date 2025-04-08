@@ -43,8 +43,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseImport(t, name.Pos)
 	case "from":
 		return parseFrom(t, name.Pos)
-	case "verbatim":
-		return parseVerbatim(t, name.Pos)
+	case "verbatim", "raw":
+		return parseVerbatim(t, name.Pos, name.Value)
 	default:
 		return nil, newUnexpectedTokenError(name)
 	}
@@ -683,9 +683,8 @@ func parseFrom(t *Tree, start Pos) (Node, error) {
 // parseVerbatim pulls body content within verbatim tag.
 //
 //	{% verbatim %} body {% endverbatim %}
-func parseVerbatim(t *Tree, start Pos) (Node, error) {
-	tagName := "verbatim"
-
+//      {% raw %} body {% endraw %}
+func parseVerbatim(t *Tree, start Pos, tagName string) (Node, error) {
 	body := bytes.Buffer{}
 
 	if _, err := t.expect(tokenTagClose); err != nil {
