@@ -67,35 +67,51 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			return t.parseOuterExpr(NewGetAttrExpr(expr, attr, args, nt.Pos))
 
 		case "|": // Filter application
-			nx, err := t.parseExpr()
+
+			// Parse the filter expression using parseInnerExpr to handle binary expressions
+			// or chained expressions
+			nx, err := t.parseInnerExpr()
+			
 			if err != nil {
 				return nil, err
 			}
+
+			var resultExpr Expr
 			switch n := nx.(type) {
 			case *BinaryExpr:
 				switch b := n.Left.(type) {
 				case *NameExpr:
 					v := NewFilterExpr(b.Name, []Expr{expr}, nt.Pos)
 					n.Left = v
-					return n, nil
+					resultExpr = n
 				case *FuncExpr:
 					b.Args = append([]Expr{expr}, b.Args...)
 					v := NewFilterExpr(b.Name, b.Args, nt.Pos)
 					n.Left = v
-					return n, nil
+					resultExpr = n
 				default:
 					return nil, newUnexpectedTokenError(nt)
 				}
 			case *NameExpr:
-				return NewFilterExpr(n.Name, []Expr{expr}, nt.Pos), nil
+				resultExpr = NewFilterExpr(n.Name, []Expr{expr}, nt.Pos)
 
 			case *FuncExpr:
 				n.Args = append([]Expr{expr}, n.Args...)
-				return NewFilterExpr(n.Name, n.Args, n.Pos), nil
+				resultExpr = NewFilterExpr(n.Name, n.Args, n.Pos)
+
+			case *FilterExpr:
+				// Handle chained filters: when parsing "filter1|filter2",
+				// filter2 might already be parsed as a FilterExpr
+				// We need to prepend the current expr to its arguments
+				n.Args = append([]Expr{expr}, n.Args...)
+				resultExpr = n		
 
 			default:
 				return nil, newUnexpectedTokenError(nt)
 			}
+
+			// Continue parsing potential outer expressions (including more filters)
+			return t.parseOuterExpr(resultExpr)
 
 		case "?": // Ternary if
 			tx, err := t.parseExpr()
