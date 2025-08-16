@@ -69,6 +69,7 @@ func TestFilters(t *testing.T) {
 		{"date u", func() stick.Value { return filterDate(nil, testDate2, "s.u") }, "44.123456"},
 		{"date S", func() stick.Value { return filterDate(nil, testDate, "S") }, "st"},
 		{"date S 2", func() stick.Value { return filterDate(nil, testDate2, "S") }, "rd"},
+		{"date now", func() stick.Value { return filterDate(nil, "now", "Y-m-d") }, time.Now().Format("2006-01-02")},
 		{"join", func() stick.Value { return filterJoin(nil, []string{"a", "b", "c"}, "-") }, "a-b-c"},
 		{"round common down", func() stick.Value { return filterRound(nil, 3.4) }, 3.0},
 		{"round common up", func() stick.Value { return filterRound(nil, 3.6) }, 4.0},
@@ -130,6 +131,13 @@ func TestFilters(t *testing.T) {
 			},
 		},
 		{"urlencode", func() stick.Value { return filterURLEncode(nil, "http://test.com/dude?sweet=33&1=2") }, "http%3A%2F%2Ftest.com%2Fdude%3Fsweet%3D33%261%3D2"},
+		{"raw", func() stick.Value {
+			safeVal, ok := filterRaw(nil, "<p>test</p>").(stick.SafeValue)
+			if !ok {
+				t.Errorf("Expected filterRaw to return a SafeValue")
+			}
+			return safeVal.Value()
+		}, "<p>test</p>"},
 	}
 	for _, test := range tests {
 		matches := false

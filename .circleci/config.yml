@@ -54,7 +54,7 @@ jobs:
     parameters:
       version:
         type: string
-        default: "1.18"
+        default: "1.20"
     docker:
       - image: "cimg/go:<< parameters.version >>"
     working_directory: "/home/circleci/go/src/github.com/tyler-sommer/stick"
@@ -65,7 +65,7 @@ jobs:
       - test_project
   build_latest:
     docker:
-      - image: "cimg/go:1.18"
+      - image: "cimg/go:1.20"
     working_directory: "/home/circleci/go/src/github.com/tyler-sommer/stick"
     environment:
       GO111MODULE: "on"
@@ -81,7 +81,7 @@ workflows:
       - build:
           matrix:
             parameters:
-              version: [ "1.20", "1.19", "1.18", "1.17", "1.16", "1.15", "1.14", "1.13", "1.12", "1.11", "1.10" ]
+              version: [ "1.21", "1.20", "1.19", "1.18", "1.17", "1.16", "1.15", "1.14", "1.13", "1.12", "1.11", "1.10" ]
       - build_legacy:
           matrix:
             parameters:
