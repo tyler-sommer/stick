@@ -265,7 +265,8 @@ func filterFormat(ctx stick.Context, val stick.Value, args ...stick.Value) stick
 
 func filterJoin(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
 	if !stick.IsIterable(val) {
-		return nil
+		// Twig returns the value itself when a non-array is passed to join
+		return stick.CoerceString(val)
 	}
 
 	separator := ``
@@ -454,7 +455,7 @@ func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	precision := 0
 	algo := ""
 	if len(args) > 0 {
-		precision = int(mathRound(stick.CoerceNumber(args[0])))
+		precision = int(math.Round(stick.CoerceNumber(args[0])))
 	}
 	if precision < 0 {
 		precision = 0
@@ -470,7 +471,7 @@ func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	case "floor":
 		return math.Floor(input*mult) / mult
 	default:
-		return mathRound(input*mult) / mult
+		return math.Round(input*mult) / mult
 	}
 }
 
