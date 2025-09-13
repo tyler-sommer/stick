@@ -71,7 +71,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			// Parse the filter expression using parseInnerExpr to handle binary expressions
 			// or chained expressions
 			nx, err := t.parseInnerExpr()
-			
+
 			if err != nil {
 				return nil, err
 			}
@@ -104,7 +104,7 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 				// filter2 might already be parsed as a FilterExpr
 				// We need to prepend the current expr to its arguments
 				n.Args = append([]Expr{expr}, n.Args...)
-				resultExpr = n		
+				resultExpr = n
 
 			default:
 				return nil, newUnexpectedTokenError(nt)
