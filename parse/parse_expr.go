@@ -146,6 +146,10 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			if err != nil {
 				return nil, err
 			}
+			// Handle ternary specially
+			if v := t.peekNonSpace(); v.tokenType == tokenPunctuation && v.value == "?" {
+				return t.parseOuterExpr(NewBinaryExpr(expr, op.Operator(), right, expr.Start()))
+			}
 		} else {
 			right, err = t.parseExpr()
 			if err != nil {

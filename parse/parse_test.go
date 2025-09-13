@@ -367,6 +367,54 @@ var parseTests = []parseTest{
 		"{% verbatim %}{{as is}}{% endverbatim %}",
 		mkModule(NewTextNode("{{as is}}", noPos)),
 	),
+	newParseTest(
+		"is test and ternary",
+		"{{ x is defined ? 1 : 0 }}",
+		mkModule(
+			NewPrintNode(
+				NewTernaryIfExpr(
+					NewBinaryExpr(
+						NewNameExpr("x", noPos),
+						OpBinaryIs,
+						NewTestExpr("defined", nil, noPos), noPos),
+					NewNumberExpr("1", noPos),
+					NewNumberExpr("0", noPos), noPos), noPos))),
+	newParseTest(
+		"is not and ternary",
+		"{{ x is not defined ? 1 : 0 }}",
+		mkModule(
+			NewPrintNode(
+				NewTernaryIfExpr(
+					NewBinaryExpr(
+						NewNameExpr("x", noPos),
+						OpBinaryIsNot,
+						NewTestExpr("defined", nil, noPos), noPos),
+					NewNumberExpr("1", noPos),
+					NewNumberExpr("0", noPos), noPos), noPos))),
+	newParseTest(
+		"is not multi word test function and ternary",
+		"{{ x is not equal to(5) ? 1 : 0 }}",
+		mkModule(
+			NewPrintNode(
+				NewTernaryIfExpr(
+					NewBinaryExpr(
+						NewNameExpr("x", noPos),
+						OpBinaryIsNot,
+						NewTestExpr("equal to", []Expr{NewNumberExpr("5", noPos)}, noPos), noPos),
+					NewNumberExpr("1", noPos),
+					NewNumberExpr("0", noPos), noPos), noPos))),
+	newParseTest(
+		"is test grouped ternary",
+		"{{ (x is defined) ? 1 : 0 }}",
+		mkModule(NewPrintNode(
+			NewTernaryIfExpr(
+				NewGroupExpr(
+					NewBinaryExpr(
+						NewNameExpr("x", noPos),
+						OpBinaryIs,
+						NewTestExpr("defined", nil, noPos), noPos), noPos),
+				NewNumberExpr("1", noPos),
+				NewNumberExpr("0", noPos), noPos), noPos))),
 }
 
 func nodeEqual(a, b Node) bool {
