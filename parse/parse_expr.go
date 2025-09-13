@@ -146,6 +146,25 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			if err != nil {
 				return nil, err
 			}
+			// Handle ternary specially
+			if v := t.peekNonSpace(); v.tokenType == tokenPunctuation && v.value == "?" {
+				t.nextNonSpace()
+				tx, err := t.parseExpr()
+				if err != nil {
+					return nil, err
+				}
+				_, err = t.expectValue(tokenPunctuation, ":")
+				if err != nil {
+					return nil, err
+				}
+				fx, err := t.parseExpr()
+				if err != nil {
+					return nil, err
+				}
+				// The BinaryExpr goes inside the TernaryExpr
+				expr = NewBinaryExpr(expr, op.Operator(), right, expr.Start())
+				return NewTernaryIfExpr(expr, tx, fx, expr.Start()), nil
+			}
 		} else {
 			right, err = t.parseExpr()
 			if err != nil {
