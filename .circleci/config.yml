@@ -37,19 +37,6 @@ commands:
           command: go test -v -race ./...
 
 jobs:
-  build_legacy:
-    parameters:
-      version:
-        type: string
-        default: "1.9"
-    docker:
-      - image: "circleci/golang:<< parameters.version >>"
-    working_directory: "/go/src/github.com/tyler-sommer/stick"
-    environment:
-      GO111MODULE: "on"
-    steps:
-      - setup_project
-      - test_project
   build:
     parameters:
       version:
@@ -81,9 +68,5 @@ workflows:
       - build:
           matrix:
             parameters:
-              version: [ "1.21", "1.20", "1.19", "1.18", "1.17", "1.16", "1.15", "1.14", "1.13", "1.12", "1.11", "1.10" ]
-      - build_legacy:
-          matrix:
-            parameters:
-              version: [ "1.9", "1.8", "1.7" ]
+              version: [ "1.25", "1.24", "1.23", "1.22", "1.21", "1.20", "1.19", "1.18", "1.17", "1.16", "1.15", "1.14", "1.13", "1.12", "1.11", "1.10" ]
       - build_latest
