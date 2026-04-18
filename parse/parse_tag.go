@@ -37,6 +37,8 @@ func (t *Tree) parseTag() (Node, error) {
 		return parseDo(t, name.Pos)
 	case "filter":
 		return parseFilter(t, name.Pos)
+	case "spaceless":
+		return parseSpaceless(t, name.Pos)
 	case "macro":
 		return parseMacro(t, name.Pos)
 	case "import":
@@ -561,6 +563,26 @@ body:
 		return nil, err
 	}
 	return NewFilterNode(filters, body, start), nil
+}
+
+// parseSpaceless parses a spaceless block.
+//
+//	{% spaceless %}
+//	  <div>   <p>foo</p>   </div>
+//	{% endspaceless %}
+//	→ <div><p>foo</p></div>
+//
+// The tag was deprecated in Twig 2.x and removed in Twig 3.x in favor of
+// the |spaceless filter, but is still common in older themes.
+func parseSpaceless(t *Tree, start Pos) (Node, error) {
+	if _, err := t.expect(tokenTagClose); err != nil {
+		return nil, err
+	}
+	body, err := t.parseUntilEndTag("spaceless", start)
+	if err != nil {
+		return nil, err
+	}
+	return NewSpacelessNode(body, start), nil
 }
 
 // parseMacro parses a macro definition.

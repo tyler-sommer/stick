@@ -386,6 +386,32 @@ func (t *FilterNode) All() []Node {
 	return []Node{t.Body}
 }
 
+// SpacelessNode is the body of a {% spaceless %}…{% endspaceless %} tag.
+// At execution time, whitespace BETWEEN HTML tags is stripped from the
+// rendered body, matching the PHP-Twig 1.x semantics
+// (preg_replace('/>\s+</', '><', $body)). Whitespace inside text content
+// or attributes is left untouched.
+type SpacelessNode struct {
+	Pos
+	TrimmableNode
+	Body Node
+}
+
+// NewSpacelessNode creates a SpacelessNode.
+func NewSpacelessNode(body Node, p Pos) *SpacelessNode {
+	return &SpacelessNode{p, TrimmableNode{}, body}
+}
+
+// String returns a string representation of a SpacelessNode.
+func (t *SpacelessNode) String() string {
+	return fmt.Sprintf("Spaceless: %s", t.Body)
+}
+
+// All returns all the child Nodes in a SpacelessNode.
+func (t *SpacelessNode) All() []Node {
+	return []Node{t.Body}
+}
+
 // MacroNode represents a reusable macro.
 type MacroNode struct {
 	Pos

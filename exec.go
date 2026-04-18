@@ -319,6 +319,8 @@ func (s *state) walk(node parse.Node) error {
 		return s.walkDoNode(node)
 	case *parse.FilterNode:
 		return s.walkFilterNode(node)
+	case *parse.SpacelessNode:
+		return s.walkSpacelessNode(node)
 	case *parse.ImportNode:
 		return s.walkImportNode(node)
 	case *parse.FromNode:
@@ -515,6 +517,23 @@ func (s *state) walkFilterNode(node *parse.FilterNode) error {
 	}
 	io.WriteString(prevBuf, val)
 	return nil
+}
+
+// spacelessBetweenTagsRe matches whitespace between HTML tags. Replaced
+// with `><` to mirror PHP-Twig 1.x's spaceless tag semantics.
+var spacelessBetweenTagsRe = regexp.MustCompile(`>\s+<`)
+
+func (s *state) walkSpacelessNode(node *parse.SpacelessNode) error {
+	prevBuf := s.out
+	defer func() { s.out = prevBuf }()
+	buf := &bytes.Buffer{}
+	s.out = buf
+	if err := s.walk(node.Body); err != nil {
+		return err
+	}
+	out := spacelessBetweenTagsRe.ReplaceAllString(buf.String(), "><")
+	_, err := io.WriteString(prevBuf, out)
+	return err
 }
 
 func (s *state) walkImportNode(node *parse.ImportNode) error {

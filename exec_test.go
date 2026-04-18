@@ -154,6 +154,21 @@ var tests = []execTest{
 		expect("HELLO, WORLD!"),
 	),
 	newExecTest(
+		"Spaceless: strips inter-tag whitespace",
+		`{% spaceless %}<div>   <p>hi</p>   </div>{% endspaceless %}`,
+		expect("<div><p>hi</p></div>"),
+	),
+	newExecTest(
+		"Spaceless: preserves whitespace inside text content",
+		`{% spaceless %}<p>hello   world</p>{% endspaceless %}`,
+		expect("<p>hello   world</p>"),
+	),
+	newExecTest(
+		"Spaceless: empty body",
+		`<<{% spaceless %}{% endspaceless %}>>`,
+		expect("<<>>"),
+	),
+	newExecTest(
 		"Import statement",
 		`{% import 'macros.twig' as mac %}{{ mac.test("hi") }}`,
 		expect("test: hi"),
