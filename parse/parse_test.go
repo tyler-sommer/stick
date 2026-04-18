@@ -65,6 +65,21 @@ var parseTests = []parseTest{
 		mkModule(NewBlockNode("something", NewBodyNode(noPos, NewTextNode("Body", noPos)), noPos)),
 	),
 	newParseTest(
+		"block with matching endblock name",
+		"{% block something %}Body{% endblock something %}",
+		mkModule(NewBlockNode("something", NewBodyNode(noPos, NewTextNode("Body", noPos)), noPos)),
+	),
+	newErrorTest(
+		"block endblock name mismatch",
+		"{% block something %}Body{% endblock other %}",
+		`unexpected "other", expected "something"`,
+	),
+	newErrorTest(
+		"block endblock non-name token",
+		"{% block something %}Body{% endblock 42 %}",
+		`expected "TAG_CLOSE", got "NUMBER"`,
+	),
+	newParseTest(
 		"if",
 		"{% if something %}Do Something{% endif %}",
 		mkModule(NewIfNode(NewNameExpr("something", noPos), NewBodyNode(noPos, NewTextNode("Do Something", noPos)), NewBodyNode(noPos), noPos)),
