@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -389,14 +391,62 @@ func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	}
 }
 
+// nl2brRe matches every newline form in one pass: CRLF, bare CR, bare LF.
+// Each is preserved and prefixed with <br /> via the capture group.
+var nl2brRe = regexp.MustCompile(`(\r\n|\r|\n)`)
+
+// filterNL2BR replaces newline characters with HTML <br /> tags. Mirrors
+// PHP's nl2br: the original newline character(s) are preserved after the tag.
 func filterNL2BR(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	return nl2brRe.ReplaceAllString(stick.CoerceString(val), "<br />$1")
 }
 
+// filterNumberFormat formats a number with grouped thousands. PHP-Twig
+// signature: |number_format(decimals=0, decimal_point='.', thousands_separator=',').
 func filterNumberFormat(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	n := stick.CoerceNumber(val)
+	decimals := 0
+	decPoint := "."
+	thouSep := ","
+	if len(args) >= 1 {
+		decimals = int(stick.CoerceNumber(args[0]))
+	}
+	if len(args) >= 2 {
+		decPoint = stick.CoerceString(args[1])
+	}
+	if len(args) >= 3 {
+		thouSep = stick.CoerceString(args[2])
+	}
+	if decimals < 0 {
+		decimals = 0
+	}
+	raw := strconv.FormatFloat(n, 'f', decimals, 64)
+	sign := ""
+	if strings.HasPrefix(raw, "-") {
+		sign = "-"
+		raw = raw[1:]
+	}
+	intPart, fracPart := raw, ""
+	if dot := strings.IndexByte(raw, '.'); dot >= 0 {
+		intPart = raw[:dot]
+		fracPart = raw[dot+1:]
+	}
+	if len(intPart) > 3 && thouSep != "" {
+		var b strings.Builder
+		// Insert thousands separator from the right.
+		for i, r := range intPart {
+			if i > 0 && (len(intPart)-i)%3 == 0 {
+				b.WriteString(thouSep)
+			}
+			b.WriteRune(r)
+		}
+		intPart = b.String()
+	}
+	out := sign + intPart
+	if decimals > 0 {
+		out += decPoint + fracPart
+	}
+	return out
 }
 
 func filterRaw(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
@@ -475,24 +525,187 @@ func filterRound(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	}
 }
 
+// filterSlice extracts a slice of an array or string. Mirrors PHP-Twig
+// |slice(start, length=null, preserve_keys=false). preserve_keys is
+// accepted for compatibility but ignored — stick collections don't have
+// the PHP "string-keyed array" notion that flag was designed for.
+//
+// `start` may be negative to count from the end. If `length` is omitted,
+// slices through to the end. Out-of-range indices are clamped silently
+// (matching PHP-Twig's permissive behavior).
 func filterSlice(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if len(args) == 0 {
+		return val
+	}
+	start := int(stick.CoerceNumber(args[0]))
+	hasLength := len(args) >= 2
+	length := 0
+	if hasLength {
+		length = int(stick.CoerceNumber(args[1]))
+	}
+
+	rv := reflect.Indirect(reflect.ValueOf(val))
+	if rv.IsValid() && (rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array) {
+		n := rv.Len()
+		s, e := normalizeSliceBounds(start, length, hasLength, n)
+		out := make([]stick.Value, 0, e-s)
+		for i := s; i < e; i++ {
+			out = append(out, rv.Index(i).Interface())
+		}
+		return out
+	}
+
+	// Fall back to string slicing (rune-aware so multi-byte chars stay intact).
+	runes := []rune(stick.CoerceString(val))
+	n := len(runes)
+	s, e := normalizeSliceBounds(start, length, hasLength, n)
+	return string(runes[s:e])
 }
 
+// normalizeSliceBounds resolves PHP-Twig's permissive slice indexing
+// semantics: negative start counts from the end, negative length means
+// "stop that many elements before the end", and indices are clamped to
+// the valid [0, n] range without erroring.
+func normalizeSliceBounds(start, length int, hasLength bool, n int) (s, e int) {
+	if start < 0 {
+		start = n + start
+	}
+	if start < 0 {
+		start = 0
+	}
+	if start > n {
+		start = n
+	}
+	if !hasLength {
+		return start, n
+	}
+	end := start + length
+	if length < 0 {
+		end = n + length
+	}
+	if end < start {
+		end = start
+	}
+	if end > n {
+		end = n
+	}
+	return start, end
+}
+
+// filterSort returns val sorted in ascending order. Strings are compared
+// lexicographically; numbers numerically; mixed values fall back to their
+// stringified form. Maps are treated as their value sequence (keys
+// discarded), matching PHP-Twig's sort semantics on associative arrays
+// (which this Go port can't preserve since map iteration is unordered).
 func filterSort(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	if val == nil {
+		return []stick.Value{}
+	}
+	rv := reflect.Indirect(reflect.ValueOf(val))
+	var items []stick.Value
+	switch rv.Kind() {
+	case reflect.Slice, reflect.Array:
+		items = make([]stick.Value, rv.Len())
+		for i := 0; i < rv.Len(); i++ {
+			items[i] = rv.Index(i).Interface()
+		}
+	case reflect.Map:
+		items = make([]stick.Value, 0, rv.Len())
+		for _, k := range rv.MapKeys() {
+			items = append(items, rv.MapIndex(k).Interface())
+		}
+	default:
+		return val
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		return sortLess(items[i], items[j])
+	})
+	return items
 }
 
+// sortLess compares two stick.Values: numbers numerically when both
+// coerce to a non-zero number (or one is exactly zero), otherwise as
+// their string representation. Good enough for typical Twig use.
+func sortLess(a, b stick.Value) bool {
+	if isNumeric(a) && isNumeric(b) {
+		return stick.CoerceNumber(a) < stick.CoerceNumber(b)
+	}
+	return stick.CoerceString(a) < stick.CoerceString(b)
+}
+
+func isNumeric(v stick.Value) bool {
+	switch v.(type) {
+	case int, int32, int64, float32, float64:
+		return true
+	}
+	return false
+}
+
+// filterSplit splits a string by a delimiter, returning a []string.
+// PHP-Twig signature: |split(delimiter, limit=null).
+//
+//   - empty delimiter splits per character (rune-aware).
+//   - positive limit caps the number of returned segments; the last one
+//     contains the remainder of the string (matches PHP's explode/strings.SplitN).
+//   - negative limit returns all segments except the last |limit|.
+//   - omitted limit returns every segment.
 func filterSplit(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	s := stick.CoerceString(val)
+	sep := ""
+	if len(args) >= 1 {
+		sep = stick.CoerceString(args[0])
+	}
+	limit := 0
+	hasLimit := len(args) >= 2
+	if hasLimit {
+		limit = int(stick.CoerceNumber(args[1]))
+	}
+
+	if sep == "" {
+		// Split per character.
+		out := []string{}
+		for _, r := range s {
+			out = append(out, string(r))
+		}
+		if hasLimit && limit > 0 && limit < len(out) {
+			head := append([]string{}, out[:limit-1]...)
+			head = append(head, strings.Join(out[limit-1:], ""))
+			return head
+		}
+		if hasLimit && limit < 0 {
+			drop := -limit
+			if drop >= len(out) {
+				return []string{}
+			}
+			return out[:len(out)-drop]
+		}
+		return out
+	}
+
+	if hasLimit && limit > 0 {
+		return strings.SplitN(s, sep, limit)
+	}
+	all := strings.Split(s, sep)
+	if hasLimit && limit < 0 {
+		drop := -limit
+		if drop >= len(all) {
+			return []string{}
+		}
+		return all[:len(all)-drop]
+	}
+	return all
 }
 
+// stripTagsRe matches anything between < and > non-greedily, including
+// multi-line tags. Mirrors PHP's strip_tags for the common case.
+var stripTagsRe = regexp.MustCompile(`(?s)<[^>]*>`)
+
+// filterStripTags removes HTML/XML tags from a string. PHP-Twig signature
+// allows an `allowed_tags` argument; for now this implementation strips
+// everything (the argument is accepted but not honored). Stub-state was
+// "return val unchanged" so even partial implementation is a strict win.
 func filterStripTags(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
-	// TODO: Implement Me
-	return val
+	return stripTagsRe.ReplaceAllString(stick.CoerceString(val), "")
 }
 
 // filterTitle returns val with the first character of each word capitalized.
