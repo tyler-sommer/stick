@@ -281,10 +281,18 @@ func (s *state) walk(node parse.Node) error {
 			return err
 		}
 		if CoerceBool(v) {
+			if node.Body == nil {
+				return nil
+			}
 			return s.walk(node.Body)
-		} else {
-			return s.walk(node.Else)
 		}
+		// Defensive: any caller that constructs an IfNode without an
+		// Else branch (e.g. older AST builders) gets a no-op rather
+		// than a nil-pointer panic from the default switch arm.
+		if node.Else == nil {
+			return nil
+		}
+		return s.walk(node.Else)
 	case *parse.IncludeNode:
 		tpl, ctx, err := s.walkIncludeNode(node)
 		if err != nil {

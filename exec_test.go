@@ -83,6 +83,19 @@ var tests = []execTest{
 		expect(`110323f221213332103l`),
 	),
 	newExecTest("For else", `{% for i in emptySet %}{{ i }}{% else %}No results.{% endfor %}`, expect(`No results.`), withContext(map[string]Value{"emptySet": []int{}})),
+	// `{% for x in xs if cond %}` builds an IfNode with no else branch.
+	// When the condition is false for every iteration, the executor used
+	// to walk a nil Else and panic — see commit fixing this.
+	newExecTest(
+		"For with if-filter, no matches, no panic",
+		`<{% for n in [1, 2, 3] if n > 10 %}{{ n }}{% endfor %}>`,
+		expect(`<>`),
+	),
+	newExecTest(
+		"For with if-filter, some matches",
+		`{% for n in [1, 2, 3, 4] if n > 2 %}{{ n }}{% endfor %}`,
+		expect(`34`),
+	),
 	newExecTest(
 		"For map",
 		`{% for k, v in data %}Record {{ loop.index }}: {{ k }}: {{ v }}{% if not loop.last %} - {% endif %}{% endfor %}`,
