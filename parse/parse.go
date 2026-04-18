@@ -13,6 +13,15 @@ type NodeVisitor interface {
 	Leave(Node) // Exit is called before leaving the given Node.
 }
 
+// A CloneableNodeVisitor is a NodeVisitor that carries mutable state and must
+// be cloned before each independent use (e.g. concurrent template parses).
+// Visitors that do not implement this interface are assumed to be stateless
+// and will be shared across parses.
+type CloneableNodeVisitor interface {
+	NodeVisitor
+	Clone() NodeVisitor
+}
+
 // Tree represents the state of a parser.
 type Tree struct {
 	lex *lexer

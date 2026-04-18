@@ -935,7 +935,12 @@ func (env *Env) load(name string) (*parse.Tree, error) {
 		return nil, err
 	}
 	tree := parse.NewNamedTree(name, tpl.Contents())
-	tree.Visitors = append(tree.Visitors, env.Visitors...)
+	for _, v := range env.Visitors {
+		if cv, ok := v.(parse.CloneableNodeVisitor); ok {
+			v = cv.Clone()
+		}
+		tree.Visitors = append(tree.Visitors, v)
+	}
 	err = tree.Parse()
 	if err != nil {
 		return nil, err
