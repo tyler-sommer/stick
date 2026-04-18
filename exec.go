@@ -290,6 +290,10 @@ func (s *state) walk(node parse.Node) error {
 		if err != nil {
 			return err
 		}
+		if tpl == "" {
+			// No candidate resolved and IgnoreMissing is set — render nothing.
+			return nil
+		}
 		err = execute(tpl, s.out, ctx, s.env)
 		if err != nil {
 			return err
@@ -298,6 +302,11 @@ func (s *state) walk(node parse.Node) error {
 		tpl, ctx, err := s.walkIncludeNode(node.IncludeNode)
 		if err != nil {
 			return err
+		}
+		if tpl == "" {
+			// IgnoreMissing on an embed with no resolvable template —
+			// render nothing and discard the embed body's blocks.
+			return nil
 		}
 		si := newState(tpl, s.out, ctx, s.env)
 		tree, err := s.env.load(tpl)
@@ -401,13 +410,59 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 }
 
 // Method walkInclude determines the necessary parameters for including or embedding a template.
+//
+// The template expression may evaluate to a single name or an array of
+// candidate names. This method picks the first candidate whose template the
+// env's Loader can resolve and returns that name. If none resolve:
+//   - if node.IgnoreMissing is true, returns "" with a nil error so the
+//     caller can skip rendering;
+//   - otherwise, returns the last loader error.
+//
+// Loader-level errors are the only errors swallowed by IgnoreMissing. Errors
+// from parsing or executing a successfully-loaded template still propagate.
 func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[string]Value, err error) {
 	ctx = make(map[string]Value)
 	v, err := s.evalExpr(node.Tpl)
 	if err != nil {
 		return "", nil, err
 	}
-	tpl = CoerceString(v)
+
+	// Resolve the candidate list. An array-valued Tpl expression produces
+	// []Value; anything else is treated as a single candidate.
+	var candidates []string
+	switch cands := v.(type) {
+	case []Value:
+		candidates = make([]string, len(cands))
+		for i, c := range cands {
+			candidates[i] = CoerceString(c)
+		}
+	default:
+		candidates = []string{CoerceString(v)}
+	}
+
+	tpl = ""
+	var lastErr error
+	for _, cand := range candidates {
+		if cand == "" {
+			continue
+		}
+		if _, lerr := s.env.Loader.Load(cand); lerr == nil {
+			tpl = cand
+			break
+		} else {
+			lastErr = lerr
+		}
+	}
+	if tpl == "" {
+		if node.IgnoreMissing {
+			return "", ctx, nil
+		}
+		if lastErr != nil {
+			return "", nil, lastErr
+		}
+		return "", nil, fmt.Errorf("include: no template candidates provided")
+	}
+
 	var with Value
 	if n := node.With; n != nil {
 		with, err = s.evalExpr(n)
