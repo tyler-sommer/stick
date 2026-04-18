@@ -2,7 +2,9 @@ package twig_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/tyler-sommer/stick"
@@ -73,6 +75,43 @@ func TestAutoEscapeVisitor(t *testing.T) {
 	}
 	if fv := fa.Text; fv != "text" {
 		t.Errorf("expected 'text', got %s", fv)
+	}
+}
+
+func TestAutoEscapeVisitorConcurrent(t *testing.T) {
+	env := twig.New(&stick.MemoryLoader{Templates: map[string]string{
+		"page.html.twig": "<html>{{ body }}</html>",
+	}})
+
+	const goroutines = 10
+	const iterations = 50
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	errs := make(chan error, goroutines*iterations)
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				var buf bytes.Buffer
+				err := env.Execute("page.html.twig", &buf, map[string]stick.Value{
+					"body": "<script>alert(1)</script>",
+				})
+				if err != nil {
+					errs <- err
+					return
+				}
+				expected := "<html>&lt;script&gt;alert(1)&lt;/script&gt;</html>"
+				if actual := buf.String(); actual != expected {
+					errs <- fmt.Errorf("expected %q, got %q", expected, actual)
+					return
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Error(err)
 	}
 }
 

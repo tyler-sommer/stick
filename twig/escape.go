@@ -59,8 +59,18 @@ func NewAutoEscapeExtension() *AutoEscapeExtension {
 
 // AutoEscapeVisitor can be used to automatically apply the "escape" filter
 // to any PrintNode.
+//
+// autoEscapeVisitor is stateful (it maintains a stack during tree traversal),
+// so it implements parse.CloneableNodeVisitor to ensure each concurrent parse
+// gets its own instance.
 type autoEscapeVisitor struct {
 	stack []string
+}
+
+// Clone returns a fresh autoEscapeVisitor, ensuring concurrent parses do not
+// share mutable state.
+func (v *autoEscapeVisitor) Clone() parse.NodeVisitor {
+	return &autoEscapeVisitor{}
 }
 
 // push adds the given name on top of the stack.
