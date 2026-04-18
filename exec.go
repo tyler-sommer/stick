@@ -554,6 +554,53 @@ func (s *state) walkFromNode(node *parse.FromNode) error {
 	return nil
 }
 
+// isDefined probes whether a reference resolves in the current scope
+// without evaluating it. Used to back `is [not] defined` before the left
+// operand is eagerly evaluated by BinaryExpr — see that switch case.
+//
+// Semantics:
+//   - NameExpr: true iff the scope stack has the name bound (including to nil).
+//   - GetAttrExpr: true iff the container evaluates cleanly and the attribute
+//     lookup (via GetAttr) does not error. Missing intermediate names in the
+//     container chain correctly propagate as "undefined".
+//   - Anything else (literals, arithmetic, function calls): attempt eval; if
+//     it succeeds the expression is considered defined. A failed eval is
+//     treated as undefined. This mirrors PHP Twig's practice of treating
+//     non-variable expressions as always defined while gracefully handling
+//     evaluation-time errors.
+func (s *state) isDefined(e parse.Expr) bool {
+	switch x := e.(type) {
+	case *parse.NameExpr:
+		_, ok := s.scope.Get(x.Name)
+		return ok
+	case *parse.GetAttrExpr:
+		cont, err := s.evalExpr(x.Cont)
+		if err != nil || cont == nil {
+			return false
+		}
+		attr, err := s.evalExpr(x.Attr)
+		if err != nil {
+			return false
+		}
+		var args []Value
+		if len(x.Args) > 0 {
+			args = make([]Value, len(x.Args))
+			for i, a := range x.Args {
+				v, err := s.evalExpr(a)
+				if err != nil {
+					return false
+				}
+				args[i] = v
+			}
+		}
+		_, err = GetAttr(cont, attr, args...)
+		return err == nil
+	default:
+		_, err := s.evalExpr(e)
+		return err == nil
+	}
+}
+
 // Method evalExpr evaluates the given expression, returning a Value or error.
 func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	switch exp := exp.(type) {
@@ -595,6 +642,20 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			return -CoerceNumber(in), nil
 		}
 	case *parse.BinaryExpr:
+		// Special case: `is [not] defined`. PHP Twig does not evaluate the
+		// left operand when the right side is `defined` — the semantics
+		// are "does this reference resolve?", not "is the resolved value
+		// non-nil". Intercept before the left eval so `{% set x = null %}`
+		// still reports `x is defined` as true.
+		if exp.Op == parse.OpBinaryIs || exp.Op == parse.OpBinaryIsNot {
+			if te, ok := exp.Right.(*parse.TestExpr); ok && te.Name == "defined" {
+				defined := s.isDefined(exp.Left)
+				if exp.Op == parse.OpBinaryIsNot {
+					defined = !defined
+				}
+				return defined, nil
+			}
+		}
 		left, err := s.evalExpr(exp.Left)
 		if err != nil {
 			return nil, err
