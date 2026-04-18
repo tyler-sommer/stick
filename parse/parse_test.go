@@ -65,6 +65,20 @@ var parseTests = []parseTest{
 		mkModule(NewBlockNode("something", NewBodyNode(noPos, NewTextNode("Body", noPos)), noPos)),
 	),
 	newParseTest(
+		"is null desugars to a test",
+		`{{ x is null }}`,
+		mkModule(NewPrintNode(NewBinaryExpr(
+			NewNameExpr("x", noPos), OpBinaryIs,
+			NewTestExpr("null", []Expr{}, noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"is none desugars to the same test",
+		`{{ x is none }}`,
+		mkModule(NewPrintNode(NewBinaryExpr(
+			NewNameExpr("x", noPos), OpBinaryIs,
+			NewTestExpr("null", []Expr{}, noPos), noPos), noPos)),
+	),
+	newParseTest(
 		"if",
 		"{% if something %}Do Something{% endif %}",
 		mkModule(NewIfNode(NewNameExpr("something", noPos), NewBodyNode(noPos, NewTextNode("Do Something", noPos)), NewBodyNode(noPos), noPos)),

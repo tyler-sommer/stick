@@ -201,6 +201,18 @@ func (t *Tree) parseRightTestOperand(prev *NameExpr) (*TestExpr, error) {
 			r.Name = prev.Name + " " + r.Name
 		}
 		return &TestExpr{r}, nil
+	case *NullExpr:
+		// `is null` / `is none` (and the uppercase variants) are
+		// first-class tests in PHP Twig; parseInnerExpr rewrites the
+		// null/none keywords to a NullExpr, so restore them to a
+		// TestExpr here. The canonical test name is "null" — an env's
+		// Tests map can alias "none" to the same function if both
+		// spellings should be user-visible for introspection.
+		name := "null"
+		if prev != nil {
+			name = prev.Name + " " + name
+		}
+		return NewTestExpr(name, []Expr{}, r.Pos), nil
 	default:
 		return nil, fmt.Errorf(`Expected name or function, got "%v"`, right)
 	}
