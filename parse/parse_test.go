@@ -186,7 +186,7 @@ var parseTests = []parseTest{
 	newParseTest(
 		"for loop",
 		"{% for k, val in something if val %}body{% else %}No results.{% endfor %}",
-		mkModule(NewForNode("k", "val", NewNameExpr("something", noPos), NewIfNode(NewNameExpr("val", noPos), NewBodyNode(noPos, NewTextNode("body", noPos)), nil, noPos), NewBodyNode(noPos, NewTextNode("No results.", noPos)), noPos)),
+		mkModule(NewForNode("k", "val", NewNameExpr("something", noPos), NewIfNode(NewNameExpr("val", noPos), NewBodyNode(noPos, NewTextNode("body", noPos)), NewBodyNode(noPos), noPos), NewBodyNode(noPos, NewTextNode("No results.", noPos)), noPos)),
 	),
 	newParseTest(
 		"include",
