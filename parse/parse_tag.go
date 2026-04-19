@@ -133,11 +133,12 @@ func parseExtends(t *Tree, start Pos) (Node, error) {
 	return n, nil
 }
 
-// parseBlock parses a block and any body it may contain.
-// TODO: {% endblock <name> %} support
+// parseBlock parses a block and any body it may contain. The closing
+// {% endblock %} may optionally repeat the block name; when present it
+// must match the opening name, matching the Twig 3.x spec.
 //
 //	{% block <name> %}
-//	{% endblock %}
+//	{% endblock [<name>] %}
 func parseBlock(t *Tree, start Pos) (Node, error) {
 	blockName, err := t.expect(tokenName)
 	if err != nil {
@@ -147,7 +148,24 @@ func parseBlock(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := t.parseUntilEndTag("block", start)
+	// parseUntilTag consumes through the "endblock" keyword but leaves the
+	// tag close (and any intervening tokens) for us to handle — which is
+	// how we pick up the optional trailing name. Preserve the
+	// parseUntilEndTag "unclosed tag" error for the immediate-EOF case.
+	if tok := t.peek(); tok.tokenType == tokenEOF {
+		return nil, newUnclosedTagError("block", start)
+	}
+	body, err := t.parseUntilTag(start, "endblock")
+	if err != nil {
+		return nil, err
+	}
+	if tok := t.peekNonSpace(); tok.tokenType == tokenName {
+		closingName := t.nextNonSpace()
+		if closingName.value != blockName.value {
+			return nil, newUnexpectedValueError(closingName, blockName.value)
+		}
+	}
+	_, err = t.expect(tokenTagClose)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +321,10 @@ func parseFor(t *Tree, start Pos) (*ForNode, error) {
 		return nil, err
 	}
 	if ifCond != nil {
-		body = NewIfNode(ifCond, body, nil, tok.Pos)
+		// Pass an empty body for the else branch so the executor doesn't
+		// have to walk a nil Node when the condition is false. Mirrors
+		// what parseIfBody already guarantees for standalone {% if %}.
+		body = NewIfNode(ifCond, body, NewBodyNode(tok.Pos), tok.Pos)
 	}
 	t.backup()
 	tok = t.next()
@@ -327,16 +348,16 @@ func parseFor(t *Tree, start Pos) (*ForNode, error) {
 
 // parseInclude parses an include statement.
 func parseInclude(t *Tree, start Pos) (Node, error) {
-	expr, with, only, err := parseIncludeOrEmbed(t)
+	expr, with, only, ignoreMissing, err := parseIncludeOrEmbed(t)
 	if err != nil {
 		return nil, err
 	}
-	return NewIncludeNode(expr, with, only, start), nil
+	return NewIncludeNodeWithOptions(expr, with, only, ignoreMissing, start), nil
 }
 
 // parseEmbed parses an embed statement and body.
 func parseEmbed(t *Tree, start Pos) (Node, error) {
-	expr, with, only, err := parseIncludeOrEmbed(t)
+	expr, with, only, ignoreMissing, err := parseIncludeOrEmbed(t)
 	if err != nil {
 		return nil, err
 	}
@@ -371,35 +392,47 @@ func parseEmbed(t *Tree, start Pos) (Node, error) {
 		}
 	}
 	blockRefs := t.popBlockStack()
-	return NewEmbedNode(expr, with, only, blockRefs, start), nil
+	return NewEmbedNodeWithOptions(expr, with, only, ignoreMissing, blockRefs, start), nil
 }
 
 // parseIncludeOrEmbed parses an include or embed tag's parameters.
-// TODO: Implement "ignore missing" support
 //
-//	{% include <expr> %}
-//	{% include <expr> with <expr> %}
-//	{% include <expr> with <expr> only %}
-//	{% include <expr> only %}
-func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only bool, err error) {
+// Accepts the Twig 3.x modifier order for {% include %} / {% embed %}:
+//
+//	{% include <expr> [ignore missing] [with <expr>] [only] %}
+//
+// The template expression may evaluate to a single name or an array of
+// candidate names; array handling is performed at execution time.
+func parseIncludeOrEmbed(t *Tree) (expr Expr, with Expr, only, ignoreMissing bool, err error) {
 	expr, err = t.parseExpr()
 	if err != nil {
 		return
 	}
-	only = false
+
+	// Optional: ignore missing. Must appear before `with` and `only`.
+	if tok := t.peekNonSpace(); tok.tokenType == tokenName && tok.value == "ignore" {
+		t.next()
+		miss := t.nextNonSpace()
+		if miss.tokenType != tokenName || miss.value != "missing" {
+			err = newUnexpectedValueError(miss, "missing")
+			return
+		}
+		ignoreMissing = true
+	}
+
 	switch tok := t.peekNonSpace(); tok.tokenType {
 	case tokenEOF:
 		err = newUnexpectedEOFError(tok)
 		return
 	case tokenName:
-		if tok.value == "only" { // {% include <expr> only %}
+		if tok.value == "only" { // {% include <expr> [ignore missing] only %}
 			t.next()
 			_, err = t.expect(tokenTagClose)
 			if err != nil {
 				return
 			}
 			only = true
-			return expr, with, only, nil
+			return
 		} else if tok.value != "with" {
 			err = newUnexpectedTokenError(tok)
 			return

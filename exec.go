@@ -281,14 +281,26 @@ func (s *state) walk(node parse.Node) error {
 			return err
 		}
 		if CoerceBool(v) {
+			if node.Body == nil {
+				return nil
+			}
 			return s.walk(node.Body)
-		} else {
-			return s.walk(node.Else)
 		}
+		// Defensive: any caller that constructs an IfNode without an
+		// Else branch (e.g. older AST builders) gets a no-op rather
+		// than a nil-pointer panic from the default switch arm.
+		if node.Else == nil {
+			return nil
+		}
+		return s.walk(node.Else)
 	case *parse.IncludeNode:
 		tpl, ctx, err := s.walkIncludeNode(node)
 		if err != nil {
 			return err
+		}
+		if tpl == "" {
+			// No candidate resolved and IgnoreMissing is set — render nothing.
+			return nil
 		}
 		err = execute(tpl, s.out, ctx, s.env)
 		if err != nil {
@@ -298,6 +310,11 @@ func (s *state) walk(node parse.Node) error {
 		tpl, ctx, err := s.walkIncludeNode(node.IncludeNode)
 		if err != nil {
 			return err
+		}
+		if tpl == "" {
+			// IgnoreMissing on an embed with no resolvable template —
+			// render nothing and discard the embed body's blocks.
+			return nil
 		}
 		si := newState(tpl, s.out, ctx, s.env)
 		tree, err := s.env.load(tpl)
@@ -403,13 +420,59 @@ func (s *state) walkForNode(node *parse.ForNode) error {
 }
 
 // Method walkInclude determines the necessary parameters for including or embedding a template.
+//
+// The template expression may evaluate to a single name or an array of
+// candidate names. This method picks the first candidate whose template the
+// env's Loader can resolve and returns that name. If none resolve:
+//   - if node.IgnoreMissing is true, returns "" with a nil error so the
+//     caller can skip rendering;
+//   - otherwise, returns the last loader error.
+//
+// Loader-level errors are the only errors swallowed by IgnoreMissing. Errors
+// from parsing or executing a successfully-loaded template still propagate.
 func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[string]Value, err error) {
 	ctx = make(map[string]Value)
 	v, err := s.evalExpr(node.Tpl)
 	if err != nil {
 		return "", nil, err
 	}
-	tpl = CoerceString(v)
+
+	// Resolve the candidate list. An array-valued Tpl expression produces
+	// []Value; anything else is treated as a single candidate.
+	var candidates []string
+	switch cands := v.(type) {
+	case []Value:
+		candidates = make([]string, len(cands))
+		for i, c := range cands {
+			candidates[i] = CoerceString(c)
+		}
+	default:
+		candidates = []string{CoerceString(v)}
+	}
+
+	tpl = ""
+	var lastErr error
+	for _, cand := range candidates {
+		if cand == "" {
+			continue
+		}
+		if _, lerr := s.env.Loader.Load(cand); lerr == nil {
+			tpl = cand
+			break
+		} else {
+			lastErr = lerr
+		}
+	}
+	if tpl == "" {
+		if node.IgnoreMissing {
+			return "", ctx, nil
+		}
+		if lastErr != nil {
+			return "", nil, lastErr
+		}
+		return "", nil, fmt.Errorf("include: no template candidates provided")
+	}
+
 	var with Value
 	if n := node.With; n != nil {
 		with, err = s.evalExpr(n)
@@ -573,6 +636,53 @@ func (s *state) walkFromNode(node *parse.FromNode) error {
 	return nil
 }
 
+// isDefined probes whether a reference resolves in the current scope
+// without evaluating it. Used to back `is [not] defined` before the left
+// operand is eagerly evaluated by BinaryExpr — see that switch case.
+//
+// Semantics:
+//   - NameExpr: true iff the scope stack has the name bound (including to nil).
+//   - GetAttrExpr: true iff the container evaluates cleanly and the attribute
+//     lookup (via GetAttr) does not error. Missing intermediate names in the
+//     container chain correctly propagate as "undefined".
+//   - Anything else (literals, arithmetic, function calls): attempt eval; if
+//     it succeeds the expression is considered defined. A failed eval is
+//     treated as undefined. This mirrors PHP Twig's practice of treating
+//     non-variable expressions as always defined while gracefully handling
+//     evaluation-time errors.
+func (s *state) isDefined(e parse.Expr) bool {
+	switch x := e.(type) {
+	case *parse.NameExpr:
+		_, ok := s.scope.Get(x.Name)
+		return ok
+	case *parse.GetAttrExpr:
+		cont, err := s.evalExpr(x.Cont)
+		if err != nil || cont == nil {
+			return false
+		}
+		attr, err := s.evalExpr(x.Attr)
+		if err != nil {
+			return false
+		}
+		var args []Value
+		if len(x.Args) > 0 {
+			args = make([]Value, len(x.Args))
+			for i, a := range x.Args {
+				v, err := s.evalExpr(a)
+				if err != nil {
+					return false
+				}
+				args[i] = v
+			}
+		}
+		_, err = GetAttr(cont, attr, args...)
+		return err == nil
+	default:
+		_, err := s.evalExpr(e)
+		return err == nil
+	}
+}
+
 // Method evalExpr evaluates the given expression, returning a Value or error.
 func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 	switch exp := exp.(type) {
@@ -614,6 +724,20 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			return -CoerceNumber(in), nil
 		}
 	case *parse.BinaryExpr:
+		// Special case: `is [not] defined`. PHP Twig does not evaluate the
+		// left operand when the right side is `defined` — the semantics
+		// are "does this reference resolve?", not "is the resolved value
+		// non-nil". Intercept before the left eval so `{% set x = null %}`
+		// still reports `x is defined` as true.
+		if exp.Op == parse.OpBinaryIs || exp.Op == parse.OpBinaryIsNot {
+			if te, ok := exp.Right.(*parse.TestExpr); ok && te.Name == "defined" {
+				defined := s.isDefined(exp.Left)
+				if exp.Op == parse.OpBinaryIsNot {
+					defined = !defined
+				}
+				return defined, nil
+			}
+		}
 		left, err := s.evalExpr(exp.Left)
 		if err != nil {
 			return nil, err
@@ -954,7 +1078,12 @@ func (env *Env) load(name string) (*parse.Tree, error) {
 		return nil, err
 	}
 	tree := parse.NewNamedTree(name, tpl.Contents())
-	tree.Visitors = append(tree.Visitors, env.Visitors...)
+	for _, v := range env.Visitors {
+		if cv, ok := v.(parse.CloneableNodeVisitor); ok {
+			v = cv.Clone()
+		}
+		tree.Visitors = append(tree.Visitors, v)
+	}
 	err = tree.Parse()
 	if err != nil {
 		return nil, err

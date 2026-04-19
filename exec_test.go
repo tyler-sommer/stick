@@ -83,6 +83,19 @@ var tests = []execTest{
 		expect(`110323f221213332103l`),
 	),
 	newExecTest("For else", `{% for i in emptySet %}{{ i }}{% else %}No results.{% endfor %}`, expect(`No results.`), withContext(map[string]Value{"emptySet": []int{}})),
+	// `{% for x in xs if cond %}` builds an IfNode with no else branch.
+	// When the condition is false for every iteration, the executor used
+	// to walk a nil Else and panic — see commit fixing this.
+	newExecTest(
+		"For with if-filter, no matches, no panic",
+		`<{% for n in [1, 2, 3] if n > 10 %}{{ n }}{% endfor %}>`,
+		expect(`<>`),
+	),
+	newExecTest(
+		"For with if-filter, some matches",
+		`{% for n in [1, 2, 3, 4] if n > 2 %}{{ n }}{% endfor %}`,
+		expect(`34`),
+	),
 	newExecTest(
 		"For map",
 		`{% for k, v in data %}Record {{ loop.index }}: {{ k }}: {{ v }}{% if not loop.last %} - {% endif %}{% endfor %}`,
@@ -471,4 +484,94 @@ type fakePerson struct {
 func (p *fakePerson) Name(prefix string) string {
 	p.name = prefix + p.name
 	return p.name
+}
+
+// TestIncludeArrayAndIgnoreMissing exercises the Twig 3.x array-of-names
+// include and the `ignore missing` modifier. These need a strict loader that
+// actually returns errors for unknown names, so this test builds its own env
+// rather than reusing the one in TestExec (whose testLoader synthesizes
+// templates for unknown names).
+func TestIncludeArrayAndIgnoreMissing(t *testing.T) {
+	// Build an env whose loader knows a small fixed set of templates.
+	// The include-using template is registered under "main" and executed
+	// by name — we can't use the string-loader path because then candidate
+	// names in the include would be resolved as literal template strings.
+	newEnv := func(mainTpl string) *Env {
+		return New(&MemoryLoader{
+			Templates: map[string]string{
+				"main":          mainTpl,
+				"greet.twig":    "Hi {{ who }}",
+				"fallback.twig": "fallback",
+			},
+		})
+	}
+
+	type caseT struct {
+		name   string
+		tpl    string
+		ctx    map[string]Value
+		want   string
+		errSub string // if non-empty, expect an error whose message contains this
+	}
+	cases := []caseT{
+		{
+			name: "array first candidate wins",
+			tpl:  `{% include ['greet.twig', 'fallback.twig'] %}`,
+			ctx:  map[string]Value{"who": "Guy"},
+			want: "Hi Guy",
+		},
+		{
+			name: "array second candidate wins when first missing",
+			tpl:  `{% include ['missing.twig', 'fallback.twig'] %}`,
+			want: "fallback",
+		},
+		{
+			name: "array all missing with ignore missing renders nothing",
+			tpl:  `[{% include ['a.twig', 'b.twig'] ignore missing %}]`,
+			want: "[]",
+		},
+		{
+			name:   "array all missing without ignore errors",
+			tpl:    `{% include ['a.twig', 'b.twig'] %}`,
+			errSub: "does not exist",
+		},
+		{
+			name: "single missing with ignore missing renders nothing",
+			tpl:  `<{% include 'absent.twig' ignore missing %}>`,
+			want: "<>",
+		},
+		{
+			name:   "single missing without ignore errors",
+			tpl:    `{% include 'absent.twig' %}`,
+			errSub: "does not exist",
+		},
+		{
+			name: "ignore missing with with and only",
+			tpl:  `{% include ['missing.twig', 'greet.twig'] ignore missing with {'who': 'Alice'} only %}`,
+			want: "Hi Alice",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			env := newEnv(c.tpl)
+			buf := &bytes.Buffer{}
+			err := env.Execute("main", buf, c.ctx)
+			if c.errSub != "" {
+				if err == nil {
+					t.Fatalf("want error containing %q, got nil (output %q)", c.errSub, buf.String())
+				}
+				if !strings.Contains(err.Error(), c.errSub) {
+					t.Errorf("error %q does not contain %q", err.Error(), c.errSub)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got := buf.String(); got != c.want {
+				t.Errorf("got %q, want %q", got, c.want)
+			}
+		})
+	}
 }

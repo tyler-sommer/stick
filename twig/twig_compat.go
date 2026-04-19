@@ -29,6 +29,7 @@ import (
 	"github.com/tyler-sommer/stick"
 	"github.com/tyler-sommer/stick/parse"
 	"github.com/tyler-sommer/stick/twig/filter"
+	"github.com/tyler-sommer/stick/twig/tests"
 )
 
 // New creates a new, default Env that aims to be compatible with Twig.
@@ -41,7 +42,7 @@ func New(loader stick.Loader) *stick.Env {
 		Loader:    loader,
 		Functions: make(map[string]stick.Func),
 		Filters:   filter.TwigFilters(),
-		Tests:     make(map[string]stick.Test),
+		Tests:     tests.TwigTests(),
 		Visitors:  make([]parse.NodeVisitor, 0),
 	}
 	env.Register(NewAutoEscapeExtension())

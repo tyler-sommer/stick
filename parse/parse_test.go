@@ -70,6 +70,35 @@ var parseTests = []parseTest{
 		mkModule(NewSpacelessNode(NewBodyNode(noPos, NewTextNode("<div> <p>hi</p> </div>", noPos)), noPos)),
 	),
 	newParseTest(
+		"is null desugars to a test",
+		`{{ x is null }}`,
+		mkModule(NewPrintNode(NewBinaryExpr(
+			NewNameExpr("x", noPos), OpBinaryIs,
+			NewTestExpr("null", []Expr{}, noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"is none desugars to the same test",
+		`{{ x is none }}`,
+		mkModule(NewPrintNode(NewBinaryExpr(
+			NewNameExpr("x", noPos), OpBinaryIs,
+			NewTestExpr("null", []Expr{}, noPos), noPos), noPos)),
+	),
+	newParseTest(
+		"block with matching endblock name",
+		"{% block something %}Body{% endblock something %}",
+		mkModule(NewBlockNode("something", NewBodyNode(noPos, NewTextNode("Body", noPos)), noPos)),
+	),
+	newErrorTest(
+		"block endblock name mismatch",
+		"{% block something %}Body{% endblock other %}",
+		`unexpected "other", expected "something"`,
+	),
+	newErrorTest(
+		"block endblock non-name token",
+		"{% block something %}Body{% endblock 42 %}",
+		`expected "TAG_CLOSE", got "NUMBER"`,
+	),
+	newParseTest(
 		"if",
 		"{% if something %}Do Something{% endif %}",
 		mkModule(NewIfNode(NewNameExpr("something", noPos), NewBodyNode(noPos, NewTextNode("Do Something", noPos)), NewBodyNode(noPos), noPos)),
@@ -191,7 +220,7 @@ var parseTests = []parseTest{
 	newParseTest(
 		"for loop",
 		"{% for k, val in something if val %}body{% else %}No results.{% endfor %}",
-		mkModule(NewForNode("k", "val", NewNameExpr("something", noPos), NewIfNode(NewNameExpr("val", noPos), NewBodyNode(noPos, NewTextNode("body", noPos)), nil, noPos), NewBodyNode(noPos, NewTextNode("No results.", noPos)), noPos)),
+		mkModule(NewForNode("k", "val", NewNameExpr("something", noPos), NewIfNode(NewNameExpr("val", noPos), NewBodyNode(noPos, NewTextNode("body", noPos)), NewBodyNode(noPos), noPos), NewBodyNode(noPos, NewTextNode("No results.", noPos)), noPos)),
 	),
 	newParseTest(
 		"include",
@@ -212,6 +241,50 @@ var parseTests = []parseTest{
 		"include only",
 		"{% include '::_subnav.html.twig' only %}",
 		mkModule(NewIncludeNode(NewStringExpr("::_subnav.html.twig", noPos), nil, true, noPos)),
+	),
+	newParseTest(
+		"include ignore missing",
+		"{% include 'optional.twig' ignore missing %}",
+		mkModule(NewIncludeNodeWithOptions(NewStringExpr("optional.twig", noPos), nil, false, true, noPos)),
+	),
+	newParseTest(
+		"include array",
+		"{% include ['a.twig', 'b.twig'] %}",
+		mkModule(NewIncludeNode(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			nil, false, noPos,
+		)),
+	),
+	newParseTest(
+		"include array ignore missing",
+		"{% include ['a.twig', 'b.twig'] ignore missing %}",
+		mkModule(NewIncludeNodeWithOptions(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			nil, false, true, noPos,
+		)),
+	),
+	newParseTest(
+		"include all modifiers",
+		"{% include ['a.twig', 'b.twig'] ignore missing with var only %}",
+		mkModule(NewIncludeNodeWithOptions(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			NewNameExpr("var", noPos), true, true, noPos,
+		)),
+	),
+	newErrorTest(
+		"include ignore without missing",
+		"{% include 'a.twig' ignore %}",
+		`expected "missing"`,
+	),
+	newErrorTest(
+		"include missing without ignore",
+		"{% include 'a.twig' missing %}",
+		`unexpected token "NAME"`,
+	),
+	newErrorTest(
+		"include ignore missing after with (wrong order)",
+		"{% include 'a.twig' with var ignore missing %}",
+		`unexpected token "NAME"`,
 	),
 	newParseTest(
 		"embed",

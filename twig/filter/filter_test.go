@@ -131,6 +131,37 @@ func TestFilters(t *testing.T) {
 				return
 			},
 		},
+		// merge: hash + list — used to silently drop the list, returning the
+		// hash unchanged. See PR fixing this.
+		{"merge empty hash with list", func() stick.Value {
+			return stickSliceToString(filterMerge(nil, map[string]stick.Value{}, []string{"a", "b"}))
+		}, "a.b"},
+		{"merge accumulator pattern (hash + list, repeated)", func() stick.Value {
+			out := stick.Value(map[string]stick.Value{})
+			out = filterMerge(nil, out, []string{"x"})
+			out = filterMerge(nil, out, []string{"y"})
+			out = filterMerge(nil, out, []string{"z"})
+			return stickSliceToString(out)
+		}, "x.y.z"},
+		{
+			"merge non-empty hash with list",
+			func() stick.Value {
+				return filterMerge(nil, map[string]stick.Value{"a": "1", "b": "2"}, []string{"3"})
+			},
+			func(actual stick.Value) (ex string, ok bool) {
+				ex = "[1 2 3]"
+				if v, isSlice := actual.([]stick.Value); isSlice && len(v) == 3 {
+					seen := map[string]bool{}
+					for _, e := range v {
+						seen[stick.CoerceString(e)] = true
+					}
+					if seen["1"] && seen["2"] && seen["3"] {
+						return ex, true
+					}
+				}
+				return ex, false
+			},
+		},
 		{"urlencode", func() stick.Value { return filterURLEncode(nil, "http://test.com/dude?sweet=33&1=2") }, "http%3A%2F%2Ftest.com%2Fdude%3Fsweet%3D33%261%3D2"},
 		{"raw", func() stick.Value {
 			safeVal, ok := filterRaw(nil, "<p>test</p>").(stick.SafeValue)
@@ -139,6 +170,87 @@ func TestFilters(t *testing.T) {
 			}
 			return safeVal.Value()
 		}, "<p>test</p>"},
+
+		// split
+		{"split no separator → per character", func() stick.Value {
+			return stickSliceToString(filterSplit(nil, "a,c"))
+		}, "a.,.c"},
+		{"split with separator", func() stick.Value {
+			return stickSliceToString(filterSplit(nil, "a,b,c", ","))
+		}, "a.b.c"},
+		{"split with limit", func() stick.Value {
+			return stickSliceToString(filterSplit(nil, "a,b,c,d", ",", 2))
+		}, "a.b,c,d"},
+		{"split per character", func() stick.Value {
+			return stickSliceToString(filterSplit(nil, "abc", ""))
+		}, "a.b.c"},
+		{"split per character utf8", func() stick.Value {
+			return stickSliceToString(filterSplit(nil, "東京", ""))
+		}, "東.京"},
+		{"split negative limit", func() stick.Value {
+			return stickSliceToString(filterSplit(nil, "a,b,c,d", ",", -1))
+		}, "a.b.c"},
+
+		// striptags
+		{"striptags simple", func() stick.Value {
+			return filterStripTags(nil, "<p>hello <b>world</b></p>")
+		}, "hello world"},
+		{"striptags multiline", func() stick.Value {
+			return filterStripTags(nil, "<a\nhref='x'>link</a>")
+		}, "link"},
+		{"striptags none", func() stick.Value {
+			return filterStripTags(nil, "no tags here")
+		}, "no tags here"},
+
+		// nl2br
+		{"nl2br LF", func() stick.Value { return filterNL2BR(nil, "a\nb") }, "a<br />\nb"},
+		{"nl2br CRLF", func() stick.Value { return filterNL2BR(nil, "a\r\nb") }, "a<br />\r\nb"},
+		{"nl2br no newline", func() stick.Value { return filterNL2BR(nil, "abc") }, "abc"},
+
+		// number_format
+		{"number_format default", func() stick.Value { return filterNumberFormat(nil, 1234567) }, "1,234,567"},
+		{"number_format two decimals", func() stick.Value { return filterNumberFormat(nil, 1234.5, 2) }, "1,234.50"},
+		{"number_format custom separators", func() stick.Value {
+			return filterNumberFormat(nil, 1234567.89, 2, ",", " ")
+		}, "1 234 567,89"},
+		{"number_format negative", func() stick.Value { return filterNumberFormat(nil, -9876.5, 1) }, "-9,876.5"},
+		{"number_format small", func() stick.Value { return filterNumberFormat(nil, 5) }, "5"},
+
+		// slice — array form
+		{"slice array start", func() stick.Value {
+			return stickSliceToString(filterSlice(nil, []string{"a", "b", "c", "d"}, 1))
+		}, "b.c.d"},
+		{"slice array start+length", func() stick.Value {
+			return stickSliceToString(filterSlice(nil, []string{"a", "b", "c", "d"}, 1, 2))
+		}, "b.c"},
+		{"slice array negative start", func() stick.Value {
+			return stickSliceToString(filterSlice(nil, []string{"a", "b", "c", "d"}, -2))
+		}, "c.d"},
+		{"slice array negative length", func() stick.Value {
+			return stickSliceToString(filterSlice(nil, []string{"a", "b", "c", "d"}, 1, -1))
+		}, "b.c"},
+		{"slice array out of range", func() stick.Value {
+			return stickSliceToString(filterSlice(nil, []string{"a", "b"}, 10, 5))
+		}, ""},
+
+		// slice — string form
+		{"slice string", func() stick.Value { return filterSlice(nil, "abcdef", 1, 3) }, "bcd"},
+		{"slice string utf8", func() stick.Value { return filterSlice(nil, "héllo", 1, 3) }, "éll"},
+		{"slice string negative", func() stick.Value { return filterSlice(nil, "abcdef", -3) }, "def"},
+
+		// sort
+		{"sort strings", func() stick.Value {
+			return stickSliceToString(filterSort(nil, []string{"b", "a", "c"}))
+		}, "a.b.c"},
+		{"sort numbers", func() stick.Value {
+			return stickSliceToString(filterSort(nil, []int{3, 1, 2}))
+		}, "1.2.3"},
+		{"sort empty", func() stick.Value {
+			return stickSliceToString(filterSort(nil, []string{}))
+		}, ""},
+		{"sort nil", func() stick.Value {
+			return stickSliceToString(filterSort(nil, nil))
+		}, ""},
 	}
 	for _, test := range tests {
 		matches := false
