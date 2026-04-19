@@ -209,6 +209,50 @@ var parseTests = []parseTest{
 		mkModule(NewIncludeNode(NewStringExpr("::_subnav.html.twig", noPos), nil, true, noPos)),
 	),
 	newParseTest(
+		"include ignore missing",
+		"{% include 'optional.twig' ignore missing %}",
+		mkModule(NewIncludeNodeWithOptions(NewStringExpr("optional.twig", noPos), nil, false, true, noPos)),
+	),
+	newParseTest(
+		"include array",
+		"{% include ['a.twig', 'b.twig'] %}",
+		mkModule(NewIncludeNode(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			nil, false, noPos,
+		)),
+	),
+	newParseTest(
+		"include array ignore missing",
+		"{% include ['a.twig', 'b.twig'] ignore missing %}",
+		mkModule(NewIncludeNodeWithOptions(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			nil, false, true, noPos,
+		)),
+	),
+	newParseTest(
+		"include all modifiers",
+		"{% include ['a.twig', 'b.twig'] ignore missing with var only %}",
+		mkModule(NewIncludeNodeWithOptions(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			NewNameExpr("var", noPos), true, true, noPos,
+		)),
+	),
+	newErrorTest(
+		"include ignore without missing",
+		"{% include 'a.twig' ignore %}",
+		`expected "missing"`,
+	),
+	newErrorTest(
+		"include missing without ignore",
+		"{% include 'a.twig' missing %}",
+		`unexpected token "NAME"`,
+	),
+	newErrorTest(
+		"include ignore missing after with (wrong order)",
+		"{% include 'a.twig' with var ignore missing %}",
+		`unexpected token "NAME"`,
+	),
+	newParseTest(
 		"embed",
 		"{% embed '::_modal.html.twig' %}{% block title %}Hello{% endblock %}{% endembed  %}",
 		mkModule(NewEmbedNode(NewStringExpr("::_modal.html.twig", noPos), nil, false, map[string]*BlockNode{"title": NewBlockNode("title", NewBodyNode(noPos, NewTextNode("Hello", noPos)), noPos)}, noPos)),
