@@ -108,6 +108,34 @@ var tests = []execTest{
 		expect(`45 - 4 - 1 - 1 - 1`),
 	),
 	newExecTest("In and not in", `{{ 5 in set and 4 not in set }}`, expect(`1`), withContext(map[string]Value{"set": []int{5, 10}})),
+	// `is defined` (and other is/is-not tests) used to terminate the
+	// expression, so any trailing binary op was abandoned and the
+	// outer parser hit an unexpected token. Re-entering parseOuterExpr
+	// after the test makes chained expressions parse correctly.
+	newExecTest(
+		"is defined chained with and (defined and truthy)",
+		`{% if foo is defined and foo %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+		withContext(map[string]Value{"foo": "bar"}),
+	),
+	newExecTest(
+		"is defined chained with and (defined but falsy)",
+		`{% if foo is defined and foo %}yes{% else %}no{% endif %}`,
+		expect("no"),
+		withContext(map[string]Value{"foo": ""}),
+	),
+	newExecTest(
+		"is not defined chained with or",
+		`{% if foo is not defined or foo == 'bar' %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+		withContext(map[string]Value{"foo": "bar"}),
+	),
+	newExecTest(
+		"two consecutive is defined tests",
+		`{% if foo is defined and bar is defined %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+		withContext(map[string]Value{"foo": 1, "bar": 2}),
+	),
 	newExecTest("Function call", `{{ multiply(num, 5) }}`, expect(`50`), withContext(map[string]Value{"num": 10})),
 	newExecTest("Filter call", `Welcome, {{ name }}`, expect(`Welcome, `)),
 	newExecTest("Filter call", `Welcome, {{ name|default('User') }}`, expect(`Welcome, User`), withContext(map[string]Value{"name": nil})),
