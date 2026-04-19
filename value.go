@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/shopspring/decimal"
 )
@@ -414,7 +415,14 @@ func Equal(left Value, right Value) bool {
 }
 
 // Contains returns true if the haystack Value contains needle.
+//
+// For string haystacks the check is substring-based (matching PHP-Twig's
+// `in` operator semantics for strings). The needle is coerced to string.
+// For slice/array/map haystacks the check iterates and compares elements.
 func Contains(haystack Value, needle Value) (bool, error) {
+	if hs, ok := haystack.(string); ok {
+		return strings.Contains(hs, CoerceString(needle)), nil
+	}
 	res := false
 	_, err := Iterate(haystack, func(k Value, v Value, l Loop) (bool, error) {
 		if Equal(v, needle) {

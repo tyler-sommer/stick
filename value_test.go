@@ -321,6 +321,33 @@ func TestIterate(t *testing.T) {
 	}
 }
 
+func TestContains(t *testing.T) {
+	ts := []struct {
+		name    string
+		hay     Value
+		needle  Value
+		want    bool
+		wantErr bool
+	}{
+		{"string haystack match", "foo bar baz", "bar", true, false},
+		{"string haystack miss", "foo bar baz", "qux", false, false},
+		{"string haystack numeric needle", "5 apples", 5, true, false},
+		{"string haystack empty needle", "anything", "", true, false},
+		{"slice haystack match", []int{1, 2, 3}, 2, true, false},
+		{"slice haystack miss", []int{1, 2, 3}, 99, false, false},
+		{"map haystack match by value", map[string]int{"a": 1, "b": 2}, 2, true, false},
+	}
+	for _, tc := range ts {
+		got, err := Contains(tc.hay, tc.needle)
+		if (err != nil) != tc.wantErr {
+			t.Errorf("%s: err=%v wantErr=%v", tc.name, err, tc.wantErr)
+		}
+		if got != tc.want {
+			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
 func TestIterate_breakSlice(t *testing.T) {
 	vals := []string{"hello", "world", "!"}
 	res := []string{}

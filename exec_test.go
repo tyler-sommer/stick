@@ -108,6 +108,11 @@ var tests = []execTest{
 		expect(`45 - 4 - 1 - 1 - 1`),
 	),
 	newExecTest("In and not in", `{{ 5 in set and 4 not in set }}`, expect(`1`), withContext(map[string]Value{"set": []int{5, 10}})),
+	newExecTest(
+		"In operator on string does substring match",
+		`{% if 'bar' in 'foo bar baz' %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+	),
 	newExecTest("Function call", `{{ multiply(num, 5) }}`, expect(`50`), withContext(map[string]Value{"num": 10})),
 	newExecTest("Filter call", `Welcome, {{ name }}`, expect(`Welcome, `)),
 	newExecTest("Filter call", `Welcome, {{ name|default('User') }}`, expect(`Welcome, User`), withContext(map[string]Value{"name": nil})),
