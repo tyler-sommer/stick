@@ -319,7 +319,10 @@ func parseFor(t *Tree, start Pos) (*ForNode, error) {
 		return nil, err
 	}
 	if ifCond != nil {
-		body = NewIfNode(ifCond, body, nil, tok.Pos)
+		// Pass an empty body for the else branch so the executor doesn't
+		// have to walk a nil Node when the condition is false. Mirrors
+		// what parseIfBody already guarantees for standalone {% if %}.
+		body = NewIfNode(ifCond, body, NewBodyNode(tok.Pos), tok.Pos)
 	}
 	t.backup()
 	tok = t.next()
