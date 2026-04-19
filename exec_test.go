@@ -108,7 +108,22 @@ var tests = []execTest{
 		expect(`45 - 4 - 1 - 1 - 1`),
 	),
 	newExecTest("In and not in", `{{ 5 in set and 4 not in set }}`, expect(`1`), withContext(map[string]Value{"set": []int{5, 10}})),
-	newExecTest("Function call", `{{ multiply(num, 5) }}`, expect(`50`), withContext(map[string]Value{"num": 10})),
+	// Three `in`s joined by two `or`s used to mis-parse as
+	// `(A in (B or (C in D))) or (E in F)`, so the outer `in` got a
+	// bool haystack. Re-association must descend the left spine past
+	// one level when chains span two precedence levels.
+	newExecTest(
+		"Three in-clauses joined by or (true on first)",
+		`{% if 5 in [5] or 5 in [6] or 5 in [7] %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+	),
+	newExecTest(
+		"Three in-clauses joined by or (all false)",
+		`{% if 9 in [1] or 9 in [2] or 9 in [3] %}yes{% else %}no{% endif %}`,
+		expect("no"),
+	),
+	newExecTest(
+		"Function call", `{{ multiply(num, 5) }}`, expect(`50`), withContext(map[string]Value{"num": 10})),
 	newExecTest("Filter call", `Welcome, {{ name }}`, expect(`Welcome, `)),
 	newExecTest("Filter call", `Welcome, {{ name|default('User') }}`, expect(`Welcome, User`), withContext(map[string]Value{"name": nil})),
 	newExecTest("Filter call", `Welcome, {{ surname|default('User') }}`, expect(`Welcome, User`), withContext(map[string]Value{"name": nil})),
