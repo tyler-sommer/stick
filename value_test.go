@@ -96,6 +96,29 @@ func TestValue(t *testing.T) {
 		}
 	}
 
+	// Collections: non-empty slices/arrays/maps are truthy, empty ones are
+	// not. Uses a slice of pairs because slices and maps aren't hashable
+	// and can't be map keys like the scalar tests above.
+	var boolCollectionTests = []struct {
+		name     string
+		value    Value
+		expected bool
+	}{
+		{"empty slice", []Value{}, false},
+		{"non-empty slice", []Value{1}, true},
+		{"empty array", [0]int{}, false},
+		{"non-empty array", [2]int{1, 2}, true},
+		{"empty map", map[string]Value{}, false},
+		{"non-empty map", map[string]Value{"a": 1}, true},
+		{"nil map", map[string]Value(nil), false},
+		{"nil slice", []Value(nil), false},
+	}
+	for _, tc := range boolCollectionTests {
+		if actual := CoerceBool(tc.value); actual != tc.expected {
+			t.Errorf("CoerceBool(%s): got %v expected %v", tc.name, actual, tc.expected)
+		}
+	}
+
 	var numberTests = map[Value]float64{
 		testType{}: 42,
 		"3":        3.0,

@@ -123,6 +123,13 @@ func CoerceBool(v Value) bool {
 	case Number:
 		return vc.Number() > 0
 	}
+	// Arrays, slices, and maps are truthy when non-empty, matching PHP-Twig's
+	// "if" semantics for collections (empty array → false; non-empty → true).
+	r := reflect.Indirect(reflect.ValueOf(v))
+	switch r.Kind() {
+	case reflect.Array, reflect.Slice, reflect.Map:
+		return r.Len() > 0
+	}
 	return false
 }
 
