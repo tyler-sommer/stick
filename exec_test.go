@@ -207,6 +207,11 @@ var tests = []execTest{
 		expect("ew? it's not that bad to the power of four!"),
 	),
 	newExecTest(
+		"Hash literal preserves insertion order",
+		`{% set m = {"b": 2, "a": 1, "c": 3} %}{% for k,v in m %}{{k}}={{v}};{% endfor %}`,
+		expect("b=2;a=1;c=3;"),
+	),
+	newExecTest(
 		"Array literal",
 		`{{ ["test", 1, "bar"][2] }}`,
 		expect("bar"),

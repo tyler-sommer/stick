@@ -189,6 +189,95 @@ func TestGetAttr(t *testing.T) {
 	}
 }
 
+func TestHash(t *testing.T) {
+	h := NewHash(0)
+	if h.Len() != 0 {
+		t.Errorf("empty Hash Len: got %d, want 0", h.Len())
+	}
+	h.Set("b", 2)
+	h.Set("a", 1)
+	h.Set("c", 3)
+	if got := h.Keys(); !equalStrings(got, []string{"b", "a", "c"}) {
+		t.Errorf("Keys insertion order: got %v, want [b a c]", got)
+	}
+	// Updating an existing key preserves its position.
+	h.Set("a", 99)
+	if got := h.Keys(); !equalStrings(got, []string{"b", "a", "c"}) {
+		t.Errorf("Keys after re-Set: got %v, want [b a c]", got)
+	}
+	if v, ok := h.Get("a"); !ok || v.(int) != 99 {
+		t.Errorf("Get(a): got (%v, %v), want (99, true)", v, ok)
+	}
+	if _, ok := h.Get("missing"); ok {
+		t.Errorf("Get(missing): got ok=true, want false")
+	}
+	// Delete removes from both the map and the key order.
+	if !h.Delete("b") {
+		t.Errorf("Delete(b): got false, want true")
+	}
+	if got := h.Keys(); !equalStrings(got, []string{"a", "c"}) {
+		t.Errorf("Keys after Delete(b): got %v, want [a c]", got)
+	}
+	if h.Delete("missing") {
+		t.Errorf("Delete(missing): got true, want false")
+	}
+
+	// Collection truthiness via CoerceBool.
+	empty := NewHash(0)
+	if CoerceBool(empty) {
+		t.Errorf("CoerceBool(empty Hash): got true, want false")
+	}
+	if !CoerceBool(h) {
+		t.Errorf("CoerceBool(populated Hash): got false, want true")
+	}
+
+	// IsMap/IsIterable/Len.
+	if !IsMap(h) {
+		t.Errorf("IsMap(*Hash): got false, want true")
+	}
+	if !IsIterable(h) {
+		t.Errorf("IsIterable(*Hash): got false, want true")
+	}
+	if n, err := Len(h); err != nil || n != 2 {
+		t.Errorf("Len(*Hash): got (%d, %v), want (2, nil)", n, err)
+	}
+
+	// Iterate preserves insertion order and populates Loop.
+	var seen []string
+	var lastLoop Loop
+	_, _ = Iterate(h, func(k, v Value, l Loop) (bool, error) {
+		seen = append(seen, k.(string))
+		lastLoop = l
+		return false, nil
+	})
+	if !equalStrings(seen, []string{"a", "c"}) {
+		t.Errorf("Iterate order: got %v, want [a c]", seen)
+	}
+	if lastLoop.Length != 2 {
+		t.Errorf("Loop.Length after iteration: got %d, want 2", lastLoop.Length)
+	}
+
+	// GetAttr on *Hash.
+	if got, err := GetAttr(h, "c"); err != nil || got.(int) != 3 {
+		t.Errorf("GetAttr(*Hash, c): got (%v, %v), want (3, nil)", got, err)
+	}
+	if _, err := GetAttr(h, "missing"); err == nil {
+		t.Errorf("GetAttr(*Hash, missing): got nil err, want error")
+	}
+}
+
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestIsIterable(t *testing.T) {
 	ts := []struct {
 		name     string

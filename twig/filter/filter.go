@@ -297,6 +297,9 @@ func filterJSONEncode(ctx stick.Context, val stick.Value, args ...stick.Value) s
 }
 
 func filterKeys(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	if h, ok := val.(*stick.Hash); ok {
+		return h.Keys()
+	}
 	r := reflect.Indirect(reflect.ValueOf(val))
 	switch r.Kind() {
 	case reflect.Slice, reflect.Array:
@@ -362,19 +365,37 @@ func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 		return nil
 	}
 
+	leftIsHashLike := isHashLike(val)
+	rightIsHashLike := isHashLike(args[0])
+
 	// Hash + hash → string-keyed merge with the right side winning on
 	// conflicts (matches PHP-Twig and PHP's array_merge for hashes).
 	// For mixed hash + list, fall through to the sequence path so the
-	// list elements are appended (the broken hash-only return used to
-	// silently drop them).
-	if outMap, leftIsMap := val.(map[string]stick.Value); leftIsMap {
-		if argMap, rightIsMap := args[0].(map[string]stick.Value); rightIsMap {
-			for k, v := range argMap {
-				outMap[k] = v
-			}
-			return outMap
+	// list elements are appended.
+	if leftIsHashLike && rightIsHashLike {
+		// If either operand is an ordered *stick.Hash, the result is an
+		// ordered *stick.Hash so iteration preserves insertion order.
+		// Two plain Go maps keep producing a plain Go map to avoid a
+		// silent type change for callers that type-assert the result.
+		_, leftHash := val.(*stick.Hash)
+		_, rightHash := args[0].(*stick.Hash)
+		if leftHash || rightHash {
+			out := stick.NewHash(0)
+			_, _ = stick.Iterate(val, func(k, v stick.Value, _ stick.Loop) (bool, error) {
+				out.Set(stick.CoerceString(k), v)
+				return false, nil
+			})
+			_, _ = stick.Iterate(args[0], func(k, v stick.Value, _ stick.Loop) (bool, error) {
+				out.Set(stick.CoerceString(k), v)
+				return false, nil
+			})
+			return out
 		}
-		// fall through
+		outMap := val.(map[string]stick.Value)
+		for k, v := range args[0].(map[string]stick.Value) {
+			outMap[k] = v
+		}
+		return outMap
 	}
 
 	var out []stick.Value
@@ -390,6 +411,18 @@ func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 	})
 
 	return out
+}
+
+// isHashLike reports whether v is something merge should treat as a hash
+// (a Go string-keyed map or an ordered *stick.Hash).
+func isHashLike(v stick.Value) bool {
+	if _, ok := v.(*stick.Hash); ok {
+		return true
+	}
+	if _, ok := v.(map[string]stick.Value); ok {
+		return true
+	}
+	return false
 }
 
 // nl2brRe matches every newline form in one pass: CRLF, bare CR, bare LF.
@@ -477,6 +510,15 @@ func filterReplace(ctx stick.Context, val stick.Value, args ...stick.Value) stic
 }
 
 func filterReverse(ctx stick.Context, val stick.Value, args ...stick.Value) stick.Value {
+	if h, ok := val.(*stick.Hash); ok {
+		out := stick.NewHash(h.Len())
+		keys := h.Keys()
+		for i := len(keys) - 1; i >= 0; i-- {
+			v, _ := h.Get(keys[i])
+			out.Set(keys[i], v)
+		}
+		return out
+	}
 	if stick.IsArray(val) {
 		arr := reflect.ValueOf(val)
 		res := make([]interface{}, 0)

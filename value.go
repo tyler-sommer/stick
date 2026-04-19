@@ -12,6 +12,76 @@ import (
 // and used by a Stick template.
 type Value interface{}
 
+// Hash is an insertion-order-preserving string→Value map. Twig hash literals
+// ({'a': 1, 'b': 2}) evaluate to a *Hash so iteration matches PHP-Twig
+// semantics (PHP associative arrays iterate in insertion order; Go maps do
+// not). User-supplied context (map[string]Value) keeps its existing
+// unordered semantics — the ordered type is only produced by stick itself
+// (hash-literal evaluation and hash-returning filters like merge).
+type Hash struct {
+	order []string
+	vals  map[string]Value
+}
+
+// NewHash returns an empty Hash with capacity hint capHint.
+func NewHash(capHint int) *Hash {
+	if capHint < 0 {
+		capHint = 0
+	}
+	return &Hash{
+		order: make([]string, 0, capHint),
+		vals:  make(map[string]Value, capHint),
+	}
+}
+
+// Set inserts k=v, appending k to the iteration order if it's new. If k
+// already exists, its value is updated in place and the existing position
+// in the iteration order is preserved.
+func (h *Hash) Set(k string, v Value) {
+	if _, ok := h.vals[k]; !ok {
+		h.order = append(h.order, k)
+	}
+	h.vals[k] = v
+}
+
+// Get returns the value for k. The second return is false if k is missing.
+func (h *Hash) Get(k string) (Value, bool) {
+	v, ok := h.vals[k]
+	return v, ok
+}
+
+// Has reports whether k is present.
+func (h *Hash) Has(k string) bool {
+	_, ok := h.vals[k]
+	return ok
+}
+
+// Delete removes k. Returns true if k was present. O(n) in the hash length
+// because the key is removed from the order slice as well.
+func (h *Hash) Delete(k string) bool {
+	if _, ok := h.vals[k]; !ok {
+		return false
+	}
+	delete(h.vals, k)
+	for i, x := range h.order {
+		if x == k {
+			h.order = append(h.order[:i], h.order[i+1:]...)
+			break
+		}
+	}
+	return true
+}
+
+// Len returns the number of keys in the hash.
+func (h *Hash) Len() int { return len(h.order) }
+
+// Keys returns a copy of the keys in insertion order.
+func (h *Hash) Keys() []string {
+	out := make([]string, len(h.order))
+	copy(out, h.order)
+	return out
+}
+
 // A SafeValue represents a value that has already been sanitized and escaped.
 type SafeValue interface {
 	// Value returns the value stored in the SafeValue.
@@ -84,6 +154,8 @@ type Boolean interface {
 // if the value cannot be coerced.
 func CoerceBool(v Value) bool {
 	switch vc := v.(type) {
+	case *Hash:
+		return vc.Len() > 0
 	case SafeValue:
 		return CoerceBool(vc.Value())
 	case bool:
@@ -214,6 +286,12 @@ func CoerceString(v Value) string {
 
 // GetAttr attempts to access the given value and return the specified attribute.
 func GetAttr(v Value, attr Value, args ...Value) (Value, error) {
+	if h, ok := v.(*Hash); ok {
+		if val, found := h.Get(CoerceString(attr)); found {
+			return val, nil
+		}
+		return nil, fmt.Errorf("getattr: unable to locate attribute \"%s\" on \"%v\"", attr, v)
+	}
 	r := reflect.Indirect(reflect.ValueOf(v))
 	if !r.IsValid() {
 		return nil, fmt.Errorf("getattr: value does not support attribute lookup: %v", v)
@@ -312,6 +390,9 @@ func IsArray(val Value) bool {
 
 // IsMap returns true if the given Value is a map.
 func IsMap(val Value) bool {
+	if _, ok := val.(*Hash); ok {
+		return true
+	}
 	r := reflect.Indirect(reflect.ValueOf(val))
 	return r.Kind() == reflect.Map
 }
@@ -319,6 +400,9 @@ func IsMap(val Value) bool {
 // IsIterable returns true if the given Value is a slice, array, or map.
 func IsIterable(val Value) bool {
 	if val == nil {
+		return true
+	}
+	if _, ok := val.(*Hash); ok {
 		return true
 	}
 	r := reflect.Indirect(reflect.ValueOf(val))
@@ -333,6 +417,31 @@ func IsIterable(val Value) bool {
 func Iterate(val Value, it Iteratee) (int, error) {
 	if val == nil {
 		return 0, nil
+	}
+	if h, ok := val.(*Hash); ok {
+		ln := h.Len()
+		l := Loop{
+			ln == 1,
+			1,
+			0,
+			ln,
+			ln - 1,
+			true,
+			ln,
+		}
+		for i, k := range h.order {
+			brk, err := it(k, h.vals[k], l)
+			if brk || err != nil {
+				return i + 1, err
+			}
+			l.Index++
+			l.Index0++
+			l.Last = ln == l.Index
+			l.Revindex--
+			l.Revindex0--
+			l.First = false
+		}
+		return ln, nil
 	}
 	r := reflect.Indirect(reflect.ValueOf(val))
 	switch r.Kind() {
@@ -398,6 +507,9 @@ func Iterate(val Value, it Iteratee) (int, error) {
 func Len(val Value) (int, error) {
 	if val == nil {
 		return 0, nil
+	}
+	if h, ok := val.(*Hash); ok {
+		return h.Len(), nil
 	}
 	r := reflect.Indirect(reflect.ValueOf(val))
 	switch r.Kind() {
