@@ -362,33 +362,34 @@ func filterMerge(ctx stick.Context, val stick.Value, args ...stick.Value) stick.
 		return nil
 	}
 
-	outMap, isObject := val.(map[string]stick.Value)
-
-	if isObject {
-		argMap, ok := args[0].(map[string]stick.Value)
-
-		if ok {
+	// Hash + hash → string-keyed merge with the right side winning on
+	// conflicts (matches PHP-Twig and PHP's array_merge for hashes).
+	// For mixed hash + list, fall through to the sequence path so the
+	// list elements are appended (the broken hash-only return used to
+	// silently drop them).
+	if outMap, leftIsMap := val.(map[string]stick.Value); leftIsMap {
+		if argMap, rightIsMap := args[0].(map[string]stick.Value); rightIsMap {
 			for k, v := range argMap {
 				outMap[k] = v
 			}
+			return outMap
 		}
-
-		return outMap
-	} else {
-		var out []stick.Value
-
-		stick.Iterate(val, func(k, v stick.Value, l stick.Loop) (bool, error) {
-			out = append(out, v)
-			return false, nil
-		})
-
-		stick.Iterate(args[0], func(k, v stick.Value, l stick.Loop) (bool, error) {
-			out = append(out, v)
-			return false, nil
-		})
-
-		return out
+		// fall through
 	}
+
+	var out []stick.Value
+
+	stick.Iterate(val, func(k, v stick.Value, l stick.Loop) (bool, error) {
+		out = append(out, v)
+		return false, nil
+	})
+
+	stick.Iterate(args[0], func(k, v stick.Value, l stick.Loop) (bool, error) {
+		out = append(out, v)
+		return false, nil
+	})
+
+	return out
 }
 
 // nl2brRe matches every newline form in one pass: CRLF, bare CR, bare LF.

@@ -131,6 +131,37 @@ func TestFilters(t *testing.T) {
 				return
 			},
 		},
+		// merge: hash + list — used to silently drop the list, returning the
+		// hash unchanged. See PR fixing this.
+		{"merge empty hash with list", func() stick.Value {
+			return stickSliceToString(filterMerge(nil, map[string]stick.Value{}, []string{"a", "b"}))
+		}, "a.b"},
+		{"merge accumulator pattern (hash + list, repeated)", func() stick.Value {
+			out := stick.Value(map[string]stick.Value{})
+			out = filterMerge(nil, out, []string{"x"})
+			out = filterMerge(nil, out, []string{"y"})
+			out = filterMerge(nil, out, []string{"z"})
+			return stickSliceToString(out)
+		}, "x.y.z"},
+		{
+			"merge non-empty hash with list",
+			func() stick.Value {
+				return filterMerge(nil, map[string]stick.Value{"a": "1", "b": "2"}, []string{"3"})
+			},
+			func(actual stick.Value) (ex string, ok bool) {
+				ex = "[1 2 3]"
+				if v, isSlice := actual.([]stick.Value); isSlice && len(v) == 3 {
+					seen := map[string]bool{}
+					for _, e := range v {
+						seen[stick.CoerceString(e)] = true
+					}
+					if seen["1"] && seen["2"] && seen["3"] {
+						return ex, true
+					}
+				}
+				return ex, false
+			},
+		},
 		{"urlencode", func() stick.Value { return filterURLEncode(nil, "http://test.com/dude?sweet=33&1=2") }, "http%3A%2F%2Ftest.com%2Fdude%3Fsweet%3D33%261%3D2"},
 		{"raw", func() stick.Value {
 			safeVal, ok := filterRaw(nil, "<p>test</p>").(stick.SafeValue)
