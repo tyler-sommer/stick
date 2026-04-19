@@ -131,11 +131,12 @@ func parseExtends(t *Tree, start Pos) (Node, error) {
 	return n, nil
 }
 
-// parseBlock parses a block and any body it may contain.
-// TODO: {% endblock <name> %} support
+// parseBlock parses a block and any body it may contain. The closing
+// {% endblock %} may optionally repeat the block name; when present it
+// must match the opening name, matching the Twig 3.x spec.
 //
 //	{% block <name> %}
-//	{% endblock %}
+//	{% endblock [<name>] %}
 func parseBlock(t *Tree, start Pos) (Node, error) {
 	blockName, err := t.expect(tokenName)
 	if err != nil {
@@ -145,7 +146,24 @@ func parseBlock(t *Tree, start Pos) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := t.parseUntilEndTag("block", start)
+	// parseUntilTag consumes through the "endblock" keyword but leaves the
+	// tag close (and any intervening tokens) for us to handle — which is
+	// how we pick up the optional trailing name. Preserve the
+	// parseUntilEndTag "unclosed tag" error for the immediate-EOF case.
+	if tok := t.peek(); tok.tokenType == tokenEOF {
+		return nil, newUnclosedTagError("block", start)
+	}
+	body, err := t.parseUntilTag(start, "endblock")
+	if err != nil {
+		return nil, err
+	}
+	if tok := t.peekNonSpace(); tok.tokenType == tokenName {
+		closingName := t.nextNonSpace()
+		if closingName.value != blockName.value {
+			return nil, newUnexpectedValueError(closingName, blockName.value)
+		}
+	}
+	_, err = t.expect(tokenTagClose)
 	if err != nil {
 		return nil, err
 	}
