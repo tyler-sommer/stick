@@ -77,7 +77,7 @@ var parseTests = []parseTest{
 		mkModule(NewPrintNode(NewBinaryExpr(
 			NewNameExpr("x", noPos), OpBinaryIs,
 			NewTestExpr("null", []Expr{}, noPos), noPos), noPos)),
-  ),
+	),
 	newParseTest(
 		"block with matching endblock name",
 		"{% block something %}Body{% endblock something %}",
