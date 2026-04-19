@@ -77,6 +77,21 @@ var parseTests = []parseTest{
 		mkModule(NewPrintNode(NewBinaryExpr(
 			NewNameExpr("x", noPos), OpBinaryIs,
 			NewTestExpr("null", []Expr{}, noPos), noPos), noPos)),
+  ),
+	newParseTest(
+		"block with matching endblock name",
+		"{% block something %}Body{% endblock something %}",
+		mkModule(NewBlockNode("something", NewBodyNode(noPos, NewTextNode("Body", noPos)), noPos)),
+	),
+	newErrorTest(
+		"block endblock name mismatch",
+		"{% block something %}Body{% endblock other %}",
+		`unexpected "other", expected "something"`,
+	),
+	newErrorTest(
+		"block endblock non-name token",
+		"{% block something %}Body{% endblock 42 %}",
+		`expected "TAG_CLOSE", got "NUMBER"`,
 	),
 	newParseTest(
 		"if",
@@ -221,6 +236,50 @@ var parseTests = []parseTest{
 		"include only",
 		"{% include '::_subnav.html.twig' only %}",
 		mkModule(NewIncludeNode(NewStringExpr("::_subnav.html.twig", noPos), nil, true, noPos)),
+	),
+	newParseTest(
+		"include ignore missing",
+		"{% include 'optional.twig' ignore missing %}",
+		mkModule(NewIncludeNodeWithOptions(NewStringExpr("optional.twig", noPos), nil, false, true, noPos)),
+	),
+	newParseTest(
+		"include array",
+		"{% include ['a.twig', 'b.twig'] %}",
+		mkModule(NewIncludeNode(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			nil, false, noPos,
+		)),
+	),
+	newParseTest(
+		"include array ignore missing",
+		"{% include ['a.twig', 'b.twig'] ignore missing %}",
+		mkModule(NewIncludeNodeWithOptions(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			nil, false, true, noPos,
+		)),
+	),
+	newParseTest(
+		"include all modifiers",
+		"{% include ['a.twig', 'b.twig'] ignore missing with var only %}",
+		mkModule(NewIncludeNodeWithOptions(
+			NewArrayExpr(noPos, NewStringExpr("a.twig", noPos), NewStringExpr("b.twig", noPos)),
+			NewNameExpr("var", noPos), true, true, noPos,
+		)),
+	),
+	newErrorTest(
+		"include ignore without missing",
+		"{% include 'a.twig' ignore %}",
+		`expected "missing"`,
+	),
+	newErrorTest(
+		"include missing without ignore",
+		"{% include 'a.twig' missing %}",
+		`unexpected token "NAME"`,
+	),
+	newErrorTest(
+		"include ignore missing after with (wrong order)",
+		"{% include 'a.twig' with var ignore missing %}",
+		`unexpected token "NAME"`,
 	),
 	newParseTest(
 		"embed",

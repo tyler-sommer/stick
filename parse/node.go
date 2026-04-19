@@ -233,19 +233,29 @@ func (t *ForNode) All() []Node {
 type IncludeNode struct {
 	Pos
 	TrimmableNode
-	Tpl  Expr // Expression evaluating to the name of the template to include.
-	With Expr // Explicit list of variables to include in the included template.
-	Only bool // If true, only vars defined in With will be passed.
+	Tpl           Expr // Expression evaluating to the name of the template to include. May evaluate to an array of candidate names (first existing wins).
+	With          Expr // Explicit list of variables to include in the included template.
+	Only          bool // If true, only vars defined in With will be passed.
+	IgnoreMissing bool // If true, render nothing when no candidate template can be loaded instead of erroring.
 }
 
-// NewIncludeNode returns a IncludeNode.
+// NewIncludeNode returns an IncludeNode with IgnoreMissing=false. Preserved
+// for backward compatibility; new callers should prefer
+// NewIncludeNodeWithOptions.
 func NewIncludeNode(tmpl Expr, with Expr, only bool, pos Pos) *IncludeNode {
-	return &IncludeNode{pos, TrimmableNode{}, tmpl, with, only}
+	return NewIncludeNodeWithOptions(tmpl, with, only, false, pos)
+}
+
+// NewIncludeNodeWithOptions is the full constructor, matching the Twig 3.x
+// {% include %} modifier set (template name or array, ignore missing, with
+// <vars>, only).
+func NewIncludeNodeWithOptions(tmpl Expr, with Expr, only, ignoreMissing bool, pos Pos) *IncludeNode {
+	return &IncludeNode{pos, TrimmableNode{}, tmpl, with, only, ignoreMissing}
 }
 
 // String returns a string representation of an IncludeNode.
 func (t *IncludeNode) String() string {
-	return fmt.Sprintf("Include(%s with %s %v)", t.Tpl, t.With, t.Only)
+	return fmt.Sprintf("Include(%s with %s only=%v ignoreMissing=%v)", t.Tpl, t.With, t.Only, t.IgnoreMissing)
 }
 
 // All returns all the child Nodes in a IncludeNode.
@@ -259,9 +269,17 @@ type EmbedNode struct {
 	Blocks map[string]*BlockNode // Blocks inside the embed body.
 }
 
-// NewEmbedNode returns a EmbedNode.
+// NewEmbedNode returns an EmbedNode with IgnoreMissing=false. Preserved for
+// backward compatibility; prefer NewEmbedNodeWithOptions.
 func NewEmbedNode(tmpl Expr, with Expr, only bool, blocks map[string]*BlockNode, pos Pos) *EmbedNode {
-	return &EmbedNode{NewIncludeNode(tmpl, with, only, pos), blocks}
+	return NewEmbedNodeWithOptions(tmpl, with, only, false, blocks, pos)
+}
+
+// NewEmbedNodeWithOptions is the full constructor mirroring
+// NewIncludeNodeWithOptions; ignoreMissing causes the embed to render
+// nothing if no candidate template can be loaded.
+func NewEmbedNodeWithOptions(tmpl Expr, with Expr, only, ignoreMissing bool, blocks map[string]*BlockNode, pos Pos) *EmbedNode {
+	return &EmbedNode{NewIncludeNodeWithOptions(tmpl, with, only, ignoreMissing, pos), blocks}
 }
 
 // String returns a string representation of an EmbedNode.
