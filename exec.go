@@ -362,6 +362,11 @@ func (s *state) walkChild(node parse.Node) error {
 		}
 	case *parse.UseNode:
 		return s.walkUseNode(node)
+	case *parse.SetNode:
+		// {% set %} at the top level of a child (extending) template:
+		// Twig spec says these run and are visible in blocks. Execute in
+		// the current scope so the parent walk finds the value.
+		return s.walkSetNode(node)
 	default:
 		// No need to handle other nodes. This function only populates blocks from a
 		// referenced template (in a use statement) and does not actually execute anything.
