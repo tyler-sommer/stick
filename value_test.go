@@ -266,6 +266,31 @@ func TestHash(t *testing.T) {
 	}
 }
 
+func TestAsMap(t *testing.T) {
+	// Plain Go map — returned as-is.
+	m := map[string]Value{"a": 1, "b": 2}
+	got, ok := AsMap(m)
+	if !ok || len(got) != 2 || got["a"] != 1 || got["b"] != 2 {
+		t.Errorf("AsMap(plain map): got (%v, %v), want map {a:1 b:2} + true", got, ok)
+	}
+
+	// *Hash — exposes internal storage, all keys reachable.
+	h := NewHash(0)
+	h.Set("x", 10)
+	h.Set("y", 20)
+	got, ok = AsMap(h)
+	if !ok || len(got) != 2 || got["x"] != 10 || got["y"] != 20 {
+		t.Errorf("AsMap(*Hash): got (%v, %v), want map {x:10 y:20} + true", got, ok)
+	}
+
+	// Non-hash values — return (nil, false).
+	for _, v := range []Value{nil, "string", 42, []Value{1, 2}} {
+		if m, ok := AsMap(v); ok || m != nil {
+			t.Errorf("AsMap(%T %v): got (%v, %v), want (nil, false)", v, v, m, ok)
+		}
+	}
+}
+
 func equalStrings(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

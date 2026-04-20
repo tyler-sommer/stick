@@ -82,6 +82,30 @@ func (h *Hash) Keys() []string {
 	return out
 }
 
+// AsMap converts a hash-shaped Value to a map[string]Value. Returns the
+// map and true for either a *Hash or a plain map[string]Value; returns
+// nil, false for anything else.
+//
+// Intended as a migration aid for user-defined tests / operators /
+// functions that used to type-assert map[string]Value directly on the
+// result of a Twig hash literal or |merge filter. Those callers can drop
+// in AsMap and transparently support both the legacy Go-map shape and
+// the new insertion-order-preserving *Hash.
+//
+// For a *Hash the returned map is the internal storage (not a copy),
+// so callers can read it cheaply. Writing to the returned map bypasses
+// the hash's insertion-order tracking — avoid mutation, or use the
+// *Hash Set / Delete methods instead.
+func AsMap(v Value) (map[string]Value, bool) {
+	switch m := v.(type) {
+	case *Hash:
+		return m.vals, true
+	case map[string]Value:
+		return m, true
+	}
+	return nil, false
+}
+
 // A SafeValue represents a value that has already been sanitized and escaped.
 type SafeValue interface {
 	// Value returns the value stored in the SafeValue.
