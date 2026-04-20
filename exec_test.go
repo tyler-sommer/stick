@@ -123,6 +123,21 @@ var tests = []execTest{
 		expect("Hello, World!"),
 	),
 	newExecTest(
+		"Child top-level set visible in overriding block",
+		`{% extends 'BEFORE[{% block body %}DEFAULT{% endblock %}]AFTER' %}{% set x = 'hello' %}{% block body %}{{ x }}{% endblock %}`,
+		expect("BEFORE[hello]AFTER"),
+	),
+	newExecTest(
+		"Child top-level set visible in inherited parent block",
+		`{% extends '{% block body %}{{ x|default("none") }}{% endblock %}' %}{% set x = 'hello' %}`,
+		expect("hello"),
+	),
+	newExecTest(
+		"Child top-level sets run in order",
+		`{% extends '{% block body %}{{ a }}-{{ b }}{% endblock %}' %}{% set a = 'first' %}{% set b = a ~ '/second' %}`,
+		expect("first-first/second"),
+	),
+	newExecTest(
 		"Set statement",
 		`{% set val = 'a value' %}{{ val }}`,
 		expect("a value"),
