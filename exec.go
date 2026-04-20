@@ -490,9 +490,14 @@ func (s *state) walkIncludeNode(node *parse.IncludeNode) (tpl string, ctx map[st
 		ctx = s.scope.All()
 	}
 	if with != nil {
-		if with, ok := with.(map[string]Value); ok {
-			for k, v := range with {
+		switch w := with.(type) {
+		case map[string]Value:
+			for k, v := range w {
 				ctx[k] = v
+			}
+		case *Hash:
+			for _, k := range w.order {
+				ctx[k] = w.vals[k]
 			}
 		}
 	}
@@ -895,7 +900,7 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 		return s.evalExpr(exp.FalseX)
 
 	case *parse.HashExpr:
-		vals := make(map[string]Value)
+		vals := NewHash(len(exp.Elements))
 		for _, v := range exp.Elements {
 			var key Value
 			var err error
@@ -911,7 +916,7 @@ func (s *state) evalExpr(exp parse.Expr) (v Value, e error) {
 			if err != nil {
 				return nil, err
 			}
-			vals[CoerceString(key)] = val
+			vals.Set(CoerceString(key), val)
 		}
 		return vals, nil
 
