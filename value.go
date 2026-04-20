@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/shopspring/decimal"
 )
@@ -122,6 +123,13 @@ func CoerceBool(v Value) bool {
 		return len(vc.String()) > 0
 	case Number:
 		return vc.Number() > 0
+	}
+	// Arrays, slices, and maps are truthy when non-empty, matching PHP-Twig's
+	// "if" semantics for collections (empty array → false; non-empty → true).
+	r := reflect.Indirect(reflect.ValueOf(v))
+	switch r.Kind() {
+	case reflect.Array, reflect.Slice, reflect.Map:
+		return r.Len() > 0
 	}
 	return false
 }
@@ -414,7 +422,14 @@ func Equal(left Value, right Value) bool {
 }
 
 // Contains returns true if the haystack Value contains needle.
+//
+// For string haystacks the check is substring-based (matching PHP-Twig's
+// `in` operator semantics for strings). The needle is coerced to string.
+// For slice/array/map haystacks the check iterates and compares elements.
 func Contains(haystack Value, needle Value) (bool, error) {
+	if hs, ok := haystack.(string); ok {
+		return strings.Contains(hs, CoerceString(needle)), nil
+	}
 	res := false
 	_, err := Iterate(haystack, func(k Value, v Value, l Loop) (bool, error) {
 		if Equal(v, needle) {

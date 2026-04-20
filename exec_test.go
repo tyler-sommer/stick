@@ -124,6 +124,41 @@ var tests = []execTest{
 	),
 	newExecTest(
 		"Function call", `{{ multiply(num, 5) }}`, expect(`50`), withContext(map[string]Value{"num": 10})),
+	),
+	// `is defined` (and other is/is-not tests) used to terminate the
+	// expression, so any trailing binary op was abandoned and the
+	// outer parser hit an unexpected token. Re-entering parseOuterExpr
+	// after the test makes chained expressions parse correctly.
+	newExecTest(
+		"is defined chained with and (defined and truthy)",
+		`{% if foo is defined and foo %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+		withContext(map[string]Value{"foo": "bar"}),
+	),
+	newExecTest(
+		"is defined chained with and (defined but falsy)",
+		`{% if foo is defined and foo %}yes{% else %}no{% endif %}`,
+		expect("no"),
+		withContext(map[string]Value{"foo": ""}),
+	),
+	newExecTest(
+		"is not defined chained with or",
+		`{% if foo is not defined or foo == 'bar' %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+		withContext(map[string]Value{"foo": "bar"}),
+	),
+	newExecTest(
+		"two consecutive is defined tests",
+		`{% if foo is defined and bar is defined %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+		withContext(map[string]Value{"foo": 1, "bar": 2}),
+	),
+	newExecTest(
+		"In operator on string does substring match",
+		`{% if 'bar' in 'foo bar baz' %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+	),
+	newExecTest("Function call", `{{ multiply(num, 5) }}`, expect(`50`), withContext(map[string]Value{"num": 10})),
 	newExecTest("Filter call", `Welcome, {{ name }}`, expect(`Welcome, `)),
 	newExecTest("Filter call", `Welcome, {{ name|default('User') }}`, expect(`Welcome, User`), withContext(map[string]Value{"name": nil})),
 	newExecTest("Filter call", `Welcome, {{ surname|default('User') }}`, expect(`Welcome, User`), withContext(map[string]Value{"name": nil})),
@@ -136,6 +171,21 @@ var tests = []execTest{
 		"Extended use statement",
 		`{% extends '{% block message %}{% endblock %}' %}{% use '{% block message %}Hello{% endblock %}' with message as base_message %}{% block message %}{{ block('base_message') }}, World!{% endblock %}`,
 		expect("Hello, World!"),
+	),
+	newExecTest(
+		"Child top-level set visible in overriding block",
+		`{% extends 'BEFORE[{% block body %}DEFAULT{% endblock %}]AFTER' %}{% set x = 'hello' %}{% block body %}{{ x }}{% endblock %}`,
+		expect("BEFORE[hello]AFTER"),
+	),
+	newExecTest(
+		"Child top-level set visible in inherited parent block",
+		`{% extends '{% block body %}{{ x|default("none") }}{% endblock %}' %}{% set x = 'hello' %}`,
+		expect("hello"),
+	),
+	newExecTest(
+		"Child top-level sets run in order",
+		`{% extends '{% block body %}{{ a }}-{{ b }}{% endblock %}' %}{% set a = 'first' %}{% set b = a ~ '/second' %}`,
+		expect("first-first/second"),
 	),
 	newExecTest(
 		"Set statement",
