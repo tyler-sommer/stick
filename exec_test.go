@@ -123,11 +123,11 @@ var tests = []execTest{
 		expect("no"),
 	),
 	newExecTest(
-		"Function call", 
-    `{{ multiply(num, 5) }}`, 
-    expect(`50`), 
-    withContext(map[string]Value{"num": 10}),
-  ),
+		"Function call",
+		`{{ multiply(num, 5) }}`,
+		expect(`50`),
+		withContext(map[string]Value{"num": 10}),
+	),
 	// `is defined` (and other is/is-not tests) used to terminate the
 	// expression, so any trailing binary op was abandoned and the
 	// outer parser hit an unexpected token. Re-entering parseOuterExpr
