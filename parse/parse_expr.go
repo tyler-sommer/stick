@@ -160,9 +160,26 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			if v, ok := right.(*BinaryExpr); ok {
 				nxop := binaryOperators[v.Op]
 				if nxop.precedence < op.precedence || (nxop.precedence == op.precedence && op.leftAssoc()) {
-					left := v.Left
-					res := NewBinaryExpr(expr, op.Operator(), left, expr.Start())
-					v.Left = res
+					// Descend along the left spine as long as we keep
+					// finding operators whose precedence also qualifies
+					// for re-association. One level isn't enough when
+					// the right subtree chains 3+ operators across two
+					// precedence levels (e.g. `A in B or C in D or E in F`).
+					target := v
+					for {
+						lb, ok := target.Left.(*BinaryExpr)
+						if !ok {
+							break
+						}
+						lop := binaryOperators[lb.Op]
+						if lop.precedence < op.precedence || (lop.precedence == op.precedence && op.leftAssoc()) {
+							target = lb
+							continue
+						}
+						break
+					}
+					res := NewBinaryExpr(expr, op.Operator(), target.Left, expr.Start())
+					target.Left = res
 					return v, nil
 				}
 			}
