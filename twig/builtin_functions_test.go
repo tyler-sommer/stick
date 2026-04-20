@@ -23,6 +23,8 @@ func TestBuiltinMaxMin(t *testing.T) {
 			`{{ max(counts) }}`, map[string]stick.Value{
 				"counts": map[string]stick.Value{"a": 2, "b": 7, "c": 5},
 			}, "7"},
+		{"max strings lexicographic", `{{ max('apple', 'banana') }}`, nil, "banana"},
+		{"min strings lexicographic", `{{ min('banana', 'apple') }}`, nil, "apple"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
