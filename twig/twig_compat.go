@@ -29,6 +29,7 @@ import (
 	"github.com/tyler-sommer/stick"
 	"github.com/tyler-sommer/stick/parse"
 	"github.com/tyler-sommer/stick/twig/filter"
+	"github.com/tyler-sommer/stick/twig/fn"
 	"github.com/tyler-sommer/stick/twig/tests"
 )
 
@@ -40,7 +41,7 @@ func New(loader stick.Loader) *stick.Env {
 	}
 	env := &stick.Env{
 		Loader:    loader,
-		Functions: make(map[string]stick.Func),
+		Functions: fn.TwigFunctions(),
 		Filters:   filter.TwigFilters(),
 		Tests:     tests.TwigTests(),
 		Visitors:  make([]parse.NodeVisitor, 0),

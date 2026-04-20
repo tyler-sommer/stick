@@ -136,6 +136,11 @@ var tests = []execTest{
 		expect("yes"),
 		withContext(map[string]Value{"foo": 1, "bar": 2}),
 	),
+	newExecTest(
+		"In operator on string does substring match",
+		`{% if 'bar' in 'foo bar baz' %}yes{% else %}no{% endif %}`,
+		expect("yes"),
+	),
 	newExecTest("Function call", `{{ multiply(num, 5) }}`, expect(`50`), withContext(map[string]Value{"num": 10})),
 	newExecTest("Filter call", `Welcome, {{ name }}`, expect(`Welcome, `)),
 	newExecTest("Filter call", `Welcome, {{ name|default('User') }}`, expect(`Welcome, User`), withContext(map[string]Value{"name": nil})),
@@ -149,6 +154,21 @@ var tests = []execTest{
 		"Extended use statement",
 		`{% extends '{% block message %}{% endblock %}' %}{% use '{% block message %}Hello{% endblock %}' with message as base_message %}{% block message %}{{ block('base_message') }}, World!{% endblock %}`,
 		expect("Hello, World!"),
+	),
+	newExecTest(
+		"Child top-level set visible in overriding block",
+		`{% extends 'BEFORE[{% block body %}DEFAULT{% endblock %}]AFTER' %}{% set x = 'hello' %}{% block body %}{{ x }}{% endblock %}`,
+		expect("BEFORE[hello]AFTER"),
+	),
+	newExecTest(
+		"Child top-level set visible in inherited parent block",
+		`{% extends '{% block body %}{{ x|default("none") }}{% endblock %}' %}{% set x = 'hello' %}`,
+		expect("hello"),
+	),
+	newExecTest(
+		"Child top-level sets run in order",
+		`{% extends '{% block body %}{{ a }}-{{ b }}{% endblock %}' %}{% set a = 'first' %}{% set b = a ~ '/second' %}`,
+		expect("first-first/second"),
 	),
 	newExecTest(
 		"Set statement",

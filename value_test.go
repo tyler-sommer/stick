@@ -96,6 +96,29 @@ func TestValue(t *testing.T) {
 		}
 	}
 
+	// Collections: non-empty slices/arrays/maps are truthy, empty ones are
+	// not. Uses a slice of pairs because slices and maps aren't hashable
+	// and can't be map keys like the scalar tests above.
+	var boolCollectionTests = []struct {
+		name     string
+		value    Value
+		expected bool
+	}{
+		{"empty slice", []Value{}, false},
+		{"non-empty slice", []Value{1}, true},
+		{"empty array", [0]int{}, false},
+		{"non-empty array", [2]int{1, 2}, true},
+		{"empty map", map[string]Value{}, false},
+		{"non-empty map", map[string]Value{"a": 1}, true},
+		{"nil map", map[string]Value(nil), false},
+		{"nil slice", []Value(nil), false},
+	}
+	for _, tc := range boolCollectionTests {
+		if actual := CoerceBool(tc.value); actual != tc.expected {
+			t.Errorf("CoerceBool(%s): got %v expected %v", tc.name, actual, tc.expected)
+		}
+	}
+
 	var numberTests = map[Value]float64{
 		testType{}: 42,
 		"3":        3.0,
@@ -317,6 +340,33 @@ func TestIterate(t *testing.T) {
 		l, _ := Len(test.input)
 		if n != l {
 			t.Errorf("%s:\n\texpected to iterate over %d chars, got %d", test.name, l, n)
+		}
+	}
+}
+
+func TestContains(t *testing.T) {
+	ts := []struct {
+		name    string
+		hay     Value
+		needle  Value
+		want    bool
+		wantErr bool
+	}{
+		{"string haystack match", "foo bar baz", "bar", true, false},
+		{"string haystack miss", "foo bar baz", "qux", false, false},
+		{"string haystack numeric needle", "5 apples", 5, true, false},
+		{"string haystack empty needle", "anything", "", true, false},
+		{"slice haystack match", []int{1, 2, 3}, 2, true, false},
+		{"slice haystack miss", []int{1, 2, 3}, 99, false, false},
+		{"map haystack match by value", map[string]int{"a": 1, "b": 2}, 2, true, false},
+	}
+	for _, tc := range ts {
+		got, err := Contains(tc.hay, tc.needle)
+		if (err != nil) != tc.wantErr {
+			t.Errorf("%s: err=%v wantErr=%v", tc.name, err, tc.wantErr)
+		}
+		if got != tc.want {
+			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
 		}
 	}
 }
