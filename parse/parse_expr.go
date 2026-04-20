@@ -146,10 +146,12 @@ func (t *Tree) parseOuterExpr(expr Expr) (Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			// Handle ternary specially
-			if v := t.peekNonSpace(); v.tokenType == tokenPunctuation && v.value == "?" {
-				return t.parseOuterExpr(NewBinaryExpr(expr, op.Operator(), right, expr.Start()))
-			}
+			// Re-enter parseOuterExpr so any trailing operators
+			// (and/or/==/~/further tests, or a ternary `?`) are
+			// consumed. Without this, the `is` branch would return
+			// the BinaryExpr directly and leave the next token
+			// dangling for the outer parser.
+			return t.parseOuterExpr(NewBinaryExpr(expr, op.Operator(), right, expr.Start()))
 		} else {
 			right, err = t.parseExpr()
 			if err != nil {
