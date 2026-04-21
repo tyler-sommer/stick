@@ -23,6 +23,14 @@ func TestMaxMin(t *testing.T) {
 		{"min no args", fnMin, []stick.Value{}, nil},
 		{"max float beats int", fnMax, []stick.Value{2, 2.5}, 2.5},
 		{"min negative", fnMin, []stick.Value{-5, -3, -10}, -10},
+		// Lexicographic compare when every operand is a string.
+		{"max strings", fnMax, []stick.Value{"apple", "banana", "cherry"}, "cherry"},
+		{"min strings", fnMin, []stick.Value{"banana", "apple", "cherry"}, "apple"},
+		{"max string slice", fnMax, []stick.Value{[]stick.Value{"z", "a", "m"}}, "z"},
+		{"min single string", fnMin, []stick.Value{"only"}, "only"},
+		// Mixed type: any non-string flips to numeric comparison.
+		{"max mixed string and int", fnMax, []stick.Value{2, "10"}, "10"},
+		{"min mixed", fnMin, []stick.Value{"5", 1}, 1},
 	}
 	for _, tc := range ts {
 		got := tc.fn(nil, tc.args...)
